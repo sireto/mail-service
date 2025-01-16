@@ -1,0 +1,141 @@
+datasource db {
+    provider = "postgresql"
+    url = env("DATABASE_URL")
+}
+ 
+generator client {
+    provider      = "cargo prisma"
+    output        = "../src/prisma.rs"
+}
+
+model Namespace {
+  id          Int        @id @default(autoincrement())
+  name        String
+  created_at   DateTime   @default(now())
+  updated_at   DateTime   @updatedAt
+  templates   Template[]
+  campaigns   Campaign[]
+  servers     Server[]
+  lists       List[]
+}
+
+model Template {
+  id            Int        @id @default(autoincrement())
+  namespace_id   Int
+  template_name  String
+  template_data  Json
+  content_plaintext String?
+  content_html   String?
+  created_at     DateTime   @default(now())
+  updated_at     DateTime   @updatedAt
+
+  namespace     Namespace  @relation(fields: [namespace_id], references: [id])
+  campaigns     Campaign[]
+  mails         Mail[]
+}
+
+model Campaign {
+  id             Int        @id @default(autoincrement())
+  name   String
+  template_id     Int
+  namespace_id    Int
+  status         String
+  campaign_sender_id Int
+  scheduled_at    DateTime
+  created_at      DateTime   @default(now())
+  updated_at      DateTime   @updatedAt
+
+  template       Template   @relation(fields: [template_id], references: [id])
+  namespace      Namespace @relation(fields: [namespace_id], references: [id])
+  sender         CampaignSender @relation(fields: [campaign_sender_id], references: [id])
+  mails          Mail[]
+  bounce_logs     BounceLog[]
+}
+
+model CampaignSender {
+  id           Int        @id @default(autoincrement())
+  server_id     Int
+  from_name     String
+  from_email    String
+  created_at    DateTime   @default(now())
+  updated_at    DateTime   @updatedAt
+
+  server       Server     @relation(fields: [server_id], references: [id])
+  campaigns    Campaign[]
+}
+
+model Server {
+  id           Int        @id @default(autoincrement())
+  host         String
+  smtp_username String
+  smtp_password String
+  namespace_id  Int
+  created_at    DateTime   @default(now())
+  updated_at    DateTime   @updatedAt
+
+  namespace    Namespace @relation(fields: [namespace_id], references: [id])
+  campaign_senders CampaignSender[]
+}
+
+model List {template_data  Json?
+  id          Int        @id @default(autoincrement())
+  name        String
+  created_at   DateTime   @default(now())
+  updated_at   DateTime   @updatedAt
+  namespace_id Int
+
+  namespace   Namespace @relation(fields: [namespace_id], references: [id])
+  list_contacts ListContact[]
+}
+
+model Mail {
+  id           Int        @id @default(autoincrement())
+  message      String
+  contact_id    Int
+  template_id   Int
+  campaign_id   Int
+  sent_at       DateTime
+  status       String
+
+  contact      Contact   @relation(fields: [contact_id], references: [id])
+  template     Template  @relation(fields: [template_id], references: [id])
+  campaign     Campaign  @relation(fields: [campaign_id], references: [id])
+}
+
+model ListContact {
+  list_id      Int
+  contact_id   Int
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  list        List     @relation(fields: [list_id], references: [id])
+  contact     Contact  @relation(fields: [contact_id], references: [id])
+
+  @@id([list_id, contact_id])
+}
+
+model Contact {
+  id          Int        @id @default(autoincrement())
+  first_name   String
+  last_name    String
+  email       String
+  attribute   Json
+  created_at   DateTime   @default(now())
+  updated_at   DateTime   @updatedAt
+
+  list_contacts ListContact[]
+  mails        Mail[]
+  bounce_logs   BounceLog[]
+}
+
+model BounceLog {
+  id           Int        @id @default(autoincrement())
+  contact_id    Int
+  campaign_id   Int
+  bounce_type   String
+  bounce_reason String
+  bounced_at    DateTime
+
+  contact      Contact   @relation(fields: [contact_id], references: [id])
+  campaign     Campaign  @relation(fields: [campaign_id], references: [id])
+}
