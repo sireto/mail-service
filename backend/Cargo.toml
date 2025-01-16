@@ -12,8 +12,8 @@ axum = "0.8.1"
 tokio = { version = "1.43.0", features = ["full"] }
 dotenv = "0.15.0"
 tower-http = { version = "0.6", features = ["cors"] }
-prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.11" }
-prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.11" }
+prisma-client-rust = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.11", default-features = false, features = ["postgresql"]  }
+prisma-client-rust-cli = { git = "https://github.com/Brendonovich/prisma-client-rust", tag = "0.6.11", default-features = false, features = ["postgresql"]  }
 serde = "1.0.217"
 
 [[bin]]
