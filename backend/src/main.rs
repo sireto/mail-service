@@ -36,5 +36,7 @@ async fn main() {
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
+    println!("Connected to the database: {:?}", client);
     axum::serve(listener, app).await.unwrap();
+
 }

@@ -11,9 +11,9 @@ pub async fn create_template() {}
 /**
  * @description a function to update a template...
 */
-pub async fn update_template(templateId: String) {}
+pub async fn update_template(template_id: String) {}
 
 /**
  * @description a function to delete a template...
  */
-pub async fn delete_template(templateId: String) {}
+pub async fn delete_template(template_id: String) {}
