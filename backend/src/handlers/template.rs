@@ -19,9 +19,6 @@ use crate::appState::AppState;
         (status = 404)
     )
 )]
-/**
- * @description a function to get all the templates...
- */
 pub async fn get_templates()  {}
 
 
@@ -33,9 +30,6 @@ pub async fn get_templates()  {}
         (status = 404)
     )
 )]
-/**
- * @description a function to create a template...
- */
 pub async fn create_template() {}
 
 
@@ -50,9 +44,6 @@ pub async fn create_template() {}
         (status = 404)
     )
 )]
-/**
- * @description a function to update a template...
-*/
 pub async fn update_template(
     State(state): State<Arc<AppState>>, 
     Path(template_id): Path<String>, 
@@ -104,14 +95,14 @@ pub async fn update_template(
 #[utoipa::path(
     delete,
     path = "/api/templates/{template_id}",
+    params(
+        ("template_id" = String, Path, description = "ID of the template to delete")
+    ),
     responses(
-        (status = 200, description = "Delete a template", body = ()),
+        (status = 200, description = "Template deleted successfully", body = DeleteTemplateResponse),
         (status = 404)
     )
 )]
-/**
- * @description a function to delete a template...
- */
 pub async fn delete_template(
     State(state): State<Arc<AppState>>,
     Path(template_id): Path<String>
