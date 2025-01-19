@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use crate::{prisma::template, schema::{DeleteTemplateResponse, TemplateResponse, UpdateTemplateRequest, UpdateTemplateResponse}};
+use crate::{prisma::template, schema::{DeleteTemplateResponse, TemplateResponse, UpdateTemplateRequest, UpdateTemplateResponse, GetTemplateResponse}};
 
 use chrono::DateTime;
 
@@ -16,11 +16,40 @@ use crate::appState::AppState;
     path = "/api/templates",
     responses(
         (status = 200, description = "List of templates", body = Vec<TemplateResponse>),
-        (status = 404)
+        (status = 404, description = "No templates found")
     )
 )]
-pub async fn get_templates()  {}
+pub async fn get_templates(
+    State(state): State<Arc<AppState>>
+) -> Result<Json<Vec<GetTemplateResponse>>, (StatusCode, String)> {
+    let prisma = &state.db;
 
+    let templates = prisma.template()
+        .find_many(vec![])
+        .exec()
+        .await
+        .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?;
+
+    // if templates.is_empty() {
+    //     return Err((StatusCode::NOT_FOUND, "No templates found".to_string()));
+    // }
+
+    let response = templates
+        .into_iter()
+        .map(|template| GetTemplateResponse {
+            id: template.id,
+            name: template.name,
+            namespace_id: template.namespace_id,
+            template_data: template.template_data,
+            content_plaintext: template.content_plaintext,
+            content_html: template.content_html,
+            created_at: DateTime::from(template.created_at),
+            updated_at: DateTime::from(template.updated_at),
+        })
+        .collect();
+
+    Ok(Json(response))
+}
 
 #[utoipa::path(
     post,
