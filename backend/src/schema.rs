@@ -34,6 +34,24 @@ pub struct GetTemplateResponse{
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
+pub struct CreateTemplateRequest {
+    pub name: String,
+    pub namespace_id: String,
+    pub template_data: Value,
+    pub content_plaintext: Option<String>,
+    pub content_html: String,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
+pub struct CreateTemplateResponse {
+    pub id: String,
+    pub name: String,
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub created_at: DateTime<Utc>
+}
+
+
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
 pub struct UpdateTemplateRequest {
     pub name: Option<String>,
     pub template_data: Option<Value>,

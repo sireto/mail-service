@@ -1,5 +1,6 @@
 use std::sync::Arc;
-use crate::{prisma::template, schema::{DeleteTemplateResponse, TemplateResponse, UpdateTemplateRequest, UpdateTemplateResponse, GetTemplateResponse}};
+use crate::{prisma::template, schema::{DeleteTemplateResponse, TemplateResponse, UpdateTemplateRequest, UpdateTemplateResponse, GetTemplateResponse, CreateTemplateRequest, CreateTemplateResponse}};
+use crate::prisma; 
 
 use chrono::DateTime;
 
@@ -59,8 +60,52 @@ pub async fn get_templates(
         (status = 404)
     )
 )]
-pub async fn create_template() {}
+pub async fn create_template(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<CreateTemplateRequest>,
+) -> Result<Json<CreateTemplateResponse>, (StatusCode, String)> {
+    let prisma = &state.db;
 
+    // Validate the essential fields
+    if payload.name.is_empty() || payload.content_html.is_empty() || payload.namespace_id.is_empty() {
+        return Err((
+            axum::http::StatusCode::BAD_REQUEST,
+            "name, content_html, and namespace_id are required".to_string(),
+        ));
+    }
+
+    // Build the namespace relation using UniqueWhereParam
+    let namespace_param = prisma::namespace::id::equals(payload.namespace_id.clone());
+
+    // Additional optional parameters
+    let mut params: Vec<template::SetParam> = Vec::new();
+    if let Some(content_plaintext) = payload.content_plaintext.clone() {
+        params.push(template::content_plaintext::set(Some(content_plaintext)));
+    }
+
+    // Call the Prisma create method
+    let new_template = prisma
+        .template()
+        .create(
+            payload.name.clone(),                // Required: name
+            payload.template_data.clone(),       // Required: template_data
+            payload.content_html.clone(),        // Required: content_html
+            namespace_param,                     // Required: namespace relation
+            params,                              // Optional: additional fields
+        )
+        .exec()
+        .await
+        .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?;
+
+    // Prepare the response
+    let create_response = CreateTemplateResponse {
+        id: new_template.id,
+        name: new_template.name,
+        created_at: DateTime::from(new_template.created_at),
+    };
+
+    Ok(Json(create_response))
+}
 
 #[utoipa::path(
     patch,
