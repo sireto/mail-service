@@ -1,17 +1,14 @@
 pub mod handlers { pub mod template; }
 
-mod schema;
-mod route;
-mod model;
-mod appState;
+pub mod schema;
+pub mod route;
+pub mod model;
+pub mod appState;
 
 #[allow(warnings, unused)]
 mod prisma;
 
 use appState::AppState;
-use prisma::PrismaClient;
-use prisma_client_rust::NewClientError;
-
 
 use axum::http::{header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE}, HeaderValue, Method};
 
@@ -19,11 +16,29 @@ use route::create_router;
 use tower_http::cors::CorsLayer;
 use std::{net::SocketAddr, sync::Arc};
 
+use dotenvy::dotenv;
+use std::env;
+use diesel::prelude::*;
+use diesel::r2d2::ConnectionManager;
+use diesel::r2d2::Pool;
+
 #[tokio::main]
 async fn main() {
-    let client = PrismaClient::_builder().build().await.unwrap();
 
-    let app_state = Arc::new(AppState { db: client });
+    dotenv().ok();
+    let database_url = if cfg!(test) {
+        env::var("DATABASE_URL_TEST").unwrap_or_else(|_| {
+            panic!("DATABASE_URL_TEST must be set when running tests")
+        })
+    } else {
+        env::var("DATABASE_URL").unwrap_or_else(|_| {
+            panic!("DATABASE_URL must be set")
+        })
+    };
+
+    let pool = get_connection_pool(&database_url);
+
+    let app_state = Arc::new(AppState::new(pool));
 
     // cors config...
     let cors = CorsLayer::new()
@@ -44,6 +59,20 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
     // println!("Connected to the database: {:?}", client);
+    println!("Server running at port: {}", &addr);
     axum::serve(listener, app.into_make_service()).await.unwrap();
 
+}
+
+
+pub fn get_connection_pool(database_url: &str) -> Pool<ConnectionManager<PgConnection>> {
+    println!("{}", &database_url);
+    let manager = ConnectionManager::<PgConnection>::new(database_url);
+    // Refer to the `r2d2` documentation for more methods to use when building a connection pool
+    let pool = Pool::builder()
+        .test_on_check_out(true)
+        .build(manager)
+        .expect("Could not build connection pool");
+
+    pool
 }

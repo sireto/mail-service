@@ -1,3 +1,0 @@
-[alias]
-prisma = "run --bin prisma-cli"
-serve = "run --bin backend"
