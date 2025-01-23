@@ -12,6 +12,15 @@ pub async fn get_connection_pool() -> DbPooledConnection {
         .expect("Failed to get DB connection from pool")
 }
 
+pub async fn get_template_by_id(template_id: Uuid) -> Result<Template, diesel::result::Error> {
+    let mut conn = get_connection_pool().await;
+
+    // Use `find()` to get the template by id
+    templates
+        .filter(id.eq(template_id))
+        .first(&mut conn)  // Fetch the first matching result
+}
+
 pub async fn get_all_templates () -> Result<Vec<Template>, diesel::result::Error> {
     let mut conn = get_connection_pool().await;
 

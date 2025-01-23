@@ -6,7 +6,7 @@ use uuid::Uuid;
 pub fn insert_test_template(conn: &mut PgConnection) -> Template {
     let new_template = CreateTemplateRequest {
         name: "Test Template".to_string(),
-        namespace_id: Uuid::parse_str("8790f149-7830-483c-ba50-6ba8b60ac965").expect("Cannot parse UUID"),
+        namespace_id: Uuid::parse_str("e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82").expect("Cannot parse UUID"),
         template_data: serde_json::from_str(r#"{"key1":"value1"}"#).unwrap(),
         content_plaintext: Some("Plaintext content".to_string()),
         content_html: "<p>HTML VERY NEW CONTENT</p>".to_string(),

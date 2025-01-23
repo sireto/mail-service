@@ -9,7 +9,7 @@ use fixtures::{
     get_test_template_by_id, 
     insert_test_template 
 };
-use backend::model::{ DeleteTemplateResponse, UpdateTemplateResponse };
+use backend::model::{ DeleteTemplateResponse, UpdateTemplateResponse, GetTemplateResponse, CreateTemplateResponse };
 use backend::route::create_router;
 
 use backend::establish_connection;
@@ -42,6 +42,77 @@ async fn start_server () {
 // async fn cleanup_test_db(conn: &mut AsyncPgConnection) {
 //     conn.batch_execute("DROP TABLE __test_mail_service").await.unwrap()
 // }
+#[tokio::test]
+async fn test_get_templates() {
+    let pool = establish_connection();
+
+    let conn = &mut pool.get().expect("Failed to get DB connection");
+
+    start_server().await;
+
+    let inserted_template = insert_test_template(conn);
+
+    println!("Template created and inserted successfully");
+
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    // Test the handler
+    let response = reqwest::Client::new()
+        .get(format!("http://localhost:9000/api/templates"))
+        .send()
+        .await
+        .expect("Failed to send request");
+
+    assert!(response.status().is_success());
+
+    // Deserialize the response into Vec<GetTemplateResponse>
+    let templates: Vec<GetTemplateResponse> = response.json().await.expect("Failed to parse response");
+    assert_eq!(templates[0].name, "Test Template");
+}
+
+
+#[tokio::test]
+async fn test_create_template() {
+    // Access the global test environment
+    let pool = establish_connection();
+
+    start_server().await;
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+
+    // Define the payload for the new template
+    let payload = serde_json::json!({
+        "name": "Test Template",
+        "namespace_id": "abb71ec2-660a-4e63-89b2-5a78fc48bdda",
+        "template_data": {
+            "key1": "value1"
+        },
+        "content_plaintext": "Plaintext content",
+        "content_html": "<p>HTML content</p>"
+    });
+
+    // Send the POST request to create a new template
+    let response = reqwest::Client::new()
+        .post("http://localhost:9000/api/templates")
+        .json(&payload)
+        .send()
+        .await
+        .expect("Failed to send request");
+
+    // Assert the response status is success
+    assert!(response.status().is_success(), "Request failed with status: {}", response.status());
+
+
+    // Deserialize the response into CreateTemplateResponse
+    let created_template: CreateTemplateResponse = response
+        .json()
+        .await
+        .expect("Failed to parse response");
+
+    // Assert the response contains expected values
+    assert_eq!(created_template.name, "Test Template");
+    assert!(created_template.id.len() > 0);
+    assert!(created_template.created_at.timestamp() > 0);
+
+}
 
 #[tokio::test]
 

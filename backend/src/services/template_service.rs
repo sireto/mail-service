@@ -8,6 +8,33 @@ use axum:: {
     extract::Json, http::StatusCode
 };
 
+pub async fn get_template_by_id_service(template_id: Uuid) -> Result<GetTemplateResponse, (StatusCode, String)> {
+    // Call the repository function to get the template by ID
+    let template = template_repo::get_template_by_id(template_id).await;
+
+    match template {
+        Ok(template) => {
+            // Map the template to the response format
+            let response_template = GetTemplateResponse {
+                id: template.id.to_string(),
+                name: template.name,
+                namespace_id: template.namespace_id.to_string(),
+                template_data: template.template_data,
+                content_plaintext: template.content_plaintext,
+                content_html: template.content_html,
+                created_at: DateTime::from_naive_utc_and_offset(template.created_at, Utc),
+                updated_at: DateTime::from_naive_utc_and_offset(template.updated_at, Utc),
+            };
+
+            Ok(response_template)
+        },
+        Err(err) => {
+            // Return an error if the template was not found
+            Err((StatusCode::NOT_FOUND, err.to_string()))
+        }
+    }
+}
+
 pub async fn get_all_templates_service () -> Result<Vec<GetTemplateResponse>, (StatusCode, String)> {
     let all_templates = template_repo::get_all_templates().await;
 

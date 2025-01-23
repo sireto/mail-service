@@ -6,4 +6,5 @@ file = "src/schema.rs"
 custom_type_derives = ["diesel::query_builder::QueryId", "Clone"]
 
 [migrations_directory]
-dir = "/home/kanak/Desktop/sireto/mail-service/backend/migrations"
+dir = "C:\\Users\\saisab31\\Desktop\\sireto\\mail-service\\backend\\migrations"
+
