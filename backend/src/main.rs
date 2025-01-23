@@ -1,27 +1,20 @@
-mod handler;
-mod schema;
-mod route;
-mod model;
+use backend::route::create_router;
 
-#[allow(warnings, unused)]
-mod prisma;
-
-use prisma::PrismaClient;
-use prisma_client_rust::NewClientError;
+use dotenv::dotenv;
 
 use axum::http::{header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE}, HeaderValue, Method};
-use route::create_router;
+
 use tower_http::cors::CorsLayer;
-use std::net::SocketAddr;
+use std::{net::SocketAddr, env};
 
 #[tokio::main]
 async fn main() {
-    let client: Result<PrismaClient, NewClientError> = PrismaClient::_builder().build().await;
+    dotenv().ok();
 
     // cors config...
     let cors = CorsLayer::new()
         .allow_origin(
-            ["http://localhost:3000"]
+            ["http://localhost:3000", "http://localhost:8000"]
             .iter()
             .map(|s| s.parse::<HeaderValue>().unwrap())
             .collect::<Vec<_>>(),
@@ -32,11 +25,16 @@ async fn main() {
 
     let app = create_router().layer(cors);
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
+    // let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
+    let addr = env::var("SERVER_ADDRESS").unwrap_or_else(|_| "127.0.0.1:8000".to_string());
+
+    let addr: SocketAddr = addr.parse().expect("Invalid server address");
+
+    println!("THE Actual socket addr ===> {addr:?}");
+
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
-    println!("Connected to the database: {:?}", client);
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app.into_make_service()).await.unwrap();
 
 }
