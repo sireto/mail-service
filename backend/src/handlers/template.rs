@@ -1,15 +1,20 @@
-use std::sync::Arc;
-use crate::{prisma::template, schema::{DeleteTemplateResponse, TemplateResponse, UpdateTemplateRequest, UpdateTemplateResponse}};
-
-use chrono::DateTime;
+use crate::model::{ CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, TemplateResponse, UpdateTemplateRequest, UpdateTemplateResponse, GetTemplateResponse };
+use serde_json::Value;
 
 use axum::{
-    extract:: {
-        Path, State
-    }, Json, http::StatusCode
+    extract:: Path, Json, http::StatusCode
 };
 
-use crate::appState::AppState;
+use crate::services::template_service;
+
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum TemplateField {
+    Name(String),
+    ContentHtml(String),
+    ContentPlainText(Option<String>),
+    TemplateData(Value),
+}
 
 #[utoipa::path(
     get,
@@ -19,19 +24,40 @@ use crate::appState::AppState;
         (status = 404)
     )
 )]
-pub async fn get_templates()  {}
+pub async fn get_templates() -> Result<Json<Vec<GetTemplateResponse>>, (StatusCode, String)> {
 
+    // Use Diesel to fetch templates from the database
+    let templates_result = template_service::get_all_templates_service().await?;
+
+    if templates_result.is_empty() {
+        return Err((StatusCode::NOT_FOUND, "No templates found".to_string()));
+    }
+
+    Ok(Json(templates_result))
+}
 
 #[utoipa::path(
     post,
     path = "/api/templates",
     responses(
-        (status = 200, description = "Create a template", body = ()),
+        (status = 200, description = "Create a template", body = CreateTemplateResponse),
         (status = 404)
     )
 )]
-pub async fn create_template() {}
+pub async fn create_template(
+    Json(payload): Json<CreateTemplateRequest>,
+) -> Result<Json<CreateTemplateResponse>, (StatusCode, String)> {
 
+    let create_new_template = template_service::create_template_service(payload).await?;
+
+    let create_response = CreateTemplateResponse {
+        id: create_new_template.id.to_string(),
+        name: create_new_template.name,
+        created_at: create_new_template.created_at,
+    };
+
+    Ok(Json(create_response))
+}
 
 #[utoipa::path(
     patch,
@@ -41,56 +67,21 @@ pub async fn create_template() {}
     ),
     responses(
         (status = 200, description = "Template updated successfully", body = UpdateTemplateResponse),
-        (status = 404)
+        (status = 400, description = "Bad request"),
+        (status = 404, description = "Template not found"),
+        (status = 500, description = "Internal server error")
     )
 )]
 pub async fn update_template(
-    State(state): State<Arc<AppState>>, 
-    Path(template_id): Path<String>, 
-    Json(payload): Json<UpdateTemplateRequest>
-    ) -> Result<Json<UpdateTemplateResponse>, (StatusCode, String)> {
-    let prisma = &state.db;
     
-    if payload.name.is_none() && payload.content_html.is_none() && payload.content_plaintext.is_none() && payload.template_data.is_none() {
-        return Err((axum::http::StatusCode::BAD_REQUEST, "At least one field (name, content_html, content_plaintext, template_data) is required".to_string()));
-    }
+    Path(template_id): Path<String>,
+    Json(payload): Json<UpdateTemplateRequest>
+) -> Result<Json<UpdateTemplateResponse>, (StatusCode, String)> {
 
-    // Build the update operations dynamically...
-    let mut updates: Vec<template::SetParam> = Vec::new();
-     
-    if let Some(name) = payload.name {
-        updates.push(template::name::set(name));
-    }
-    if let Some(content_html) = payload.content_html {
-        updates.push(template::content_html::set(content_html));
-    }
-    if let Some(content_plaintext) = payload.content_plaintext {
-        updates.push(template::content_plaintext::set(Some(content_plaintext)));
-    }
-    if let Some(template_data) = payload.template_data {
-        updates.push(template::template_data::set(template_data));
-    }
+    let update_template_response = template_service::update_template_service(template_id, payload).await?;
 
-
-    let response = prisma.template().update(
-        template::id::equals(template_id.to_string()),
-        updates
-        // template::name::set(payload.name),
-
-    )
-    .exec()
-    .await
-    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?;
-
-    let update_response = UpdateTemplateResponse {
-        id: response.id,
-        name: response.name,
-        updated_at: DateTime::from(response.updated_at),
-    };
-
-    Ok(Json(update_response))
+    Ok(Json(update_template_response))
 }
-
 
 #[utoipa::path(
     delete,
@@ -100,27 +91,15 @@ pub async fn update_template(
     ),
     responses(
         (status = 200, description = "Template deleted successfully", body = DeleteTemplateResponse),
-        (status = 404)
+        (status = 400, description = "Bad request"),
+        (status = 404, description = "Template not found"),
+        (status = 500, description = "Internal server error")
     )
 )]
 pub async fn delete_template(
-    State(state): State<Arc<AppState>>,
     Path(template_id): Path<String>
 ) -> Result<Json<DeleteTemplateResponse>, (StatusCode, String)> {
-    let prisma = &state.db;
+    let delete_template_response = template_service::delete_template_service(template_id).await?;
 
-    let response = prisma.template()
-    .delete(template::id::equals(template_id.to_string()))
-    .exec()
-    .await
-    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?;
-
-    println!("The deleted template is: {response:?}");
-
-    let delete_response = DeleteTemplateResponse {
-        id: response.id,
-        name: response.name,
-    };
-
-    Ok(Json(delete_response))
+    Ok(Json(delete_template_response))
 }

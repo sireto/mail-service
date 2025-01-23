@@ -1,45 +1,30 @@
-use chrono::{ DateTime, Utc };
-use serde_json::Value;
+// @generated automatically by Diesel CLI.
 
-use serde::{ Serialize, Deserialize };
-use utoipa::ToSchema;
-
-
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
-pub struct TemplateResponse {
-    pub id: String,
-    pub name: String,
-    pub namespace_id: String,
-    pub template_data: Value,
-    pub content_plaintext: Option<String>,
-    pub content_html: String,
-    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
-    pub created_at: DateTime<Utc>,
-    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
-    pub updated_at: DateTime<Utc>,
+diesel::table! {
+    namespaces (id) {
+        id -> Uuid,
+        name -> Varchar,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
-pub struct UpdateTemplateRequest {
-    pub name: Option<String>,
-    pub template_data: Option<Value>,
-    pub content_plaintext: Option<String>,
-    pub content_html: Option<String>,
+diesel::table! {
+    templates (id) {
+        id -> Uuid, 
+        namespace_id -> Uuid,
+        name -> Varchar,
+        template_data -> Jsonb,
+        content_plaintext -> Nullable<Text>,
+        content_html -> Text,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
 }
 
+diesel::joinable!(templates -> namespaces (namespace_id));
 
-// the following might change...
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
-pub struct UpdateTemplateResponse {
-    pub id: String,
-    pub name: String,
-
-    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
-    pub updated_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
-pub struct DeleteTemplateResponse {
-    pub id: String,
-    pub name: String,
-}
+diesel::allow_tables_to_appear_in_same_query!(
+    namespaces,
+    templates,
+);

@@ -1,11 +1,16 @@
-use crate::prisma::PrismaClient;
+use diesel::r2d2::{ ConnectionManager, Pool, PooledConnection };
+
+use diesel::PgConnection;
+
+pub type DbPool = Pool<ConnectionManager<PgConnection>>;
+pub type DbPooledConnection = PooledConnection<ConnectionManager<PgConnection>>;
 
 pub struct AppState {
-    pub db: PrismaClient,
+    pub db_pool: DbPool,
 }
 
 impl AppState {
-    pub fn new(db: PrismaClient) -> Self {
-        AppState { db }
+    pub fn new(db_pool: DbPool) -> Self {
+        AppState { db_pool }
     }
 }

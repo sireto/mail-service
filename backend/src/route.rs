@@ -14,7 +14,7 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::appState::AppState;
 
 use crate::handlers::template::{
-    create_template, delete_template, get_templates, update_template
+    delete_template, get_templates, create_template, update_template
 };
 
 use crate::handlers::template as template;
@@ -29,11 +29,14 @@ use crate::handlers::template as template;
     ),
     tags (
         (name="Templates", description="Operations about templates")
+    ),
+    servers(
+        (url = "http://127.0.0.1:8000", description = "Local development server")
     )
 )]
 struct ApiDoc;
 
-pub fn create_router(state: Arc<AppState>) -> Router {
+pub fn create_router() -> Router {
     Router::new()
         .route("/api/templates", get(get_templates))
         .route("/api/templates", post(create_template))
@@ -43,5 +46,4 @@ pub fn create_router(state: Arc<AppState>) -> Router {
             SwaggerUi::new("/swagger-ui")
                 .url("/api-docs/mail-service", ApiDoc::openapi())
         )
-        .with_state(state)
 }
