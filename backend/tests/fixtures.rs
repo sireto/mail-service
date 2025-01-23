@@ -6,12 +6,16 @@ use backend::model::CreateTemplateRequest;
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
 
-pub fn insert_test_template(conn: &mut PgConnection) {
-    
-    let delete_result = match diesel::delete(template).execute(conn){
+pub fn clean_table(conn: &mut PgConnection)->(){
+    match diesel::delete(template).execute(conn){
         Ok(_) => println!("Delete from table before executing test"), 
         Err(_)=>println!("Error deletion before executing test")
     };
+}
+
+pub fn insert_test_template(conn: &mut PgConnection) {
+    
+    clean_table(conn);
 
     let new_template = CreateTemplateRequest {
         name: "Test Template".to_string(),
