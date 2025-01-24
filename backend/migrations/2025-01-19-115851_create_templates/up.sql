@@ -23,7 +23,7 @@ VALUES (
     'Welcome Email 001', 
     '{"key1": "value1", "key2": "value2"}', 
     'Hello, welcome to our service!', 
-    '<h1>Hello</h1><p style="display: flex;">Welcome to our service!</p>', 
+    '<h1>Hello</h1><p>Welcome to our service!</p>', 
     '2025-01-24 05:15:21.356911+00', 
     '2025-01-24 05:15:21.356911+00'
 );
