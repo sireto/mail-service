@@ -1,4 +1,4 @@
-use aws_sdk_sesv2::{error::SdkError, operation::send_email::SendEmailOutput, types::{Body, Content, Destination, EmailContent, Message }, Client, Error};
+use aws_sdk_sesv2::{error::SdkError, operation::send_email::SendEmailOutput, types::{Body, Content, Destination, EmailContent, Message }, Client };
 use aws_config::{BehaviorVersion, Region};
 
 use std::env;

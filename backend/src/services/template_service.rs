@@ -5,8 +5,7 @@ use crate::services::aws_service;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 
-use aws_sdk_sesv2::{types::{Body, Content, Destination, EmailContent, Message }, Client, Error};
-use aws_config::{BehaviorVersion, Region};
+use aws_sdk_sesv2::Error;
 
 use tera::{Context, Tera, Value};
 
