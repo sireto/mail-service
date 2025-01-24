@@ -67,4 +67,3 @@ jobs:
           tags: ${{ steps.meta-backend.outputs.tags }}
           labels: ${{ steps.meta-backend.outputs.labels }}
           build-args: |
-            DATABASE_URL="postgresql://admin:saisab@localhost:6500/mail_service"

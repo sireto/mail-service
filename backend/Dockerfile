@@ -29,9 +29,6 @@ WORKDIR /app
 # Copy the compiled binary from the builder image
 COPY --from=builder /app/target/release/backend /usr/local/bin/backend
 
-# Set environment variables for the application
-ENV DATABASE_URL=postgresql://admin:saisab@postgres:5432/mail_service
-
 # Expose the port that the app will run on
 EXPOSE 8000
 
