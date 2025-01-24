@@ -23,23 +23,23 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get latest tag and commit distance
-        id: get_version_info
-        run: |
-          # Get the latest tag
-          LATEST_TAG=$(git describe --tags --abbrev=0)
+      #   - name: Get latest tag and commit distance
+      #     id: get_version_info
+      #     run: |
+      #       # Get the latest tag
+      #       LATEST_TAG=$(git describe --tags --abbrev=0)
 
-          # Remove 'v' prefix from latest tag
-          BASE_VERSION=${LATEST_TAG#v}
+      #       # Remove 'v' prefix from latest tag
+      #       BASE_VERSION=${LATEST_TAG#v}
 
-          # Get the number of commits since the last tag
-          COMMIT_DISTANCE=$(git rev-list --count ${LATEST_TAG}..HEAD)
+      #       # Get the number of commits since the last tag
+      #       COMMIT_DISTANCE=$(git rev-list --count ${LATEST_TAG}..HEAD)
 
-          # Construct new version with build number
-          NEW_VERSION="${BASE_VERSION}.${COMMIT_DISTANCE}"
+      #       # Construct new version with build number
+      #       NEW_VERSION="${BASE_VERSION}.${COMMIT_DISTANCE}"
 
-          echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
-          echo "Generated version: ${NEW_VERSION}"
+      #       echo "version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+      #       echo "Generated version: ${NEW_VERSION}"
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
@@ -55,7 +55,6 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}
           tags: |
-            type=raw,value=${{ steps.get_version_info.outputs.version }}
             type=raw,value=latest
 
       - name: Build and push Backend image
