@@ -6,7 +6,7 @@ services:
     ports:
       - "6500:5432"
     volumes:
-      - mailservice_progresDB:/var/lib/postgresql/data
+      - mailservice_1:/var/lib/postgresql/data
     env_file:
       - ./.env
     networks:
@@ -23,14 +23,17 @@ services:
       - postgres
     environment:
       # Use the service name 'postgres' instead of localhost
-      DATABASE_URL: postgresql://admin:saisab@postgres:5432/mail_service
+      DATABASE_URL: postgresql://postgres:Kanak%40posts@postgres:5432/mail_service
+
+    env_file:
+      - ./.env
     volumes:
       - .backend/api/src:/app/src:ro
     networks:
       - app_network
 
 volumes:
-  mailservice_progresDB:
+  mailservice_1:
 
 networks:
   app_network:

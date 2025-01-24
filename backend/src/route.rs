@@ -11,10 +11,10 @@ use axum::{
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::appState::AppState;
+use crate::{appState::AppState, handlers::template::get_templates_by_id};
 
 use crate::handlers::template::{
-    delete_template, get_templates, create_template, update_template
+    delete_template, get_templates, create_template, update_template, send_templated_email
 };
 
 use crate::handlers::template as template;
@@ -23,9 +23,11 @@ use crate::handlers::template as template;
 #[openapi(
     paths(
         template::get_templates,
+        template::get_templates_by_id,
         template::create_template,
         template::update_template,
-        template::delete_template
+        template::delete_template,
+        template::send_templated_email
     ),
     tags (
         (name="Templates", description="Operations about templates")
@@ -38,11 +40,12 @@ struct ApiDoc;
 
 pub fn create_router() -> Router {
     Router::new()
-        .route("/api/templates/{templateId}", get(get_templates))
+        .route("/api/templates/{templateId}", get(get_templates_by_id))
         .route("/api/templates", get(get_templates))
         .route("/api/templates", post(create_template))
         .route("/api/templates/{templateId}", patch(update_template))
         .route("/api/templates/{templateId}", delete(delete_template))
+        .route("/api/templates/{templateId}/send", post(send_templated_email))
         .merge(
             SwaggerUi::new("/swagger-ui")
                 .url("/api-docs/mail-service", ApiDoc::openapi())

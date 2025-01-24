@@ -21,7 +21,10 @@ RUN cargo build --release
 FROM ubuntu:22.04
 
 # Install necessary dependencies to run the Rust app
-RUN apt-get update && apt-get install -y libpq-dev && apt-get clean
+RUN apt-get update && apt-get install -y  \
+    libpq-dev \
+    ca-certificates \
+    && apt-get clean
 
 # Set the working directory inside the final container
 WORKDIR /app

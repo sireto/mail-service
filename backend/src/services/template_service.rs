@@ -1,12 +1,17 @@
-use crate::model::{ CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, UpdateTemplateRequest, UpdateTemplateResponse };
+use crate::model::{ CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, SendMailRequest, SendMailResponse, UpdateTemplateRequest, UpdateTemplateResponse };
 
-use crate::repositories::template_repo;
+use crate::repositories::template_repo::{self, get_template_by_id};
+use crate::services::aws_service;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 
-use axum:: {
-    extract::Json, http::StatusCode
-};
+use aws_sdk_sesv2::{types::{Body, Content, Destination, EmailContent, Message }, Client, Error};
+use aws_config::{BehaviorVersion, Region};
+
+use tera::{Context, Tera, Value};
+
+use axum::http::StatusCode;
+
 
 pub async fn get_template_by_id_service(template_id: Uuid) -> Result<GetTemplateResponse, (StatusCode, String)> {
     // Call the repository function to get the template by ID
@@ -118,4 +123,87 @@ pub async fn delete_template_service (
     };
 
     Ok(response_template)
+}
+
+pub async fn send_templated_email_service (
+    template_id: String,
+    payload: SendMailRequest
+) -> Result<SendMailResponse, Error> {
+    let client = aws_service::create_aws_client().await;
+
+    let template_uuid_id = Uuid::parse_str(&template_id).unwrap();
+
+    let template = get_template_by_id(template_uuid_id).await.unwrap();
+
+    let mut tera = Tera::default();
+    tera.add_raw_template("demo_template", &template.content_html).unwrap();
+
+    let template_data = payload.template_data;
+    println!("Template data value: {:?}", template_data);
+
+    let json_string = template_data
+        .replace("'", "\"") // Replace single quotes with double quotes
+        .replace("{", "{\"") // Add opening quotes to keys
+        .replace(":", "\":") // Add closing quotes to keys
+        .replace(", ", ", \""); // Add quotes to subsequent keys if needed
+        // .replace(" ", ""); // Remove spaces...
+
+    // Parse the JSON string into a `serde_json::Value`
+    let parsed_data: Value = serde_json::from_str(&json_string).expect("Failed to parse data into JSON");
+
+    println!("THe parsed data value: {:?}", parsed_data);
+
+    // Create the Tera context and populate it with parsed data...
+    let mut context = Context::new();
+
+    if let Some(map) = parsed_data.as_object() {
+        for (key, value) in map.iter() {
+            if let Some(value_str) = value.as_str() {
+                context.insert(key, value_str);
+            }
+        }
+    }
+
+    let rendered = tera.render("demo_template", &context).expect("Failed to render template");
+
+    let parsed_template_html = mrml::parse(&rendered).unwrap_or_else(|_| panic!("Failed to parse mjml template"));
+
+    let opts = mrml::prelude::render::Options::default();
+    let parsed_template_html_from_mjml = parsed_template_html
+        .render(&opts)
+        .expect("Failed to render MJML to HTML");
+
+    let subject = "Welcome";
+
+    // contact lists data...
+    let resp = client
+        .list_contacts()
+        .contact_list_name(payload.list)
+        .send()
+        .await?;
+
+    let contacts = resp.contacts();
+    let cs: Vec<String> = contacts 
+        .iter()
+        .map(|i| i.email_address().unwrap_or_default().to_string())
+        .collect();
+
+    let result = aws_service::send_mail(client, payload.from.clone(), cs.clone(), subject, &parsed_template_html_from_mjml).await;
+
+    match result {
+        Ok(_) => {
+            println!("Templated email result: {:?}", result);
+            let mail_response = SendMailResponse {
+                id: Uuid::new_v4(),
+                name: template.name.clone(),
+                to: cs,
+                from: payload.from
+            };
+            Ok(mail_response)
+        }
+        Err(err) => {
+            eprintln!("Failed to send templated email: {}", err);
+            Err(err.into())
+        }
+    }
 }

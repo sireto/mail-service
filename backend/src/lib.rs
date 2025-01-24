@@ -6,7 +6,10 @@ use dotenv::dotenv;
 use std::env;
 
 pub mod handlers { pub mod template; }
-pub mod services { pub mod template_service; }
+pub mod services { 
+    pub mod template_service; 
+    pub mod aws_service;
+}
 pub mod repositories { pub mod template_repo; }
 pub mod tests;
 
@@ -45,6 +48,8 @@ pub static GLOBAL_APP_STATE: Lazy<Arc<AppState>> = Lazy::new(|| {
     let database_url =  env::var("DATABASE_URL").unwrap_or_else(|_| {
         panic!("DATABASE_URL must be set when running tests")
     });
+
+    println!("THe database url is ====> {}", database_url.clone());
 
     let manager = ConnectionManager::<PgConnection>::new(database_url);
     let db_pool = Pool::builder()

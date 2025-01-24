@@ -1,12 +1,12 @@
-use crate::model::{ CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, TemplateResponse, UpdateTemplateRequest, UpdateTemplateResponse, GetTemplateResponse };
+use crate::model::{ CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, SendMailRequest, SendMailResponse, TemplateResponse, UpdateTemplateRequest, UpdateTemplateResponse };
 use serde_json::Value;
+use uuid::Uuid;
 
 use axum::{
     extract:: Path, Json, http::StatusCode
 };
 
 use crate::services::template_service;
-use uuid::Uuid;
 
 
 #[derive(Clone, Debug, PartialEq)]
@@ -41,7 +41,7 @@ pub async fn get_templates() -> Result<Json<Vec<GetTemplateResponse>>, (StatusCo
     get,
     path = "/api/templates/{template_id}",
     responses(
-        (status = 200, description = "Get Template By ID", body = Vec<TemplateResponse>),
+        (status = 200, description = "Get Template By ID", body = TemplateResponse),
         (status = 404)
     )
 )]
@@ -125,4 +125,29 @@ pub async fn delete_template(
     let delete_template_response = template_service::delete_template_service(template_id).await?;
 
     Ok(Json(delete_template_response))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/templates/{template_id}/send",
+    params(
+        ("template_id" = String, Path, description = "ID of the template to send")
+    ),
+    responses(
+        (status = 200, description = "Template sent successfully", body = TemplateResponse),
+        (status = 400, description = "Bad request"),
+        (status = 404, description = "Template not found"),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn send_templated_email(
+    Path(template_id): Path<String>,
+    Json(payload): Json<SendMailRequest>
+) -> Result<Json<SendMailResponse>, (StatusCode, String)> {
+    let send_templated_email_response = template_service::send_templated_email_service(template_id, payload).await;
+
+    match send_templated_email_response {
+        Ok(response) => Ok(Json(response)),
+        Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string())),
+    }
 }
