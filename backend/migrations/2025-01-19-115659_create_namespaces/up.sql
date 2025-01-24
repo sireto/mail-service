@@ -3,7 +3,7 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 
-CREATE TABLE "namespaces" (
+CREATE TABLE IF NOT EXISTS "namespaces" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),  
     "name" VARCHAR NOT NULL,
     "created_at" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,

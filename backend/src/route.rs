@@ -38,6 +38,7 @@ struct ApiDoc;
 
 pub fn create_router() -> Router {
     Router::new()
+        .route("/api/templates/{templateId}", get(get_templates))
         .route("/api/templates", get(get_templates))
         .route("/api/templates", post(create_template))
         .route("/api/templates/{templateId}", patch(update_template))

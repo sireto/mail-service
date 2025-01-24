@@ -6,6 +6,7 @@ use axum::{
 };
 
 use crate::services::template_service;
+use uuid::Uuid;
 
 
 #[derive(Clone, Debug, PartialEq)]
@@ -34,6 +35,28 @@ pub async fn get_templates() -> Result<Json<Vec<GetTemplateResponse>>, (StatusCo
     }
 
     Ok(Json(templates_result))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/templates/{template_id}",
+    responses(
+        (status = 200, description = "Get Template By ID", body = Vec<TemplateResponse>),
+        (status = 404)
+    )
+)]
+pub async fn get_templates_by_id(Path(template_id): Path<String>) -> Result<Json<GetTemplateResponse>, (StatusCode, String)> {
+    // Try to parse the template_id from String to Uuid
+    let template_id = Uuid::parse_str(&template_id)
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid template ID format".to_string()))?;
+
+    // Fetch the template by ID from the service
+    let template_result = template_service::get_template_by_id_service(template_id).await;
+
+    match template_result {
+        Ok(template) => Ok(Json(template)), // Return the template wrapped in Json
+        Err((status, message)) => Err((status, message)), // Propagate error if not found
+    }
 }
 
 #[utoipa::path(

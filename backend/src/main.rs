@@ -26,7 +26,7 @@ async fn main() {
     let app = create_router().layer(cors);
 
     // let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
-    let addr = env::var("SERVER_ADDRESS").unwrap_or_else(|_| "127.0.0.1:8000".to_string());
+    let addr = env::var("SERVER_ADDRESS").unwrap_or_else(|_| "0.0.0.0:8000".to_string());
 
     let addr: SocketAddr = addr.parse().expect("Invalid server address");
 
