@@ -1,0 +1,37 @@
+version: "3"
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres_mailservice
+    ports:
+      - "6500:5432"
+    volumes:
+      - mailservice_progresDB:/var/lib/postgresql/data
+    env_file:
+      - ./.env
+    networks:
+      - app_network
+
+  mail_service_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mailservice_api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    environment:
+      # Use the service name 'postgres' instead of localhost
+      DATABASE_URL: postgresql://admin:saisab@postgres:5432/mail_service
+    volumes:
+      - .backend/api/src:/app/src:ro
+    networks:
+      - app_network
+
+volumes:
+  mailservice_progresDB:
+
+networks:
+  app_network:
+    driver: bridge
