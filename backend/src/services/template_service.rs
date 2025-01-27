@@ -5,11 +5,11 @@ use crate::services::aws_service;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 
-use aws_sdk_sesv2::Error;
-
 use tera::{Context, Tera, Value};
 
 use axum::http::StatusCode;
+use email_address::*;
+use anyhow::Result;
 
 
 pub async fn get_template_by_id_service(template_id: Uuid) -> Result<GetTemplateResponse, (StatusCode, String)> {
@@ -124,85 +124,142 @@ pub async fn delete_template_service (
     Ok(response_template)
 }
 
-pub async fn send_templated_email_service (
+pub async fn send_templated_email_service(
     template_id: String,
-    payload: SendMailRequest
-) -> Result<SendMailResponse, Error> {
+    payload: SendMailRequest,
+) -> Result<SendMailResponse, anyhow::Error> {
     let client = aws_service::create_aws_client().await;
 
-    let template_uuid_id = Uuid::parse_str(&template_id).unwrap();
+    // Validate receiver...
+    if payload.receiver.clone().unwrap_or_default().trim().is_empty() && payload.cc.clone().unwrap_or_default().trim().is_empty() && payload.bcc.clone().unwrap_or_default().trim().is_empty() {
+        return Err(anyhow::anyhow!("Receiver email address is required"));
+    }
 
-    let template = get_template_by_id(template_uuid_id).await.unwrap();
+    // Fetch the template by ID...
+    let template_uuid_id = Uuid::parse_str(&template_id)
+        .map_err(|_| anyhow::anyhow!("Invalid template ID".to_string()))?;
+    let template = get_template_by_id(template_uuid_id).await?;
 
+    // Render template
     let mut tera = Tera::default();
-    tera.add_raw_template("demo_template", &template.content_html).unwrap();
+    tera.add_raw_template("demo_template", &template.content_html)
+        .map_err(|e| anyhow::anyhow!(format!("Failed to load template: {e}")))?;
 
-    let template_data = payload.template_data;
-    println!("Template data value: {:?}", template_data);
+    let parsed_data: Value = serde_json::from_str(&payload.template_data)
+        .map_err(|e| anyhow::anyhow!(format!("Invalid template data: {e}")))?;
 
-    let json_string = template_data
-        .replace("'", "\"") // Replace single quotes with double quotes
-        .replace("{", "{\"") // Add opening quotes to keys
-        .replace(":", "\":") // Add closing quotes to keys
-        .replace(", ", ", \""); // Add quotes to subsequent keys if needed
-        // .replace(" ", ""); // Remove spaces...
-
-    // Parse the JSON string into a `serde_json::Value`
-    let parsed_data: Value = serde_json::from_str(&json_string).expect("Failed to parse data into JSON");
-
-    println!("THe parsed data value: {:?}", parsed_data);
-
-    // Create the Tera context and populate it with parsed data...
     let mut context = Context::new();
-
     if let Some(map) = parsed_data.as_object() {
-        for (key, value) in map.iter() {
+        for (key, value) in map {
             if let Some(value_str) = value.as_str() {
                 context.insert(key, value_str);
             }
         }
     }
 
-    let rendered = tera.render("demo_template", &context).expect("Failed to render template");
+    let rendered = tera.render("demo_template", &context)
+        .map_err(|e| anyhow::anyhow!(format!("Failed to render template: {e}")))?;
 
-    let parsed_template_html = mrml::parse(&rendered).unwrap_or_else(|_| panic!("Failed to parse mjml template"));
+    let parsed_template_html = mrml::parse(&rendered)
+        .map_err(|e| anyhow::anyhow!(format!("Failed to parse MJML template: {e}")))?;
 
     let opts = mrml::prelude::render::Options::default();
-    let parsed_template_html_from_mjml = parsed_template_html
+    let parsed_html = parsed_template_html
         .render(&opts)
-        .expect("Failed to render MJML to HTML");
+        .map_err(|e| anyhow::anyhow!(format!("Failed to render MJML to HTML: {e}")))?;
 
-    let subject = "Welcome";
+    let (receiver_list, cc_list, bcc_list) = handle_receivers(&client, &payload).await?;
 
-    // contact lists data...
+    println!("THe cc lists are: {cc_list:?}, SImilary, the bcc lists are: {bcc_list:?}");
+
+    // Send email
+    let result = aws_service::send_mail(
+        client,
+        payload.from.clone(),
+        receiver_list.clone(),
+        Some(cc_list),
+        Some(bcc_list),
+        &payload.subject,
+        &parsed_html,
+    )
+    .await;
+
+    match result {
+        Ok(_) => Ok(SendMailResponse {
+            id: Uuid::new_v4(),
+            name: template.name.clone(),
+            to: receiver_list,
+            from: payload.from,
+        }),
+        Err(err) => {
+            eprintln!("Failed to send templated email: {}", err);
+            Err(anyhow::anyhow!(format!("Failed to send email: {:?}", err)).into())
+        }
+    }
+}
+
+
+async fn handle_receivers(
+    client: &aws_sdk_sesv2::Client,
+    payload: &SendMailRequest,
+) -> Result<(Vec<String>, Vec<String>, Vec<String>)> {
+    // Helper function to process optional receivers
+    async fn process_optional_receivers(
+        client: &aws_sdk_sesv2::Client,
+        receiver: &Option<String>,
+    ) -> Result<Vec<String>> {
+        match receiver {
+            Some(value) if !value.trim().is_empty() => process_receivers(client, value).await,
+            _ => Ok(vec![]), // Return an empty list if None or empty...
+        }
+    }
+
+    // Process all receiver lists...
+    let receiver_list = process_optional_receivers(client, &payload.receiver).await?;
+    let cc_list = process_optional_receivers(client, &payload.cc).await?;
+    let bcc_list = process_optional_receivers(client, &payload.bcc).await?;
+
+    // Ensure at least one recipient is present...
+    if receiver_list.is_empty() && cc_list.is_empty() && bcc_list.is_empty() {
+        return Err(anyhow::anyhow!("No valid receivers found"));
+    }
+
+    Ok((receiver_list, cc_list, bcc_list))
+}
+
+async fn process_receivers(client: &aws_sdk_sesv2::Client, receiver: &str) -> Result<Vec<String>> {
+    // Check if the receiver is a single valid email...
+    if EmailAddress::is_valid(receiver) {
+        return Ok(vec![receiver.to_string()]);
+    }
+
+    // Check if the receiver is a comma-separated list of emails...
+    let receiver_list: Vec<String> = receiver
+        .split(',')
+        .map(|r| r.trim().to_string())
+        .collect();
+
+    // Validate each email in the list...
+    if receiver_list.iter().all(|email| EmailAddress::is_valid(email)) {
+        return Ok(receiver_list);
+    }
+
+    // Treat `receiver` as a contact list name...
     let resp = client
         .list_contacts()
-        .contact_list_name(payload.list)
+        .contact_list_name(receiver)
         .send()
         .await?;
 
     let contacts = resp.contacts();
-    let cs: Vec<String> = contacts 
+    let email_addresses: Vec<String> = contacts
         .iter()
-        .map(|i| i.email_address().unwrap_or_default().to_string())
+        .filter_map(|contact| contact.email_address().map(|e| e.to_string()))
         .collect();
 
-    let result = aws_service::send_mail(client, payload.from.clone(), cs.clone(), subject, &parsed_template_html_from_mjml).await;
-
-    match result {
-        Ok(_) => {
-            println!("Templated email result: {:?}", result);
-            let mail_response = SendMailResponse {
-                id: Uuid::new_v4(),
-                name: template.name.clone(),
-                to: cs,
-                from: payload.from
-            };
-            Ok(mail_response)
-        }
-        Err(err) => {
-            eprintln!("Failed to send templated email: {}", err);
-            Err(err.into())
-        }
+    if email_addresses.is_empty() {
+        anyhow::bail!("No valid email addresses found in the contact list '{}'", receiver);
     }
+
+    Ok(email_addresses)
 }
