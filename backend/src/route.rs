@@ -33,7 +33,7 @@ use crate::handlers::template as template;
         (name="Templates", description="Operations about templates")
     ),
     servers(
-        (url = "http://127.0.0.1:8000", description = "Local development server")
+        (url = "/", description = "Default server")
     )
 )]
 struct ApiDoc;
