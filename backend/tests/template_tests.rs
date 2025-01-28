@@ -8,7 +8,7 @@ use fixtures::{
     get_test_template_by_id, 
     insert_test_template 
 };
-use backend::model::{ Template, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, SendMailRequest, SendMailResponse, UpdateTemplateResponse };
+use backend::models::template::{ Template, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, SendMailRequest, SendMailResponse, UpdateTemplateResponse };
 use backend::route::create_router;
 
 use backend::establish_connection;

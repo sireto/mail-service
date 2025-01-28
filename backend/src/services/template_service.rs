@@ -1,5 +1,4 @@
-use std::sync::Arc;
-use crate::model::{ Template, CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, SendMailRequest, SendMailResponse, UpdateTemplateRequest, UpdateTemplateResponse };
+use crate::models::template::{ CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, SendMailRequest, SendMailResponse, UpdateTemplateRequest, UpdateTemplateResponse };
 
 use crate::repositories::template_repo::{self, TemplateRepository, TemplateRespositoryImpl};
 use crate::schema::namespaces::created_at;
