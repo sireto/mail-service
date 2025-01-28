@@ -51,7 +51,7 @@ pub async fn create_aws_client() -> Client {
  */
 pub async fn send_mail(
     client: Client, 
-    from: String, 
+    from: &str, 
     to: Vec<String>,
     cc: Option<Vec<String>>,
     bcc: Option<Vec<String>>, 

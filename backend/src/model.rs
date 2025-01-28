@@ -165,5 +165,7 @@ pub struct SendMailResponse {
 
     pub name: String,
     pub to: Vec<String>,
+    pub cc: Vec<String>,
+    pub bcc: Vec<String>,
     pub from: String,
 }

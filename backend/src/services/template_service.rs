@@ -13,7 +13,7 @@ use anyhow::Result;
 
 
 pub async fn get_template_by_id_service(template_id: Uuid) -> Result<GetTemplateResponse, (StatusCode, String)> {
-    // Call the repository function to get the template by ID
+    // Call the repository function to get the template by ID...
     let template = template_repo::get_template_by_id(template_id).await;
 
     match template {
@@ -175,10 +175,10 @@ pub async fn send_templated_email_service(
     // Send email
     let result = aws_service::send_mail(
         client,
-        payload.from.clone(),
+        &payload.from,
         receiver_list.clone(),
-        Some(cc_list),
-        Some(bcc_list),
+        Some(cc_list.clone()),
+        Some(bcc_list.clone()),
         &payload.subject,
         &parsed_html,
     )
@@ -187,9 +187,11 @@ pub async fn send_templated_email_service(
     match result {
         Ok(_) => Ok(SendMailResponse {
             id: Uuid::new_v4(),
-            name: template.name.clone(),
+            name: template.name,
             to: receiver_list,
             from: payload.from,
+            cc: cc_list,
+            bcc: bcc_list
         }),
         Err(err) => {
             eprintln!("Failed to send templated email: {}", err);
@@ -198,12 +200,12 @@ pub async fn send_templated_email_service(
     }
 }
 
-
+/// Helper function to handler the receivers (either to, cc, or bc)...
 async fn handle_receivers(
     client: &aws_sdk_sesv2::Client,
     payload: &SendMailRequest,
 ) -> Result<(Vec<String>, Vec<String>, Vec<String>)> {
-    // Helper function to process optional receivers
+    // Helper function to process optional receivers...
     async fn process_optional_receivers(
         client: &aws_sdk_sesv2::Client,
         receiver: &Option<String>,
@@ -227,6 +229,7 @@ async fn handle_receivers(
     Ok((receiver_list, cc_list, bcc_list))
 }
 
+// a helper function to extract the receivers (either to, cc, or bcc) on its respective list...
 async fn process_receivers(client: &aws_sdk_sesv2::Client, receiver: &str) -> Result<Vec<String>> {
     // Check if the receiver is a single valid email...
     if EmailAddress::is_valid(receiver) {
