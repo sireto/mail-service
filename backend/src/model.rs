@@ -1,10 +1,14 @@
-/**
- * The following model was the schema for the template table in the prisma-client-rust which was in the backend/src/schema.rs file...
- */
+// /**
+//  * The following model was the schema for the template table in the prisma-client-rust which was in the backend/src/schema.rs file...
+//  */
 
+// use chrono::{ DateTime, NaiveDateTime, Utc };
+// use serde_json::Value;
 use chrono::{ DateTime, Utc };
 use serde_json::Value;
 
+// use serde::{ Serialize, Deserialize };
+// use utoipa::ToSchema;
 use serde::{ Serialize, Deserialize };
 use utoipa::ToSchema;
 
@@ -83,25 +87,25 @@ pub struct UpdateTemplateRequest {
     pub content_plaintext: String,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Queryable)]
-pub struct UpdateTemplateResponse {
-    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
-    pub id: Uuid,
+// #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Queryable)]
+// pub struct UpdateTemplateResponse {
+//     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+//     pub id: Uuid,
 
-    pub name: String,
+//     pub name: String,
 
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Queryable)]
-// #[diesel(table_name = templates)]
-pub struct DeleteTemplateResponse {
-    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
-    pub id: Uuid,
+// #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Queryable)]
+// // #[diesel(table_name = templates)]
+// pub struct DeleteTemplateResponse {
+//     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+//     pub id: Uuid,
 
-    pub name: String,
-}
+//     pub name: String,
+// }
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Queryable, Clone, PartialEq)]
 pub struct SendMailRequest {
