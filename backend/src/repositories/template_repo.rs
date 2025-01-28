@@ -2,7 +2,7 @@
 use crate::{appState::DbPooledConnection, GLOBAL_APP_STATE};
 use crate::schema::templates::dsl::*;
 use diesel::prelude::*;
-use crate::model::{ CreateTemplateRequest, Template, UpdateTemplateRequest };
+use crate::models::template::{ CreateTemplateRequest, Template, UpdateTemplateRequest };
 use uuid::Uuid;
 
 pub async fn get_connection_pool() -> DbPooledConnection {

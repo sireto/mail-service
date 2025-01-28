@@ -1,6 +1,6 @@
 use diesel::prelude::*;
 use backend::schema::templates::dsl::*;
-use backend::model::{ CreateTemplateRequest, DeleteTemplateResponse, Template };
+use backend::models::template::{ CreateTemplateRequest, DeleteTemplateResponse, Template };
 use uuid::Uuid;
 
 pub fn insert_test_template(conn: &mut PgConnection) -> Template {

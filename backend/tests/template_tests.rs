@@ -9,7 +9,7 @@ use fixtures::{
     get_test_template_by_id, 
     insert_test_template 
 };
-use backend::model::{ DeleteTemplateResponse, UpdateTemplateResponse, GetTemplateResponse, CreateTemplateResponse };
+use backend::models::template::{ DeleteTemplateResponse, UpdateTemplateResponse, GetTemplateResponse, CreateTemplateResponse };
 use backend::route::create_router;
 
 use backend::establish_connection;
