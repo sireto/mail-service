@@ -7,9 +7,9 @@ pub fn insert_test_template(conn: &mut PgConnection) -> Template {
     let new_template = CreateTemplateRequest {
         name: "Test Template".to_string(),
         namespace_id: Uuid::parse_str("e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82").expect("Cannot parse UUID"),
-        template_data: serde_json::from_str(r#"{"key1":"value1"}"#).unwrap(),
+        template_data: serde_json::from_str(r#"{"name":"John"}"#).unwrap(),
         content_plaintext: Some("Plaintext content".to_string()),
-        content_html: "<p>HTML VERY NEW CONTENT</p>".to_string(),
+        content_html: "<mjml><mj-head><mj-preview>Email Preview</mj-preview><mj-title>Email Title</mj-title></mj-head><mj-body><mj-section><mj-column><mj-text>Hi, {{ name }}! HTML VERY NEW CONTENT</mj-text></mj-column></mj-section></mj-body></mjml>".to_string(),
     };
 
     let inserted_template: Template = diesel::insert_into(templates)
