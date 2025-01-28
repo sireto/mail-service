@@ -28,6 +28,7 @@ utoipa-swagger-ui = {version = "9.0.0", features=["axum"] }
 url = "2.5.4"
 
 warp = "0.3.7"
+mockito = "1.6.1"
 
 
 [dev-dependencies]
