@@ -1,5 +1,6 @@
 use crate::models::template::{ CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, SendMailRequest, SendMailResponse, UpdateTemplateRequest, UpdateTemplateResponse };
 
+use crate::repositories::template_repo;
 use crate::repositories::template_repo::{self, TemplateRepository, TemplateRespositoryImpl};
 use crate::schema::namespaces::created_at;
 use crate::services::aws_service;
@@ -9,45 +10,11 @@ use chrono::{DateTime, Utc};
 use tera::{Context, Tera, Value};
 
 use axum::http::StatusCode;
-use email_address::*;
-use anyhow::{Error, Result};
 
 
-pub struct TemplateService {
-    repository: Arc<dyn TemplateRepository + Send + Sync>
-}
-
-impl TemplateService {
-    pub fn new(repository: Arc<dyn TemplateRepository + Send + Sync>) -> Self {
-        Self { repository }
-    }
-
-    pub async fn get_template_by_id(&self, template_id: Uuid) -> Result<Template, diesel::result::Error> {
-        self.repository.get_template_by_id(template_id).await
-    }
-
-    pub async fn get_all_templates(&self) -> Result<Vec<Template>, diesel::result::Error> {
-        self.repository.get_all_templates().await
-    }
-
-    pub async fn create_template(&self, payload: CreateTemplateRequest) -> Result<Template, diesel::result::Error> {
-        self.repository.create_template(payload).await
-    }
-
-    pub async fn update_template(&self, template_id: Uuid, payload: UpdateTemplateRequest) -> Result<Template, diesel::result::Error> {
-        self.repository.update_template(template_id, payload).await
-    }
-
-    pub async fn delete_template(&self, template_id: Uuid) -> Result<Template, diesel::result::Error> {
-        self.repository.delete_template(template_id).await
-    }
-}
-
-pub async fn get_template_by_id(template_id: Uuid) -> Result<GetTemplateResponse, (StatusCode, String)> {
-    // Call the repository function to get the template by ID...
-    let template_repository = Arc::new(TemplateRespositoryImpl);
-    let template_service = TemplateService::new(template_repository);
-    let template = template_service.get_template_by_id(template_id).await;
+pub async fn get_template_by_id(namespace_id:Uuid, template_id: Uuid) -> Result<GetTemplateResponse, (StatusCode, String)> {
+    // Call the repository function to get the template by ID
+    let template = template_repo::get_template_by_id(namespace_id, template_id).await;
 
     match template {
         Ok(template) => {
@@ -72,11 +39,8 @@ pub async fn get_template_by_id(template_id: Uuid) -> Result<GetTemplateResponse
     }
 }
 
-pub async fn get_all_templates () -> Result<Vec<GetTemplateResponse>, (StatusCode, String)> {
-    let template_repository = Arc::new(TemplateRespositoryImpl);
-    let template_service = TemplateService::new(template_repository);
-
-    let all_templates = template_service.get_all_templates().await;
+pub async fn get_all_templates(namespace_id: Uuid) -> Result<Vec<GetTemplateResponse>, (StatusCode, String)> {
+    let all_templates = template_repo::get_all_templates(namespace_id).await;
 
     let response_templates = match all_templates {
         Ok(templates) => templates.into_iter().map(|template| GetTemplateResponse {
@@ -122,19 +86,19 @@ pub async fn create_template (payload: CreateTemplateRequest) -> Result<CreateTe
     Ok(response_template)
 }
 
-pub async fn update_template (
+pub async fn update_template(
+    namespace_id: String,
     template_id: String,
     payload: UpdateTemplateRequest
 ) -> Result<UpdateTemplateResponse, (StatusCode, String)> {
-    let template_repository = Arc::new(TemplateRespositoryImpl);
-    let template_service = TemplateService::new(template_repository);
 
-
+    let uuid_namespace_id = Uuid::parse_str(&namespace_id)
+    .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid namespace UUID format".to_string()))?;
     // Convert 'template_id' (String) to 'Uuid'...
     let uuid_id = Uuid::parse_str(&template_id)
         .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid UUID format".to_string()))?;
 
-    let updated_template = template_service.update_template( uuid_id, payload).await;
+    let updated_template = template_repo::update_template( uuid_namespace_id,uuid_id, payload).await;
 
     let response_template = match updated_template {
         Ok(template) => UpdateTemplateResponse {
@@ -148,7 +112,8 @@ pub async fn update_template (
     Ok(response_template)
 }
 
-pub async fn delete_template (
+pub async fn delete_template(
+    namespace_id: String,
     template_id: String,
 ) -> Result<DeleteTemplateResponse, (StatusCode, String)> {
     let template_repository = Arc::new(TemplateRespositoryImpl);
@@ -157,7 +122,10 @@ pub async fn delete_template (
     let uuid_id = Uuid::parse_str(&template_id)
         .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid UUID format".to_string()))?;
 
-    let deleted_template = template_service.delete_template( uuid_id).await;
+        let uuid_namespace_id = Uuid::parse_str(&namespace_id)
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid UUID format".to_string()))?;
+
+    let deleted_template = template_repo::delete_template( uuid_namespace_id,uuid_id).await;
 
     let response_template = match deleted_template {
         Ok(template) => DeleteTemplateResponse {
@@ -171,10 +139,13 @@ pub async fn delete_template (
 }
 
 pub async fn send_templated_email(
+    namespace_id: String,
     template_id: String,
     payload: SendMailRequest,
 ) -> Result<SendMailResponse, anyhow::Error> {
     let client = aws_service::create_aws_client().await;
+
+    let uuid_namespace_id = Uuid::parse_str(&namespace_id).unwrap();
 
     // Validate receiver...
     if payload.receiver.clone().unwrap_or_default().trim().is_empty() && payload.cc.clone().unwrap_or_default().trim().is_empty() && payload.bcc.clone().unwrap_or_default().trim().is_empty() {
@@ -184,7 +155,7 @@ pub async fn send_templated_email(
     // Fetch the template by ID...
     let template_uuid_id = Uuid::parse_str(&template_id)
         .map_err(|_| anyhow::anyhow!("Invalid template ID".to_string()))?;
-    let template = get_template_by_id(template_uuid_id).await.map_err(|e| anyhow::anyhow!(e.1))?;
+    let template = get_template_by_id(uuid_namespace_id,template_uuid_id).await.map_err(|e| anyhow::anyhow!(e.1))?;
 
     let parsed_html = populate_and_parse_template(&template, &payload).await?;
 
