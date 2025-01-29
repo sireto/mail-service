@@ -24,7 +24,7 @@ pub async fn create_list (
         .get_result::<List>(&mut conn)
 }
 
-pub async fn get_all_lists () -> Result<Vec<List>, diesel::result::Error> {
+pub async fn get_all_lists(namespaceId: Uuid) -> Result<Vec<List>, diesel::result::Error> {
     let mut conn = get_connection_pool().await;
 
     lists
@@ -36,35 +36,42 @@ pub async fn get_all_lists () -> Result<Vec<List>, diesel::result::Error> {
             created_at, 
             updated_at
         ))
+        .filter(namespace_id.eq(namespaceId))
         .load::<List>(&mut conn)
 }
 
-pub async fn get_list_by_id(list_id: Uuid) -> Result<List, diesel::result::Error> {
+pub async fn get_list_by_id(namespaceId: Uuid, list_id: Uuid) -> Result<List, diesel::result::Error> {
     let mut conn = get_connection_pool().await;
 
+    // Ensure you're querying with both Uuids
     lists
-        .filter(id.eq(list_id))
+        .filter(namespace_id.eq(namespaceId))  // Make sure this is referencing the correct variable
+        .filter(id.eq(list_id))  // Filter by list_id as well
         .first(&mut conn)
 }
 
 pub async fn update_list (
+    namespaceId: Uuid, 
     list_id: Uuid, 
     payload: UpdateListRequest
 ) -> Result<List, diesel::result::Error> {
 
     let mut conn = get_connection_pool().await;
 
-    diesel::update(lists.find(list_id))
-        .set((
-            name.eq(payload.name),
-            description.eq(payload.description)
-        ))
-        .get_result(&mut conn)
+    diesel::update(lists)
+            .filter(id.eq(list_id))
+            .filter(namespace_id.eq(namespaceId))
+            .set((
+                name.eq(payload.name), 
+                description.eq(payload.description)
+            ))
+            .get_result(&mut conn)
 }
 
-pub async fn delete_list(list_id: Uuid) -> Result<List, diesel::result::Error> {
+pub async fn delete_list(namespaceId: Uuid, list_id: Uuid) -> Result<List, diesel::result::Error> {
     let mut conn = get_connection_pool().await;
 
-    diesel::delete(lists.filter(id.eq(list_id)))
+    diesel::delete(lists.filter(namespace_id.eq(namespaceId)))
+            .filter(id.eq(list_id))
         .get_result(&mut conn)
 }

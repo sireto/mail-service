@@ -17,7 +17,6 @@ pub mod tests;
 
 pub mod schema;
 pub mod route;
-pub mod model;
 pub mod appState;
 
 use std::sync::Arc;

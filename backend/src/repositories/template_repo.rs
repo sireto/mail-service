@@ -12,16 +12,17 @@ pub async fn get_connection_pool() -> DbPooledConnection {
         .expect("Failed to get DB connection from pool")
 }
 
-pub async fn get_template_by_id(template_id: Uuid) -> Result<Template, diesel::result::Error> {
+pub async fn get_template_by_id(namespaceId:Uuid, template_id: Uuid) -> Result<Template, diesel::result::Error> {
     let mut conn = get_connection_pool().await;
 
     // Use `find()` to get the template by id
     templates
+        .filter(namespace_id.eq(namespaceId))
         .filter(id.eq(template_id))
         .first(&mut conn)  // Fetch the first matching result
 }
 
-pub async fn get_all_templates () -> Result<Vec<Template>, diesel::result::Error> {
+pub async fn get_all_templates(namespaceId: Uuid) -> Result<Vec<Template>, diesel::result::Error> {
     let mut conn = get_connection_pool().await;
 
     templates 
@@ -35,6 +36,7 @@ pub async fn get_all_templates () -> Result<Vec<Template>, diesel::result::Error
             created_at,
             updated_at,
         )) // Select columns explicitly
+        .filter(namespace_id.eq(namespaceId))
         .load::<Template>(&mut conn)
 }
 
@@ -51,13 +53,16 @@ pub async fn create_template (
 }
 
 pub async fn update_template (
+        namespaceId: Uuid,
         template_id: Uuid, 
         payload: UpdateTemplateRequest
     ) -> Result<Template, diesel::result::Error> {
 
     let mut conn = get_connection_pool().await;
     
-    diesel::update(templates.find(template_id))
+    diesel::update(templates)
+        .filter(id.eq(template_id))
+        .filter(namespace_id.eq(namespaceId))
         .set((
             name.eq(payload.name),
             template_data.eq(payload.template_data),
@@ -67,9 +72,10 @@ pub async fn update_template (
         .get_result(&mut conn)
 }
 
-pub async fn delete_template (template_id: Uuid) -> Result<Template, diesel::result::Error> {
+pub async fn delete_template (namespaceId:Uuid, template_id: Uuid) -> Result<Template, diesel::result::Error> {
     let mut conn = get_connection_pool().await;
 
-    diesel::delete(templates.filter(id.eq(template_id)))
+    diesel::delete(templates.filter(namespace_id.eq(namespaceId)))
+        .filter(id.eq(template_id))
         .get_result(&mut conn)
 }
