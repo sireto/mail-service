@@ -17,7 +17,6 @@ pub mod tests;
 
 pub mod schema;
 pub mod route;
-pub mod model;
 pub mod appState;
 pub mod error;
 pub mod utils { pub mod contact_lists_functions; }
