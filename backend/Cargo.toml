@@ -29,6 +29,8 @@ url = "2.5.4"
 
 warp = "0.3.7"
 mockito = "1.6.1"
+mockall = "0.13.1"
+async-trait = "0.1.85"
 
 
 [dev-dependencies]
