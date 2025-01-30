@@ -1,7 +1,6 @@
-use std::env;
-
 mod fixtures;
 
+use backend::services::template_service::{ TemplateService, send_templated_email };
 use backend::tests::setup_test_environment;
 
 use fixtures::{ 
@@ -9,14 +8,16 @@ use fixtures::{
     get_test_template_by_id, 
     insert_test_template 
 };
-use backend::model::{ DeleteTemplateResponse, UpdateTemplateResponse, GetTemplateResponse, CreateTemplateResponse };
+use backend::model::{ Template, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, SendMailRequest, SendMailResponse, UpdateTemplateResponse };
 use backend::route::create_router;
 
 use backend::establish_connection;
+use uuid::Uuid;
 
 use std::net::SocketAddr;
 
 use diesel_async::{ AsyncConnection, AsyncPgConnection, SimpleAsyncConnection };
+use mockall::predicate::*;
 
 
 async fn start_server () {
@@ -170,4 +171,66 @@ async fn test_update_templates() {
 
     assert!(deleted_template.id == inserted_template.id);   
     assert!(deleted_template.id == updated_template.id);
+}
+
+/// test case for send templated email...
+#[tokio::test]
+async fn test_send_templated_email() {
+    setup_test_environment();
+    let pool = establish_connection();
+    let conn = &mut pool.get().expect("Failed to get DB connection");
+
+    start_server().await;
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+
+    // Insert a test template to send...
+    let inserted_template = insert_test_template(conn);
+
+    println!("Template created and inserted successfully");
+
+    // payload for sending the email...
+    let payload = serde_json::json!({
+        "from": "ses@id21.io",
+        "receiver": "john@gmail.com",
+        "subject": "Test Email Subject",
+        "template_data": "{\"name\": \"John\"}"
+    });
+
+    // Send the POST request to send the templated email...
+    let send_email_url = format!(
+        "http://localhost:9000/api/templates/{}/send",
+        inserted_template.id
+    );
+
+    let response = reqwest::Client::new()
+        .post(send_email_url)
+        .json(&payload)
+        .send()
+        .await
+        .expect("Failed to send request");
+
+    // Assert the response status is success...
+    assert!(
+        response.status().is_success(),
+        "Request failed with status: {}",
+        response.status()
+    );
+
+    // Deserialize the response into SendMailResponse...
+    let send_mail_response: SendMailResponse = response
+        .json()
+        .await
+        .expect("Failed to parse response");
+
+    // Assert the response contains expected values...
+    assert_eq!(send_mail_response.name, inserted_template.name);
+    assert_eq!(send_mail_response.to.len(), 1);
+    assert_eq!(send_mail_response.to[0], "john@gmail.com");
+    assert_eq!(send_mail_response.from, "ses@id21.io");
+
+    // Clear the test data...
+    let deleted_template: DeleteTemplateResponse =
+        delete_test_template_by_id(conn, inserted_template.id);
+
+    assert_eq!(deleted_template.id, inserted_template.id);
 }

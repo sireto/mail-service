@@ -15,6 +15,7 @@ once_cell = "1.20.2"
 
 aws-sdk-sesv2 = "1.62.0"
 aws-config = { version = "1.5.14", features = ["behavior-version-latest"] }
+aws-smithy-runtime-api = "1.7.3"
 mrml = "3"
 tera = "1"
 
@@ -28,11 +29,15 @@ utoipa-swagger-ui = {version = "9.0.0", features=["axum"] }
 url = "2.5.4"
 
 warp = "0.3.7"
+email_address = "0.2.9"
+thiserror = "2"
+anyhow = "1.0.95"
 
+mockall = "0.13.1"
+async-trait = "0.1.85"
 
 [dev-dependencies]
 reqwest = { version = "0.12", features = ["json"] }
-mockall = "0.13.1"
 axum-test-helpers = "0.8.0"
 
 [[bin]]

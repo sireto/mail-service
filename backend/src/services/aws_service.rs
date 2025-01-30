@@ -49,9 +49,38 @@ pub async fn create_aws_client() -> Client {
 /**
  * a function to send mail using the AWS SES service...
  */
-pub async fn send_mail(client: Client, from: String, to: Vec<String>, subject: &str, html_data: &str) -> Result<SendEmailOutput, SdkError<aws_sdk_sesv2::operation::send_email::SendEmailError>> {
+pub async fn send_mail(
+    client: Client, 
+    from: &str, 
+    to: Vec<String>,
+    cc: Option<Vec<String>>,
+    bcc: Option<Vec<String>>, 
+    subject: &str, 
+    html_data: &str
+) -> Result<SendEmailOutput, SdkError<aws_sdk_sesv2::operation::send_email::SendEmailError>> {
     let mut destination = Destination::builder().build();
     destination.to_addresses = Some(to.clone());
+    // Conditionally set `cc_addresses` if `cc` is provided...
+    destination.cc_addresses = if let Some(cc_list) = cc {
+        if !cc_list.is_empty() {
+            Some(cc_list)
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    // Conditionally set `bcc_addresses` if `bcc` is provided...
+    destination.bcc_addresses = if let Some(bcc_list) = bcc {
+        if !bcc_list.is_empty() {
+            Some(bcc_list)
+        } else {
+            None
+        }
+    } else {
+        None
+    };
 
     let subject_content = Content::builder()
         .data(subject)

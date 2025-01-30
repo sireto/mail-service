@@ -58,6 +58,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55cc3b69f167a1ef2e161439aa98aed94e6028e5f9a59be9a6ffb47aef1651f9"
 
 [[package]]
+name = "anyhow"
+version = "1.0.95"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34ac096ce696dc2fcabef30516bb13c0a68a11d30131d3df6f04711467681b04"
+
+[[package]]
 name = "arbitrary"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -549,8 +555,11 @@ dependencies = [
 name = "backend"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "async-trait",
  "aws-config",
  "aws-sdk-sesv2",
+ "aws-smithy-runtime-api",
  "axum 0.8.1",
  "axum-test-helpers",
  "chrono",
@@ -558,6 +567,7 @@ dependencies = [
  "diesel-async",
  "diesel_migrations",
  "dotenv",
+ "email_address",
  "mockall",
  "mrml",
  "once_cell",
@@ -565,6 +575,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tera",
+ "thiserror 2.0.11",
  "tokio",
  "tower-http",
  "url",
@@ -1056,6 +1067,15 @@ dependencies = [
  "sec1",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "email_address"
+version = "0.2.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e079f19b08ca6239f47f8ba8509c11cf3ea30095831f7fed61441475edd8c449"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

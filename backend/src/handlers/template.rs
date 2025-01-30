@@ -28,7 +28,7 @@ pub enum TemplateField {
 pub async fn get_templates() -> Result<Json<Vec<GetTemplateResponse>>, (StatusCode, String)> {
 
     // Use Diesel to fetch templates from the database
-    let templates_result = template_service::get_all_templates_service().await?;
+    let templates_result = template_service::get_all_templates().await?;
 
     if templates_result.is_empty() {
         return Err((StatusCode::NOT_FOUND, "No templates found".to_string()));
@@ -51,7 +51,7 @@ pub async fn get_templates_by_id(Path(template_id): Path<String>) -> Result<Json
         .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid template ID format".to_string()))?;
 
     // Fetch the template by ID from the service
-    let template_result = template_service::get_template_by_id_service(template_id).await;
+    let template_result = template_service::get_template_by_id(template_id).await;
 
     match template_result {
         Ok(template) => Ok(Json(template)), // Return the template wrapped in Json
@@ -71,7 +71,7 @@ pub async fn create_template(
     Json(payload): Json<CreateTemplateRequest>,
 ) -> Result<Json<CreateTemplateResponse>, (StatusCode, String)> {
 
-    let create_new_template = template_service::create_template_service(payload).await?;
+    let create_new_template = template_service::create_template(payload).await?;
 
     let create_response = CreateTemplateResponse {
         id: create_new_template.id.to_string(),
@@ -101,7 +101,7 @@ pub async fn update_template(
     Json(payload): Json<UpdateTemplateRequest>
 ) -> Result<Json<UpdateTemplateResponse>, (StatusCode, String)> {
 
-    let update_template_response = template_service::update_template_service(template_id, payload).await?;
+    let update_template_response = template_service::update_template(template_id, payload).await?;
 
     Ok(Json(update_template_response))
 }
@@ -122,7 +122,7 @@ pub async fn update_template(
 pub async fn delete_template(
     Path(template_id): Path<String>
 ) -> Result<Json<DeleteTemplateResponse>, (StatusCode, String)> {
-    let delete_template_response = template_service::delete_template_service(template_id).await?;
+    let delete_template_response = template_service::delete_template(template_id).await?;
 
     Ok(Json(delete_template_response))
 }
@@ -144,7 +144,10 @@ pub async fn send_templated_email(
     Path(template_id): Path<String>,
     Json(payload): Json<SendMailRequest>
 ) -> Result<Json<SendMailResponse>, (StatusCode, String)> {
-    let send_templated_email_response = template_service::send_templated_email_service(template_id, payload).await;
+
+    
+    
+    let send_templated_email_response = template_service::send_templated_email(template_id, payload).await;
 
     match send_templated_email_response {
         Ok(response) => Ok(Json(response)),

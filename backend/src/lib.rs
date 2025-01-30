@@ -17,6 +17,8 @@ pub mod schema;
 pub mod route;
 pub mod model;
 pub mod appState;
+pub mod error;
+pub mod utils { pub mod contact_lists_functions; }
 
 use std::sync::Arc;
 use once_cell::sync::Lazy;

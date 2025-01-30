@@ -1,6 +1,5 @@
 use backend::route::create_router;
 use diesel::pg::PgConnection;
-use diesel::prelude::*;
 use diesel::Connection; // Import the Connection trait
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use dotenv::dotenv;
