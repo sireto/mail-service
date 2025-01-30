@@ -5,17 +5,19 @@ use diesel::{prelude::*, r2d2::{
 use dotenv::dotenv;
 use std::env;
 
-pub mod handlers { pub mod template; }
+
+pub mod models { pub mod template; pub mod list; pub mod contact; pub mod list_contacts;}
+pub mod handlers { pub mod template; pub mod list;}
 pub mod services { 
     pub mod template_service; 
     pub mod aws_service;
+    pub mod list_service;
 }
-pub mod repositories { pub mod template_repo; }
+pub mod repositories { pub mod template_repo; pub mod list_repo; pub mod list_contact_repo;}
 pub mod tests;
 
 pub mod schema;
 pub mod route;
-pub mod model;
 pub mod appState;
 pub mod error;
 pub mod utils { pub mod contact_lists_functions; }

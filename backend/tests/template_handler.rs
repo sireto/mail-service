@@ -8,7 +8,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 use chrono::NaiveDateTime;
 
-use backend::model::DeleteTemplateResponse;
+use backend::models::template::DeleteTemplateResponse;
 
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct UpdateTemplateRequest {

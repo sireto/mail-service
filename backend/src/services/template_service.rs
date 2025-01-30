@@ -1,8 +1,7 @@
 use std::sync::Arc;
-use crate::model::{ Template, CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, SendMailRequest, SendMailResponse, UpdateTemplateRequest, UpdateTemplateResponse };
+use crate::models::template::{ Template, CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, SendMailRequest, SendMailResponse, UpdateTemplateRequest, UpdateTemplateResponse };
 
 use crate::repositories::template_repo::{self, TemplateRepository, TemplateRespositoryImpl};
-use crate::schema::namespaces::created_at;
 use crate::services::aws_service;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
@@ -318,3 +317,5 @@ async fn process_receivers(client: &aws_sdk_sesv2::Client, receiver: &str) -> Re
 
     Ok(email_addresses)
 }
+
+
