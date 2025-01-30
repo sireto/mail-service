@@ -1,7 +1,6 @@
-use std::env;
-
 mod fixtures;
 
+use backend::services::template_service::{ TemplateService, send_templated_email };
 use backend::tests::setup_test_environment;
 
 use fixtures::{ 
@@ -9,14 +8,16 @@ use fixtures::{
     get_test_template_by_id, 
     insert_test_template 
 };
-use backend::model::{ CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, SendMailResponse, UpdateTemplateResponse };
+use backend::model::{ Template, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, SendMailRequest, SendMailResponse, UpdateTemplateResponse };
 use backend::route::create_router;
 
 use backend::establish_connection;
+use uuid::Uuid;
 
 use std::net::SocketAddr;
 
 use diesel_async::{ AsyncConnection, AsyncPgConnection, SimpleAsyncConnection };
+use mockall::predicate::*;
 
 
 async fn start_server () {
