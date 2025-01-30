@@ -1,4 +1,4 @@
-use crate::models::list::{CreateListRequest, CreateListResponse, DeleteListResponse, ListResponse, UpdateListRequest, UpdatedListResponse};
+use crate::models::{list::{CreateListRequest, CreateListResponse, DeleteListResponse, ListResponse, UpdateListRequest, UpdatedListResponse}, list_contacts::{NewContactInList, AddContactRequest}};
 
 use aws_sdk_sesv2::types::Status;
 use axum::{
@@ -98,8 +98,6 @@ pub async fn update_list(
     Json(payload): Json<UpdateListRequest>,
 ) -> Result<Json<UpdatedListResponse>, (StatusCode, String)> {
 
-    // Convert 'namespace_id' and 'list_id' to Uuid
-
     // Call the service function with the UUIDs
     let update_list_response = list_service::update_list(namespace_id, list_id, payload).await?;
 
@@ -124,4 +122,58 @@ pub async fn delete_list(Path((namespace_id, list_id)): Path<(String, String)>) 
     let delete_list_response = list_service::delete_list(namespace_id, list_id).await?;
 
     Ok(Json(delete_list_response))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/list/addContacts/{list_id}",
+    params(
+        ("list_id" = String, Path, description = "ID of the list where contact is to be added")
+    ),
+    responses(
+        (status = 200, description = "List deleted successfully", body = DeleteListResponse),
+        (status = 400, description = "Bad request"),
+        (status = 404, description = "List not found"),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn add_contacts_to_list(
+    Path(list_id): Path<String>,
+    Json(payload): Json<AddContactRequest>,
+) -> Result<Json<Vec<NewContactInList>>, (StatusCode, String)> {
+    let list_id = Uuid::parse_str(&list_id)
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid list ID format".to_string()))?;
+
+    let added_contacts = list_service::add_contacts_to_list(list_id, payload.contact_ids)
+        .await?;
+
+    Ok(Json(added_contacts))
+}
+
+
+#[utoipa::path(
+    delete,
+    path = "/api/list/removeContacts/{list_id}",
+    params(
+        ("list_id" = String, Path, description = "ID of the list to remove contacts from")
+    ),
+    request_body = AddContactRequest,
+    responses(
+        (status = 200, description = "Contacts removed successfully", body = usize),
+        (status = 400, description = "Bad request"),
+        (status = 404, description = "List not found"),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn remove_contacts_from_list(
+    Path(list_id): Path<String>,
+    Json(payload): Json<AddContactRequest>,
+) -> Result<Json<usize>, (StatusCode, String)> {
+    let list_id = Uuid::parse_str(&list_id)
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid list ID format".to_string()))?;
+
+    let num_deleted = list_service::delete_contacts_from_list(list_id, payload.contact_ids)
+        .await?;
+
+    Ok(Json(num_deleted))
 }

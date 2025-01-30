@@ -9,13 +9,11 @@ use axum::{
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::{appState::AppState, handlers::template::get_templates_by_id};
-
 use crate::handlers::template::{
-    delete_template, get_templates, create_template, update_template, send_templated_email
+    create_template, delete_template, get_templates, get_templates_by_id, send_templated_email, update_template
 };
 
-use crate::handlers::list::{create_list, get_lists, update_list, get_list_by_id, delete_list};
+use crate::handlers::list::{create_list, get_lists, update_list, get_list_by_id, delete_list, add_contacts_to_list, remove_contacts_from_list};
 
 
 use crate::handlers::template as template;
@@ -34,7 +32,9 @@ use crate::handlers::list as list;
         list::get_lists, 
         list::get_list_by_id, 
         list::update_list, 
-        list::delete_list
+        list::delete_list, 
+        list::add_contacts_to_list, 
+        list::remove_contacts_from_list
     ),
     servers(
         (url = "/", description = "Default server")
@@ -57,6 +57,8 @@ pub fn create_router() -> Router {
         .route("/api/namespaces/{namespace_id}/list/{list_id}", get(get_list_by_id))
         .route("/api/namespaces/{namespace_id}/list/{list_id}", patch(update_list))
         .route("/api/namespaces/{namespace_id}/list/{list_id}", delete(delete_list))
+        .route("/api/list/addContacts/{list_id}", post(add_contacts_to_list))
+        .route("/api/list/removeContacts/{list_id}", delete(remove_contacts_from_list))
         .merge(
             SwaggerUi::new("/swagger-ui")
                 .url("/api-docs/mail-service", ApiDoc::openapi())

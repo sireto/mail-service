@@ -1,4 +1,4 @@
-use crate::{models::{list::{CreateListRequest, CreateListResponse, DeleteListResponse, List, ListResponse, UpdateListRequest, UpdatedListResponse}, template::UpdateTemplateRequest}, repositories::list_repo};
+use crate::{models::{contact, list::{CreateListRequest, CreateListResponse, DeleteListResponse, List, ListResponse, UpdateListRequest, UpdatedListResponse}, list_contacts::NewContactInList, template::UpdateTemplateRequest}, repositories::{list_contact_repo, list_repo}};
 
 use aws_sdk_sesv2::types::Status;
 use chrono::{DateTime, Utc};
@@ -113,4 +113,23 @@ pub async fn delete_list (
     };
 
     Ok(response_list)
+
+}
+
+pub async fn add_contacts_to_list(
+    list_id: Uuid,
+    contact_ids: Vec<Uuid>,
+) -> Result<Vec<NewContactInList>, (StatusCode, String)> {
+    list_contact_repo::add_contacts_to_list(list_id, contact_ids)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+}
+
+pub async fn delete_contacts_from_list(
+    list_id: Uuid,
+    contact_ids: Vec<Uuid>,
+) -> Result<usize, (StatusCode, String)> {
+    list_contact_repo::delete_contacts_from_list(list_id, contact_ids)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
 }
