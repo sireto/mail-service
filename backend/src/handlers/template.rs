@@ -25,9 +25,8 @@ pub enum TemplateField {
         (status = 404)
     )
 )]
-pub async fn get_templates(Path(namespace_id): Path<String>) -> Result<Json<Vec<GetTemplateResponse>>, (StatusCode, String)> {
-    let namespace_id = Uuid::parse_str(&namespace_id)
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid namespace ID format".to_string()))?;
+pub async fn get_templates() -> Result<Json<Vec<GetTemplateResponse>>, (StatusCode, String)> {
+
     // Use Diesel to fetch templates from the database
     let templates_result = template_service::get_all_templates().await?;
 
@@ -40,16 +39,13 @@ pub async fn get_templates(Path(namespace_id): Path<String>) -> Result<Json<Vec<
 
 #[utoipa::path(
     get,
-    path = "/api/namespaces/{namespace_id}/templates/{template_id}",
+    path = "/api/templates/{template_id}",
     responses(
         (status = 200, description = "Get Template By ID", body = TemplateResponse),
         (status = 404)
     )
 )]
-pub async fn get_templates_by_id(Path((namespace_id, template_id)): Path<(String, String)>) -> Result<Json<GetTemplateResponse>, (StatusCode, String)> {
-
-    let namespace_id = Uuid::parse_str(&namespace_id)
-    .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid namespace ID format".to_string()))?;
+pub async fn get_templates_by_id(Path(template_id): Path<String>) -> Result<Json<GetTemplateResponse>, (StatusCode, String)> {
     // Try to parse the template_id from String to Uuid
     let template_id = Uuid::parse_str(&template_id)
         .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid template ID format".to_string()))?;
@@ -88,7 +84,7 @@ pub async fn create_template(
 
 #[utoipa::path(
     patch,
-    path = "/api/namespaces/{namespace_id}/templates/{template_id}",
+    path = "/api/templates/{template_id}",
     params(
         ("template_id" = String, Path, description = "ID of the template to update")
     ),
@@ -101,7 +97,7 @@ pub async fn create_template(
 )]
 pub async fn update_template(
     
-    Path((namespace_id, template_id)): Path<(String, String)>,
+    Path(template_id): Path<String>,
     Json(payload): Json<UpdateTemplateRequest>
 ) -> Result<Json<UpdateTemplateResponse>, (StatusCode, String)> {
 
@@ -112,7 +108,7 @@ pub async fn update_template(
 
 #[utoipa::path(
     delete,
-    path = "/api/namespaces/{namespace_id}/templates/{template_id}",
+    path = "/api/templates/{template_id}",
     params(
         ("template_id" = String, Path, description = "ID of the template to delete")
     ),
@@ -124,7 +120,7 @@ pub async fn update_template(
     )
 )]
 pub async fn delete_template(
-    Path((namespace_id, template_id)): Path<(String, String)>
+    Path(template_id): Path<String>
 ) -> Result<Json<DeleteTemplateResponse>, (StatusCode, String)> {
     let delete_template_response = template_service::delete_template(template_id).await?;
 
@@ -133,7 +129,7 @@ pub async fn delete_template(
 
 #[utoipa::path(
     post,
-    path = "/api/namespaces/{namespace_id}/templates/{template_id}/send",
+    path = "/api/templates/{template_id}/send",
     params(
         ("template_id" = String, Path, description = "ID of the template to send")
     ),
@@ -145,9 +141,12 @@ pub async fn delete_template(
     )
 )]
 pub async fn send_templated_email(
-    Path((namespace_id, template_id)): Path<(String, String)>,
+    Path(template_id): Path<String>,
     Json(payload): Json<SendMailRequest>
 ) -> Result<Json<SendMailResponse>, (StatusCode, String)> {
+
+    
+    
     let send_templated_email_response = template_service::send_templated_email(template_id, payload).await;
 
     match send_templated_email_response {

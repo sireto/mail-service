@@ -1,11 +1,11 @@
-use chrono::{ DateTime, Utc };
+use chrono::{ DateTime, NaiveDateTime, Utc };
 use serde_json::Value;
 use serde::{ Serialize, Deserialize };
 use utoipa::ToSchema;
 use diesel::prelude::*;
 use uuid::Uuid;
 
-#[derive(Debug, Queryable, Selectable, Identifiable)]
+#[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::schema::contacts)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Contact {
@@ -18,7 +18,7 @@ pub struct Contact {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq)]
 #[derive(Insertable)]
 #[diesel(table_name = crate::schema::contacts)]
 pub struct CreateContactRequest {
@@ -67,7 +67,7 @@ pub struct GetContactResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq)]
 pub struct UpdateContactRequest {
     pub first_name: String,
     pub last_name: String,
@@ -75,7 +75,7 @@ pub struct UpdateContactRequest {
     pub attribute: Option<Value>,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq)]
 pub struct UpdateContactResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub id: Uuid,
