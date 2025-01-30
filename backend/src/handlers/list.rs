@@ -34,7 +34,7 @@ pub async fn create_list(
 
 #[utoipa::path(
     get, 
-    path = "/api/namespaces/{namespace_id}/list", 
+    path = "/api/list/namespaces/{namespace_id}/list", 
     responses(
         (status=200, description="List of lists", body=Vec<ListResponse>), 
         (status= 404)
@@ -54,7 +54,7 @@ pub async fn get_lists(Path(namespace_id): Path<String>) -> Result<Json<Vec<List
 
 #[utoipa::path(
     get, 
-    path = "/api/namespaces/{namespace_id}/list/{list_id}", 
+    path = "/api/list/namespaces/{namespace_id}/list/{list_id}", 
     responses(
         (status = 200, description = "Get List By ID", body=ListResponse), 
         (status =404)
@@ -81,7 +81,7 @@ pub async fn get_list_by_id(
 
 #[utoipa::path(
     patch, 
-    path = "/api/namespaces/{namespace_id}/list/{list_id}", 
+    path = "/api/list/namespaces/{namespace_id}/list/{list_id}", 
     params(
         ("list_id", Path, description ="Id of the lsit to update")
     ), 
@@ -106,7 +106,7 @@ pub async fn update_list(
 
 #[utoipa::path(
     delete,
-    path = "/api/namespaces/{namespace_id}/list/{list_id}",
+    path = "/api/list/namespaces/{namespace_id}/list/{list_id}",
     params(
         ("list_id" = String, Path, description = "ID of the list to delete")
     ),

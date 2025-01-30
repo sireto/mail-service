@@ -9,6 +9,7 @@ use crate::handlers::{
 
 use crate::handlers::list::{create_list, get_lists, update_list, get_list_by_id, delete_list, add_contacts_to_list, remove_contacts_from_list};
 
+use crate::routes::list::list_routes;
 use crate::routes::{
     template as template_routes,
     contact as contact_routes,
@@ -46,6 +47,7 @@ pub struct ApiDoc;
 pub fn create_router() -> Router {
     let api_routes = Router::new()
         .nest("/templates", template_routes::template_routes())
+        .nest("/list", list_routes())
         .nest("/contacts", contact_routes::contact_routes());
 
     Router::new()

@@ -29,6 +29,7 @@ pub mod repositories {
 pub mod routes { 
     pub mod template;
     pub mod contact;
+    pub mod list;
 }
 pub mod tests;
 

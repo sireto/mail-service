@@ -8,7 +8,7 @@ use serde_json::Value;
 use serde::{ Serialize, Deserialize };
 use utoipa::ToSchema;
 
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq)]
 #[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = crate::schema::templates)]
 pub struct CreateTemplateRequest {
@@ -20,8 +20,7 @@ pub struct CreateTemplateRequest {
     pub content_html: String,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
-
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq)]
 pub struct CreateTemplateResponse {
     pub id: String,
     pub name: String,
@@ -105,7 +104,7 @@ use uuid::Uuid;
 //     pub updated_at: NaiveDateTime,
 // }
 
-#[derive(Debug, Queryable, Selectable, Identifiable)]
+#[derive(Debug, Queryable, Selectable, Identifiable, Clone, PartialEq)]
 #[diesel(table_name = crate::schema::templates)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[primary_key(id)] 
@@ -116,11 +115,11 @@ pub struct Template {
     pub template_data: Value,
     pub content_plaintext: Option<String>,
     pub content_html: String,
-    pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq)]
 pub struct UpdateTemplateRequest {
     pub name: String,
     pub template_data: Value,
@@ -136,7 +135,7 @@ pub struct UpdateTemplateResponse {
     pub name: String,
 
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
-    pub updated_at: NaiveDateTime
+    pub updated_at: DateTime<Utc>
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Queryable)]
@@ -148,17 +147,14 @@ pub struct DeleteTemplateResponse {
     pub name: String,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Queryable)]
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Queryable, Clone, PartialEq)]
 pub struct SendMailRequest {
-    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
-    pub id: Uuid,
+    pub receiver: Option<String>,   // this should be a list of emails seperated by commas or the list name for now (later to be changed to the list_id)...
+    pub cc: Option<String>,
+    pub bcc: Option<String>,
+    pub from: String, 
+    pub subject: String,   
 
-    #[schema(value_type = String, example = "receiver@example.com")]
-    pub list: String,
-
-    #[schema(value_type = String, example = "sender@example.com")]
-    pub from: String,  
-     
     #[schema(value_type = String, example = "{\"name\": \"John Doe\"}")]
     pub template_data: String,
 }
@@ -170,5 +166,7 @@ pub struct SendMailResponse {
 
     pub name: String,
     pub to: Vec<String>,
+    pub cc: Vec<String>,
+    pub bcc: Vec<String>,
     pub from: String,
 }
