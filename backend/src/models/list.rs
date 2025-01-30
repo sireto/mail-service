@@ -1,10 +1,9 @@
 use chrono::{ DateTime, NaiveDateTime, Utc};
-use serde_json::Value;
 use uuid::Uuid;
 use diesel::prelude::*;
 
 use serde::{Serialize, Deserialize};
-use utoipa::{openapi::schema, ToSchema};
+use utoipa::ToSchema;
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
 #[derive(Queryable, Selectable, Insertable)]
@@ -26,7 +25,7 @@ pub struct CreateListResponse {
 }
 
 
-#[derive(Debug, Queryable, Selectable, Identifiable)]
+#[derive(Debug, Queryable, Selectable, Identifiable, Clone)]
 #[diesel(table_name = crate::schema::lists)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[primary_key(id)] 
@@ -35,8 +34,8 @@ pub struct List {
     pub namespace_id: Uuid, 
     pub name: String, 
     pub description: Option<String>,
-    pub created_at: NaiveDateTime, 
-    pub updated_at: NaiveDateTime, 
+    pub created_at: DateTime<Utc>, 
+    pub updated_at: DateTime<Utc>, 
 }
 
 
@@ -49,9 +48,9 @@ pub struct ListResponse {
     pub name: String, 
     pub description: Option<String>, 
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
-    pub created_at: NaiveDateTime, 
+    pub created_at: DateTime<Utc>, 
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
-    pub updated_at: NaiveDateTime
+    pub updated_at: DateTime<Utc>
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
@@ -66,7 +65,7 @@ pub struct UpdatedListResponse {
     pub id: Uuid, 
     pub name: String, 
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
-    pub updated_at: NaiveDateTime,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Queryable)]

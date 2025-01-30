@@ -1,12 +1,11 @@
 use diesel::prelude::*;
 use uuid::Uuid;
 use crate::schema::list_contacts;
-use chrono::{ DateTime, NaiveDateTime, Utc};
-use crate::models::contact::Contact;
-use crate::models::list::List;
+use chrono::{ DateTime,Utc};
+use crate::models::{contact::Contact, list::List};
 
 use serde::{Serialize, Deserialize};
-use utoipa::{openapi::schema, ToSchema};
+use utoipa::ToSchema;
 
 use crate::{appState::DbPooledConnection, GLOBAL_APP_STATE};
 
@@ -47,7 +46,7 @@ pub struct AddContactRequest {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub contact_ids: Vec<Uuid>, // Collect contact IDs to add to the list
 }
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone)]
 #[derive(Queryable, Selectable, Insertable)]
 #[diesel(table_name = crate::schema::list_contacts)]
 pub struct NewContactInList {

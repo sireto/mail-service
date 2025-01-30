@@ -1,6 +1,5 @@
-use crate::models::{list::{CreateListRequest, CreateListResponse, DeleteListResponse, ListResponse, UpdateListRequest, UpdatedListResponse}, list_contacts::{NewContactInList, AddContactRequest}};
 
-use aws_sdk_sesv2::types::Status;
+use crate::models::{list::{CreateListRequest, CreateListResponse, DeleteListResponse, ListResponse, UpdateListRequest, UpdatedListResponse}, list_contacts::{NewContactInList, AddContactRequest}};
 use axum::{
     extract:: Path, Json, http::StatusCode
 };

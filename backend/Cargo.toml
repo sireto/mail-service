@@ -32,6 +32,8 @@ warp = "0.3.7"
 email_address = "0.2.9"
 thiserror = "2"
 anyhow = "1.0.95"
+mockall = "0.13.1"
+async-trait = "0.1.85"
 
 mockall = "0.13.1"
 async-trait = "0.1.85"
