@@ -35,13 +35,11 @@ anyhow = "1.0.95"
 mockall = "0.13.1"
 async-trait = "0.1.85"
 
-mockall = "0.13.1"
-async-trait = "0.1.85"
+
 
 [dev-dependencies]
 reqwest = { version = "0.12", features = ["json"] }
 mockall = "0.13.1"
-async-trait = "0.1.85"
 async-trait = "0.1.85"
 axum-test-helpers = "0.8.0"
 

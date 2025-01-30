@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use backend::{ model::{Template, CreateTemplateRequest, UpdateTemplateRequest }, repositories::template_repo::MockTemplateRepository, services::template_service::TemplateService};
+use backend::{ models::template::{Template, CreateTemplateRequest, UpdateTemplateRequest }, repositories::template_repo::MockTemplateRepository, services::template_service::TemplateService};
 use uuid::Uuid;
 use mockall::predicate::*;
 

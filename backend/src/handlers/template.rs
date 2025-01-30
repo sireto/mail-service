@@ -29,7 +29,7 @@ pub async fn get_templates(Path(namespace_id): Path<String>) -> Result<Json<Vec<
     let namespace_id = Uuid::parse_str(&namespace_id)
         .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid namespace ID format".to_string()))?;
     // Use Diesel to fetch templates from the database
-    let templates_result = template_service::get_all_templates(namespace_id).await?;
+    let templates_result = template_service::get_all_templates().await?;
 
     if templates_result.is_empty() {
         return Err((StatusCode::NOT_FOUND, "No templates found".to_string()));
@@ -55,7 +55,7 @@ pub async fn get_templates_by_id(Path((namespace_id, template_id)): Path<(String
         .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid template ID format".to_string()))?;
 
     // Fetch the template by ID from the service
-    let template_result = template_service::get_template_by_id(namespace_id,template_id).await;
+    let template_result = template_service::get_template_by_id(template_id).await;
 
     match template_result {
         Ok(template) => Ok(Json(template)), // Return the template wrapped in Json
@@ -105,7 +105,7 @@ pub async fn update_template(
     Json(payload): Json<UpdateTemplateRequest>
 ) -> Result<Json<UpdateTemplateResponse>, (StatusCode, String)> {
 
-    let update_template_response = template_service::update_template(namespace_id, template_id, payload).await?;
+    let update_template_response = template_service::update_template(template_id, payload).await?;
 
     Ok(Json(update_template_response))
 }
@@ -126,7 +126,7 @@ pub async fn update_template(
 pub async fn delete_template(
     Path((namespace_id, template_id)): Path<(String, String)>
 ) -> Result<Json<DeleteTemplateResponse>, (StatusCode, String)> {
-    let delete_template_response = template_service::delete_template(namespace_id, template_id).await?;
+    let delete_template_response = template_service::delete_template(template_id).await?;
 
     Ok(Json(delete_template_response))
 }
@@ -148,7 +148,7 @@ pub async fn send_templated_email(
     Path((namespace_id, template_id)): Path<(String, String)>,
     Json(payload): Json<SendMailRequest>
 ) -> Result<Json<SendMailResponse>, (StatusCode, String)> {
-    let send_templated_email_response = template_service::send_templated_email_service(namespace_id, template_id, payload).await;
+    let send_templated_email_response = template_service::send_templated_email(template_id, payload).await;
 
     match send_templated_email_response {
         Ok(response) => Ok(Json(response)),
