@@ -1,3 +1,4 @@
+use crate::models::list_contacts::NewContactInList;
 use crate::schema::{lists, templates};
 use crate::{appState::DbPooledConnection, GLOBAL_APP_STATE};
 use crate::schema::lists::dsl::*;
@@ -75,3 +76,5 @@ pub async fn delete_list(namespaceId: Uuid, list_id: Uuid) -> Result<List, diese
             .filter(id.eq(list_id))
         .get_result(&mut conn)
 }
+
+

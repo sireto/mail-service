@@ -14,7 +14,7 @@ async fn test_get_lists() {
         {
             "id": "123e4567-e89b-12d3-a456-426614174000",
             "namespace_id": "987e6543-e89b-12d3-a456-426614174000",
-            "name": "List Template 1",
+            "name": "List Template 4",
             "description": "This is a test description for list template 1",
             "created_at": "2023-01-01T00:00:00",
             "updated_at": "2023-01-10T00:00:00"
