@@ -1,4 +1,5 @@
 use crate::models::template::{ CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, SendMailRequest, SendMailResponse, UpdateTemplateRequest, UpdateTemplateResponse };
+use crate::models::template::{ CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, SendMailRequest, SendMailResponse, UpdateTemplateRequest, UpdateTemplateResponse };
 
 use crate::repositories::template_repo;
 use crate::repositories::template_repo::{self, TemplateRepository, TemplateRespositoryImpl};
@@ -13,7 +14,9 @@ use axum::http::StatusCode;
 
 
 pub async fn get_template_by_id(namespace_id:Uuid, template_id: Uuid) -> Result<GetTemplateResponse, (StatusCode, String)> {
+pub async fn get_template_by_id(namespace_id:Uuid, template_id: Uuid) -> Result<GetTemplateResponse, (StatusCode, String)> {
     // Call the repository function to get the template by ID
+    let template = template_repo::get_template_by_id(namespace_id, template_id).await;
     let template = template_repo::get_template_by_id(namespace_id, template_id).await;
 
     match template {
@@ -39,6 +42,8 @@ pub async fn get_template_by_id(namespace_id:Uuid, template_id: Uuid) -> Result<
     }
 }
 
+pub async fn get_all_templates(namespace_id: Uuid) -> Result<Vec<GetTemplateResponse>, (StatusCode, String)> {
+    let all_templates = template_repo::get_all_templates(namespace_id).await;
 pub async fn get_all_templates(namespace_id: Uuid) -> Result<Vec<GetTemplateResponse>, (StatusCode, String)> {
     let all_templates = template_repo::get_all_templates(namespace_id).await;
 
@@ -88,9 +93,14 @@ pub async fn create_template (payload: CreateTemplateRequest) -> Result<CreateTe
 
 pub async fn update_template(
     namespace_id: String,
+pub async fn update_template(
+    namespace_id: String,
     template_id: String,
     payload: UpdateTemplateRequest
 ) -> Result<UpdateTemplateResponse, (StatusCode, String)> {
+
+    let uuid_namespace_id = Uuid::parse_str(&namespace_id)
+    .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid namespace UUID format".to_string()))?;
 
     let uuid_namespace_id = Uuid::parse_str(&namespace_id)
     .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid namespace UUID format".to_string()))?;
@@ -98,6 +108,7 @@ pub async fn update_template(
     let uuid_id = Uuid::parse_str(&template_id)
         .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid UUID format".to_string()))?;
 
+    let updated_template = template_repo::update_template( uuid_namespace_id,uuid_id, payload).await;
     let updated_template = template_repo::update_template( uuid_namespace_id,uuid_id, payload).await;
 
     let response_template = match updated_template {
@@ -114,6 +125,8 @@ pub async fn update_template(
 
 pub async fn delete_template(
     namespace_id: String,
+pub async fn delete_template(
+    namespace_id: String,
     template_id: String,
 ) -> Result<DeleteTemplateResponse, (StatusCode, String)> {
     let template_repository = Arc::new(TemplateRespositoryImpl);
@@ -122,6 +135,10 @@ pub async fn delete_template(
     let uuid_id = Uuid::parse_str(&template_id)
         .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid UUID format".to_string()))?;
 
+        let uuid_namespace_id = Uuid::parse_str(&namespace_id)
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid UUID format".to_string()))?;
+
+    let deleted_template = template_repo::delete_template( uuid_namespace_id,uuid_id).await;
         let uuid_namespace_id = Uuid::parse_str(&namespace_id)
         .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid UUID format".to_string()))?;
 
@@ -144,6 +161,8 @@ pub async fn send_templated_email(
     payload: SendMailRequest,
 ) -> Result<SendMailResponse, anyhow::Error> {
     let client = aws_service::create_aws_client().await;
+
+    let uuid_namespace_id = Uuid::parse_str(&namespace_id).unwrap();
 
     let uuid_namespace_id = Uuid::parse_str(&namespace_id).unwrap();
 

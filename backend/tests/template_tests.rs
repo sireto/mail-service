@@ -116,6 +116,52 @@ async fn test_get_templates1() {
 }
 
 
+#[tokio::test]
+async fn test_get_templates1() {
+    // Start a mock server
+    let mut server = mockito::Server::new_async().await; // Add 'mut' here
+    let host = server.host_with_port();
+    let url = server.url();
+
+    let payload = serde_json::json!({
+        "id": "1",
+        "name": "Test Template",
+        "namespace_id": "namespace1",
+        "template_data": {},
+        "content_plaintext": null,
+        "content_html": "<p>Test Template Content</p>",
+        "created_at": "2023-01-01T00:00:00Z",
+        "updated_at": "2023-01-10T00:00:00Z"
+    });
+
+    // Create a mock for the GET request to /api/templates
+    let _mock = server.mock("GET", "/api/templates")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(&payload.to_string())
+        .create_async().await;
+
+    // Use the mock server URL instead of the real URL
+    let response = reqwest::Client::new()
+        .get(format!("{}/api/templates", url)) // Use mock_server URL
+        .send()
+        .await
+        .expect("Failed to send request");
+
+    // Assert the response status is success
+    assert!(response.status().is_success());
+
+    // Deserialize the response into Vec<GetTemplateResponse>
+    let templates: Vec<GetTemplateResponse> = response.json().await.expect("Failed to parse response");
+
+    // Assert that the response contains the expected template
+    assert_eq!(templates[0].name, "Test Template");
+
+    // Optionally, check if the mock was called
+    _mock.assert();
+}
+
+
 
 #[tokio::test]
 async fn test_create_template() {
