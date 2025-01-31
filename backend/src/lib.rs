@@ -12,6 +12,7 @@ pub mod models {
     pub mod list; 
     pub mod contact; 
     pub mod list_contacts;
+    pub mod mail;
     pub mod campaign;
     pub mod campaign_sender;
 }
@@ -34,6 +35,7 @@ pub mod repositories {
     pub mod template_repo; pub mod list_repo; pub mod list_contact_repo;
     pub mod contact; pub mod campaign;
     pub mod campaign_sender;
+    pub mod mail;
 }
 pub mod routes { 
     pub mod template;

@@ -64,6 +64,19 @@ diesel::table! {
 }
 
 diesel::table! {
+    mails (id) {
+        id -> Uuid,
+        mail_message -> Text,
+        contact_id -> Nullable<Uuid>,
+        template_id -> Nullable<Uuid>,
+        campaign_id -> Nullable<Uuid>,
+        sent_at -> Timestamptz,
+        #[max_length = 50]
+        status -> Varchar,
+    }
+}
+
+diesel::table! {
     namespaces (id) {
         id -> Uuid,
         name -> Varchar,
@@ -109,6 +122,9 @@ diesel::joinable!(campaigns -> templates (template_id));
 diesel::joinable!(list_contacts -> contacts (contact_id));
 diesel::joinable!(list_contacts -> lists (list_id));
 diesel::joinable!(lists -> namespaces (namespace_id));
+diesel::joinable!(mails -> campaigns (campaign_id));
+diesel::joinable!(mails -> contacts (contact_id));
+diesel::joinable!(mails -> templates (template_id));
 diesel::joinable!(servers -> namespaces (namespace_id));
 diesel::joinable!(templates -> namespaces (namespace_id));
 
@@ -118,6 +134,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     contacts,
     list_contacts,
     lists,
+    mails,
     namespaces,
     servers,
     templates,
