@@ -5,6 +5,7 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::handlers::{
     template as template,
     contact as contact,
+    campaign as campaign
 };
 
 use crate::handlers::list::{create_list, get_lists, update_list, get_list_by_id, delete_list, add_contacts_to_list, remove_contacts_from_list};
@@ -13,6 +14,7 @@ use crate::routes::list::list_routes;
 use crate::routes::{
     template as template_routes,
     contact as contact_routes,
+    campaign as campaign_routes
 };
 use crate::handlers::list as list;
 
@@ -36,7 +38,12 @@ use crate::handlers::list as list;
         list::update_list, 
         list::delete_list, 
         list::add_contacts_to_list, 
-        list::remove_contacts_from_list
+        list::remove_contacts_from_list, 
+        campaign::create_campaign,
+        campaign::get_all_campaigns, 
+        campaign::get_campaign_by_id, 
+        campaign::update_campaign, 
+        campaign::delete_campaign
     ),
     servers(
         (url = "/", description = "Default server")
@@ -48,7 +55,8 @@ pub fn create_router() -> Router {
     let api_routes = Router::new()
         .nest("/templates", template_routes::template_routes())
         .nest("/list", list_routes())
-        .nest("/contacts", contact_routes::contact_routes());
+        .nest("/contacts", contact_routes::contact_routes())
+        .nest("/campaigns", campaign_routes::campaign_routes());
 
     Router::new()
         .nest("/api", api_routes)
