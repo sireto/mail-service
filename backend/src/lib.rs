@@ -19,7 +19,8 @@ pub mod models {
 pub mod handlers { 
     pub mod template; 
     pub mod contact;
-    pub mod list;
+        pub mod mail;
+pub mod list;
     pub mod campaign;
     pub mod campaign_sender;
 }
@@ -30,6 +31,7 @@ pub mod services {
     pub mod list_service;
     pub mod campaign_service;
     pub mod campaign_sender_service;
+    pub mod mail;
 }
 pub mod repositories { 
     pub mod template_repo; pub mod list_repo; pub mod list_contact_repo;
@@ -43,6 +45,7 @@ pub mod routes {
     pub mod list;
     pub mod campaign;
     pub mod campaign_senders;
+    pub mod mail;
 }
 pub mod servers {
     pub mod servers_model;

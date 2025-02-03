@@ -67,12 +67,11 @@ diesel::table! {
     mails (id) {
         id -> Uuid,
         mail_message -> Text,
-        contact_id -> Nullable<Uuid>,
+        contact_id -> Uuid,
         template_id -> Nullable<Uuid>,
         campaign_id -> Nullable<Uuid>,
         sent_at -> Timestamptz,
-        #[max_length = 50]
-        status -> Varchar,
+        status -> Text,
     }
 }
 

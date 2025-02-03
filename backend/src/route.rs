@@ -3,8 +3,9 @@ use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::handlers::{
-    template as template,
-    contact as contact,
+    template,
+    contact,
+    mail,
     campaign as campaign,
     campaign_sender as campaign_sender
 };
@@ -16,6 +17,7 @@ use crate::routes::list::list_routes;
 use crate::routes::{
     template as template_routes,
     contact as contact_routes,
+    mail as mail_routes,
     campaign as campaign_routes,
     campaign_senders as campaign_senders_routes, 
 };
@@ -58,7 +60,11 @@ use crate::servers::servers_routes::servers_routes;
         servers::get_servers, 
         servers::get_server_by_id, 
         servers::update_server, 
-        servers::delete_server
+        servers::delete_server,
+        mail::add_mail,
+        mail::get_all_mails,
+        mail::update_mail,
+        mail::delete_mail
     ),
     servers(
         (url = "/", description = "Default server")
@@ -72,6 +78,7 @@ pub fn create_router() -> Router {
         .nest("/templates", template_routes::template_routes())
         .nest("/list", list_routes())
         .nest("/contacts", contact_routes::contact_routes())
+        .nest("/mails", mail_routes::mail_routes())
         .nest("/campaigns", campaign_routes::campaign_routes())
         .nest("/campaign-senders", campaign_senders_routes::campaign_sender_routes())
         .nest("/servers", servers_routes());

@@ -204,12 +204,14 @@ pub async fn send_templated_email(
 
     match result {
         Ok(_) => Ok(SendMailResponse {
-            id: Uuid::new_v4(),
+            id: template_uuid_id,
             name: template.name,
             to: receiver_list,
             from: payload.from,
             cc: cc_list,
-            bcc: bcc_list
+            bcc: bcc_list,
+            message: parsed_html,
+            sent_at: Utc::now(),
         }),
         Err(err) => {
             eprintln!("Failed to send templated email: {}", err);
