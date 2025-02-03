@@ -10,6 +10,7 @@ use axum::http::{
 };
 use tower_http::cors::CorsLayer;
 use std::{env, net::SocketAddr};
+use backend::services::aws_service;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
@@ -44,10 +45,20 @@ async fn main() {
     let addr: SocketAddr = addr.parse().expect("Invalid server address");
     println!("Starting server at {addr}");
 
+    let client = aws_service::create_aws_client().await;
+    let bounce_logs = aws_service::get_recent_bounces(&client).await;
+
+    match bounce_logs {
+        Ok(bounces) => {
+            println!("Bounces: {:?}", bounces);
+        },
+        Err(err) => {println!("Failed to get bounce logs");}
+    };
+
     // Start the server
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app.into_make_service()).await.unwrap();
-}
+;}
 
 /// Establishes a database connection to PostgreSQL
 fn establish_connection(database_url: &str) -> PgConnection {

@@ -1,6 +1,17 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    bounce_logs (id) {
+        id -> Uuid,
+        contact_id -> Uuid,
+        campaign_id -> Nullable<Uuid>,
+        at -> Timestamptz,
+        kind -> Text,
+        reason -> Text,
+    }
+}
+
+diesel::table! {
     campaign_senders (id) {
         id -> Uuid,
         server_id -> Nullable<Uuid>,
@@ -103,6 +114,8 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(bounce_logs -> campaigns (campaign_id));
+diesel::joinable!(bounce_logs -> contacts (contact_id));
 diesel::joinable!(campaign_senders -> servers (server_id));
 diesel::joinable!(campaigns -> campaign_senders (campaign_senders));
 diesel::joinable!(campaigns -> namespaces (namespace_id));
@@ -117,6 +130,7 @@ diesel::joinable!(servers -> namespaces (namespace_id));
 diesel::joinable!(templates -> namespaces (namespace_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    bounce_logs,
     campaign_senders,
     campaigns,
     contacts,
