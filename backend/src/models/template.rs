@@ -169,4 +169,8 @@ pub struct SendMailResponse {
     pub cc: Vec<String>,
     pub bcc: Vec<String>,
     pub from: String,
+    pub message: String,
+
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub sent_at: DateTime<Utc>,
 }

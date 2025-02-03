@@ -1,3 +1,4 @@
+use crate::models::mail::CreateMailRequest;
 use crate::models::template::{ CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, SendMailRequest, SendMailResponse, TemplateResponse, UpdateTemplateRequest, UpdateTemplateResponse };
 use serde_json::Value;
 use uuid::Uuid;
@@ -7,6 +8,7 @@ use axum::{
 };
 
 use crate::services::template_service;
+use crate::handlers::mail as mail_handler;
 
 
 #[derive(Clone, Debug, PartialEq)]
@@ -144,13 +146,29 @@ pub async fn send_templated_email(
     Path(template_id): Path<String>,
     Json(payload): Json<SendMailRequest>
 ) -> Result<Json<SendMailResponse>, (StatusCode, String)> {
-
-    
-    
     let send_templated_email_response = template_service::send_templated_email(template_id, payload).await;
 
     match send_templated_email_response {
-        Ok(response) => Ok(Json(response)),
+        Ok(response) => {
+            let contact_id = Uuid::parse_str("c1746c77-6710-43dd-9312-75e5eabfd76c").unwrap();
+            let payload = CreateMailRequest {
+                mail_message: response.message.clone(),
+                contact_id,
+                template_id: Some(response.id),
+                campaign_id: None,
+                sent_at: response.sent_at,
+                status: "pending".to_string(),
+            };
+
+            let mail_added_response = mail_handler::add_mail(Json(payload)).await;
+
+            let _ = match mail_added_response {
+                Ok(mail_response) => Ok(Json(mail_response)),
+                Err((status, message)) => Err((status, message)),
+            };
+
+            Ok(Json(response))
+        },
         Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string())),
     }
 }

@@ -1,5 +1,5 @@
 CREATE TABLE "campaigns" (
-    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     "campaign_name" VARCHAR NOT NULL,
     "template_id" UUID NOT NULL REFERENCES templateS(id) ON DELETE CASCADE,
     "namespace_id" UUID NOT NULL REFERENCES namespaceS(id) ON DELETE CASCADE,
