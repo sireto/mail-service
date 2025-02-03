@@ -11,7 +11,7 @@ use aws_sdk_sesv2::types::{Body, Content, Destination, Message, EmailContent};
 use crate::{services::{aws_service, list_service::ListContactService, template_service::get_template_by_id}};
 use anyhow::{anyhow, Result};
 
-use super::campaign_sender::get_campaign_sender_by_id;
+use super::campaign_sender_service::get_campaign_sender_by_id;
 
 
 pub struct CampaignService {

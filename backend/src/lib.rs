@@ -27,7 +27,7 @@ pub mod services {
     pub mod contact;
     pub mod list_service;
     pub mod campaign;
-    pub mod campaign_sender;
+    pub mod campaign_sender_service;
 }
 pub mod repositories { 
     pub mod template_repo; pub mod list_repo; pub mod list_contact_repo;
