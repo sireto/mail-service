@@ -1,7 +1,7 @@
-use aws_sdk_sesv2::{error::SdkError, operation::send_email::SendEmailOutput, types::{Body, Content, Destination, EmailContent, Message, BulkEmailEntry }, Client };
+use aws_sdk_sesv2::{error::SdkError, operation::send_email::SendEmailOutput, types::{Body, Content, Destination, EmailContent, Message, BulkEmailEntry, SuppressionListReason }, Client };
 use aws_config::{BehaviorVersion, Region};
 
-use std::env;
+use std::{env, error::Error};
 use aws_sdk_sesv2::config::Credentials;
 
 
@@ -131,6 +131,27 @@ pub async fn send_bulk_email(
         .send()
         .await
         .map_err(|e| anyhow::anyhow!("AWS SES error: {}", e))?;
+
+    Ok(())
+}
+
+/// a function to get the recent aws bounces...
+pub async fn get_recent_bounces(client: &Client) -> Result<(), SdkError<aws_sdk_sesv2::operation::send_email::SendEmailError>> {
+    let response = client.list_suppressed_destinations().reasons(SuppressionListReason::Bounce).send().await;
+
+    match response {
+        Ok(result) => {
+            // Handle the Option<&[SuppressedDestinationSummary]>
+            let suppressed_list = result.suppressed_destination_summaries();
+            
+            for suppressed in suppressed_list {
+                println!("Suppressed Email: {:?}", suppressed.email_address);
+            }
+        }
+        Err(err) => {
+            eprintln!("Error fetching suppressed emails: {:?}", err);
+        }
+    }
 
     Ok(())
 }
