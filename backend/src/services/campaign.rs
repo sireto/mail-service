@@ -191,9 +191,8 @@ pub async fn send_campaign_email(
     })?;
 
     let sender_email = campaign_sender_response.from_email;
-    
-
-    let mut success_count = 0;
+    //These variables are temporary
+    let mut success_mails = Vec::new();
     let mut failed_emails = Vec::new();
     
 
@@ -232,17 +231,21 @@ pub async fn send_campaign_email(
             .await;
 
         match result {
-            Ok(_) => success_count += 1,
+            Ok(response) => {
+                //this will actually be stored in the mail table in the db later
+                success_mails.push(response.message_id().unwrap().to_string());
+                println!("{:?}",success_mails);
+            },
             Err(e) => {
                 //The failed emails will be stored in bounce_logs table later
                 failed_emails.push(contact.email.clone());
-                anyhow!("Failed to send to {}: {}", contact.email.clone(), e);
+                anyhow!("SES SDK Error: {}", e);
             }
         }
     }
     Ok(CampaignSendResponse {
         campaign_id,
         total_recipients: contacts.len(),
-        status: "completed".to_string(),
+        status: "draft".to_string(),
     })
 }
