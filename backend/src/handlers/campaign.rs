@@ -1,7 +1,7 @@
 use crate::{models::{campaign::
     {
     CampaignSendResponse, CreateCampaignRequest, CreateCampaignResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse 
-    }, contact::{DeleteContactResponse, UpdateContactResponse}}, services::campaign, 
+    }, contact::{DeleteContactResponse, UpdateContactResponse}}, services::campaign_service, 
 };
 
 
@@ -21,7 +21,7 @@ pub async fn create_campaign(
     Json(payload): Json<CreateCampaignRequest>
 )->Result<Json<CreateCampaignResponse>, (StatusCode, String)>{
 
-    let created_campaign = campaign::create_campaign(payload).await?;
+    let created_campaign = campaign_service::create_campaign(payload).await?;
     Ok(Json(created_campaign))
 }
 
@@ -34,7 +34,7 @@ pub async fn create_campaign(
     )
 )]
 pub async fn get_all_campaigns() -> Result<Json<Vec<GetCampaignResponse>>, (StatusCode, String)> {
-    let campaigns = campaign::get_all_campaigns().await?;
+    let campaigns = campaign_service::get_all_campaigns().await?;
 
     if campaigns.is_empty(){
         return Ok(Json(vec![]));
@@ -51,7 +51,7 @@ pub async fn get_all_campaigns() -> Result<Json<Vec<GetCampaignResponse>>, (Stat
     )
 )]
 pub async fn get_campaign_by_id(Path(campaign_id): Path<String>) -> Result<Json<GetCampaignResponse>, (StatusCode, String)> {
-    let campaign = campaign::get_campaign_by_id(campaign_id).await?;
+    let campaign = campaign_service::get_campaign_by_id(campaign_id).await?;
 
     Ok(Json(campaign))
 }
@@ -75,7 +75,7 @@ pub async fn update_campaign(
     Json(payload): Json<UpdateCampaignRequest>
 ) -> Result<Json<UpdateCampaignResponse>, (StatusCode, String)> {
 
-    let update_contact_response = campaign::update_campaign(contact_id, payload).await?;
+    let update_contact_response = campaign_service::update_campaign(contact_id, payload).await?;
 
     Ok(Json(update_contact_response))
 }
@@ -96,7 +96,7 @@ pub async fn update_campaign(
 pub async fn delete_campaign(
     Path(campaign_id): Path<String>
 ) -> Result<Json<DeleteCampaignResponse>, (StatusCode, String)> {
-    let delete_campaign_response = campaign::delete_campaign(campaign_id).await?;
+    let delete_campaign_response = campaign_service::delete_campaign(campaign_id).await?;
 
     Ok(Json(delete_campaign_response))
 }
@@ -119,7 +119,7 @@ pub async fn send_campaign_email(
     Path(campaign_id): Path<String>
 ) -> Result<Json<CampaignSendResponse>, (StatusCode, String)> {
     
-    let result = campaign::send_campaign_email(campaign_id).await;
+    let result = campaign_service::send_campaign_email(campaign_id).await;
 
     match result {
         Ok(response) => Ok(Json(response)),

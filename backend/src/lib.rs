@@ -26,7 +26,7 @@ pub mod services {
     pub mod aws_service;
     pub mod contact;
     pub mod list_service;
-    pub mod campaign;
+    pub mod campaign_service;
     pub mod campaign_sender_service;
 }
 pub mod repositories { 
