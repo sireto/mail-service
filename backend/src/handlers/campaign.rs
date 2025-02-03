@@ -1,6 +1,6 @@
 use crate::{models::{campaign::
     {
-    CreateCampaignRequest, CreateCampaignResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse 
+    CampaignSendResponse, CreateCampaignRequest, CreateCampaignResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse 
     }, contact::{DeleteContactResponse, UpdateContactResponse}}, services::campaign, 
 };
 
@@ -99,4 +99,30 @@ pub async fn delete_campaign(
     let delete_campaign_response = campaign::delete_campaign(campaign_id).await?;
 
     Ok(Json(delete_campaign_response))
+}
+
+
+#[utoipa::path(
+    post,
+    path = "/api/campaigns/{campaign_id}/send",
+    params(
+        ("campaign_id" = String, Path, description = "ID of the campaign to send")
+    ),
+    responses(
+        (status = 200, description = "Send campaign email", body = CampaignSendResponse),
+        (status = 400, description = "Bad request"),
+        (status = 404, description = "Campaign not found"),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn send_campaign_email(
+    Path(campaign_id): Path<String>
+) -> Result<Json<CampaignSendResponse>, (StatusCode, String)> {
+    
+    let result = campaign::send_campaign_email(campaign_id).await;
+
+    match result {
+        Ok(response) => Ok(Json(response)),
+        Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string())),
+    }
 }

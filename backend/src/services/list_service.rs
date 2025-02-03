@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
-use crate::{models::{list::{CreateListRequest, CreateListResponse, DeleteListResponse, ListResponse, UpdateListRequest, UpdatedListResponse}, list_contacts::NewContactInList}, repositories::list_repo::{ListRepository, ListRepositoryImpl}};
-use crate::repositories::list_repo;
+use crate::{models::{contact::Contact, list::{CreateListRequest, CreateListResponse, DeleteListResponse, ListResponse, UpdateListRequest, UpdatedListResponse}, list_contacts::NewContactInList}, repositories::list_repo::{ListRepository, ListRepositoryImpl}};
 
-use chrono::{DateTime, Utc};
 use axum::http::StatusCode;
 use uuid::Uuid;
 use crate::repositories::list_contact_repo::{ListContactRepository, ListContactRepositoryImpl};
+
+
+// use anyhow::{anyhow, Result};
 
 pub struct ListContactService {
     repository: Arc<dyn ListContactRepository + Send + Sync>
@@ -26,6 +27,9 @@ impl ListContactService {
     }
     pub async fn delete_contacts_from_list(&self, list_id: Uuid, contact_id: Vec<Uuid>) -> Result<usize, diesel::result::Error>{
         self.repository.delete_contacts_from_list(list_id, contact_id).await
+    }
+    pub async fn get_contacts_from_lists(&self, lists:  Vec<Uuid>) -> Result<Vec<Contact>, diesel::result::Error>{
+        self.repository.get_contacts_from_lists(lists).await
     }
 }
 

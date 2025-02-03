@@ -1,8 +1,9 @@
-use aws_sdk_sesv2::{error::SdkError, operation::send_email::SendEmailOutput, types::{Body, Content, Destination, EmailContent, Message }, Client };
+use aws_sdk_sesv2::{error::SdkError, operation::send_email::SendEmailOutput, types::{Body, Content, Destination, EmailContent, Message, BulkEmailEntry }, Client };
 use aws_config::{BehaviorVersion, Region};
 
 use std::env;
 use aws_sdk_sesv2::config::Credentials;
+
 
 
 // pub async fn create_aws_client() -> Client {
@@ -116,4 +117,20 @@ pub async fn send_mail(
         .await;
 
     result
+}
+
+//Currnetly this is not being used 
+pub async fn send_bulk_email(
+    client: &aws_sdk_sesv2::Client,
+    from_email: &str,
+    entries: Vec<aws_sdk_sesv2::types::BulkEmailEntry>,
+) -> Result<(), anyhow::Error> {
+    client.send_bulk_email()
+        .from_email_address(from_email)
+        .set_bulk_email_entries(Some(entries)) // Use setter for Option<Vec>
+        .send()
+        .await
+        .map_err(|e| anyhow::anyhow!("AWS SES error: {}", e))?;
+
+    Ok(())
 }

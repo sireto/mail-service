@@ -43,7 +43,8 @@ use crate::handlers::list as list;
         campaign::get_all_campaigns, 
         campaign::get_campaign_by_id, 
         campaign::update_campaign, 
-        campaign::delete_campaign
+        campaign::delete_campaign, 
+        campaign::send_campaign_email
     ),
     servers(
         (url = "/", description = "Default server")

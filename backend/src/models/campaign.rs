@@ -1,7 +1,7 @@
 use chrono::{ DateTime, NaiveDateTime, Utc };
 use serde_json::Value;
 use serde::{ Serialize, Deserialize };
-use utoipa::ToSchema;
+use utoipa::{openapi::schema, ToSchema};
 use diesel::prelude::*;
 use uuid::Uuid;
 
@@ -119,9 +119,10 @@ pub struct DeleteCampaignResponse {
     pub status: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct CampaignSendResponse {
-    pub campaign_id: Uuid,
+    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub campaign_id: String,
     pub total_recipients: usize,
     pub status: String,
 }

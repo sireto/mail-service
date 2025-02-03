@@ -1,4 +1,4 @@
-use crate::{models::campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}}};
+use crate::{models::campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, list_contact_repo::ListContactRepositoryImpl}, utils::contact_lists_functions::populate_contact_template};
 use uuid::Uuid;
 use std::sync::Arc;
 use axum::http::StatusCode;
@@ -7,6 +7,9 @@ use crate::models::campaign::{
     CreateCampaignRequest, 
     CreateCampaignResponse,
 };
+use aws_sdk_sesv2::types::{Body, Content, Destination, Message, EmailContent};
+use crate::{services::{aws_service, list_service::ListContactService, template_service::get_template_by_id}};
+use anyhow::{anyhow, Result};
 
 
 pub struct CampaignService {
@@ -150,4 +153,84 @@ pub async fn delete_campaign(campaign_id: String)->Result<DeleteCampaignResponse
     };
 
     Ok(deleted_campaign)
+}
+
+pub async fn send_campaign_email(
+    campaign_id: String,
+) -> Result<CampaignSendResponse, anyhow::Error> {
+    let client = aws_service::create_aws_client().await;
+    let campaign = get_campaign_by_id(campaign_id.clone())
+        .await
+        .map_err(|(status_code, message)| {
+            anyhow!("Failed to fetch campaign ({}): {}", status_code, message)
+        })?;
+
+    // This will come from lists table, but for now it is hardcoded
+    let lists = vec![Uuid::parse_str("2af1e68e-0d28-455b-b88a-8cb1c2a70a01")?];
+
+    let list_contact_repository = Arc::new(ListContactRepositoryImpl);
+    let list_contact_service = ListContactService::new(list_contact_repository);
+    let contacts = list_contact_service.get_contacts_from_lists(lists).await?;
+
+    let template = get_template_by_id(campaign.template_id.clone()).await
+        .map_err(|(status_code, message)| {
+            anyhow!("Failed to fetch template ({}): {}", status_code, message)
+        })?;
+
+    // This will come from campaign_senders table, but for now it is hardcoded
+    let sender_email = "ses@id21.io".to_string();
+
+    let mut success_count = 0;
+    let mut failed_emails = Vec::new();
+    
+
+    //This current logic may need to be changed while implementing queue
+    for contact in contacts.clone() {
+        // Keep your existing template population logic
+        let parsed_html = populate_contact_template(&template, &contact).await?;
+
+        let body = Body::builder()
+            .html(Content::builder()
+                .data(parsed_html)
+                .charset("UTF-8")
+                .build()?
+            )
+            .build();
+
+        let message = Message::builder()
+            .subject(Content::builder()
+                .data(format!("Hello {}", contact.first_name))
+                .charset("UTF-8")
+                .build()?
+            )
+            .body(body)
+            .build();
+
+        let result = client.send_email()
+            .from_email_address(sender_email.clone())
+            .destination(Destination::builder()
+                .to_addresses(contact.email.clone())
+                .build()
+            )
+            .content(EmailContent::builder()
+                .simple(message)
+                .build()
+            )
+            .send()
+            .await;
+
+        match result {
+            Ok(_) => success_count += 1,
+            Err(e) => {
+                failed_emails.push(contact.email.clone());
+                anyhow!("Failed to send to {}: {}", contact.email.clone(), e);
+            }
+        }
+    }
+
+    Ok(CampaignSendResponse {
+        campaign_id,
+        total_recipients: contacts.len(),
+        status: "completed".to_string(),
+    })
 }
