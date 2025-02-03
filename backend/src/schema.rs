@@ -3,11 +3,11 @@
 diesel::table! {
     campaign_senders (id) {
         id -> Uuid,
-        server_id -> Nullable<Uuid>,
-        from_name -> Nullable<Varchar>,
+        server_id -> Uuid,
+        from_name -> Varchar,
         from_email -> Varchar,
-        created_at -> Nullable<Timestamp>,
-        updated_at -> Nullable<Timestamp>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
@@ -72,9 +72,9 @@ diesel::table! {
         host -> Varchar,
         smtp_username -> Varchar,
         smtp_password -> Varchar,
-        namespace_id -> Nullable<Uuid>,
-        created_at -> Nullable<Timestamp>,
-        updated_at -> Nullable<Timestamp>,
+        namespace_id -> Uuid,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 

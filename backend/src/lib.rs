@@ -12,12 +12,14 @@ pub mod models {
     pub mod contact; 
     pub mod list_contacts;
     pub mod campaign;
+    pub mod campaign_sender;
 }
 pub mod handlers { 
     pub mod template; 
     pub mod contact;
     pub mod list;
     pub mod campaign;
+    pub mod campaign_sender;
 }
 pub mod services { 
     pub mod template_service; 
@@ -25,16 +27,19 @@ pub mod services {
     pub mod contact;
     pub mod list_service;
     pub mod campaign;
+    pub mod campaign_sender;
 }
 pub mod repositories { 
     pub mod template_repo; pub mod list_repo; pub mod list_contact_repo;
     pub mod contact; pub mod campaign;
+    pub mod campaign_sender;
 }
 pub mod routes { 
     pub mod template;
     pub mod contact;
     pub mod list;
     pub mod campaign;
+    pub mod campaign_senders;
 }
 pub mod tests;
 
