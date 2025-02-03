@@ -11,6 +11,8 @@ use aws_sdk_sesv2::types::{Body, Content, Destination, Message, EmailContent};
 use crate::{services::{aws_service, list_service::ListContactService, template_service::get_template_by_id}};
 use anyhow::{anyhow, Result};
 
+use super::campaign_sender::get_campaign_sender_by_id;
+
 
 pub struct CampaignService {
     repository: Arc<dyn CampaignRepository + Send +Sync>
@@ -177,8 +179,19 @@ pub async fn send_campaign_email(
             anyhow!("Failed to fetch template ({}): {}", status_code, message)
         })?;
 
-    // This will come from campaign_senders table, but for now it is hardcoded
-    let sender_email = "ses@id21.io".to_string();
+    // Handle the Option
+    let sender_id_string = match campaign.campaign_senders {
+        Some(uuid) => uuid.to_string(), // Convert Uuid to String
+        None => return Err(anyhow!("Sender ID not found for campaign.")), // Handle None case
+    };
+
+    let campaign_sender_response = get_campaign_sender_by_id(sender_id_string).await
+    .map_err(|(status_code, message)| {
+        anyhow!("Failed to fetch sender ({}): {}", status_code, message)
+    })?;
+
+    let sender_email = campaign_sender_response.from_email;
+    
 
     let mut success_count = 0;
     let mut failed_emails = Vec::new();
@@ -186,7 +199,6 @@ pub async fn send_campaign_email(
 
     //This current logic may need to be changed while implementing queue
     for contact in contacts.clone() {
-        // Keep your existing template population logic
         let parsed_html = populate_contact_template(&template, &contact).await?;
 
         let body = Body::builder()
@@ -222,12 +234,12 @@ pub async fn send_campaign_email(
         match result {
             Ok(_) => success_count += 1,
             Err(e) => {
+                //The failed emails will be stored in bounce_logs table later
                 failed_emails.push(contact.email.clone());
                 anyhow!("Failed to send to {}: {}", contact.email.clone(), e);
             }
         }
     }
-
     Ok(CampaignSendResponse {
         campaign_id,
         total_recipients: contacts.len(),
