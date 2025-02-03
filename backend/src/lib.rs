@@ -12,6 +12,7 @@ pub mod models {
     pub mod contact; 
     pub mod list_contacts;
     pub mod mail;
+    pub mod namespace;
 }
 pub mod handlers { 
     pub mod template; 
@@ -26,9 +27,12 @@ pub mod services {
     pub mod mail;
 }
 pub mod repositories { 
-    pub mod template_repo; pub mod list_repo; pub mod list_contact_repo;
+    pub mod template_repo; 
+    pub mod list_repo; 
+    pub mod list_contact_repo;
     pub mod contact;
     pub mod mail;
+    pub mod namespace;
 }
 pub mod routes { 
     pub mod template;
