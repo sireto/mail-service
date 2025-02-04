@@ -18,13 +18,16 @@ pub mod handlers {
     pub mod template; 
     pub mod contact;
     pub mod mail;
-pub mod list;}
+    pub mod namespace;
+    pub mod list;
+}
 pub mod services { 
     pub mod template_service; 
     pub mod aws_service;
     pub mod contact;
     pub mod list_service;
     pub mod mail;
+    pub mod namespace;
 }
 pub mod repositories { 
     pub mod template_repo; 
@@ -39,6 +42,7 @@ pub mod routes {
     pub mod contact;
     pub mod list;
     pub mod mail;
+    pub mod namespace;
 }
 pub mod tests;
 

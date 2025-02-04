@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use axum::Router;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -5,7 +6,8 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::handlers::{
     template,
     contact,
-    mail
+    mail,
+    namespace,
 };
 
 use crate::handlers::list::{create_list, get_lists, update_list, get_list_by_id, delete_list, add_contacts_to_list, remove_contacts_from_list};
@@ -14,9 +16,14 @@ use crate::routes::list::list_routes;
 use crate::routes::{
     template as template_routes,
     contact as contact_routes,
-    mail as mail_routes
+    mail as mail_routes,
+    namespace as namespace_routes,
 };
 use crate::handlers::list as list;
+
+use crate::services::namespace as namespace_service;
+use crate::repositories::namespace::NamespaceRepositoryImpl;
+
 
 #[derive(OpenApi)]
 #[openapi(
@@ -42,7 +49,12 @@ use crate::handlers::list as list;
         mail::add_mail,
         mail::get_all_mails,
         mail::update_mail,
-        mail::delete_mail
+        mail::delete_mail,
+        namespace::create_namespace,
+        namespace::get_all_namespaces,
+        namespace::get_namespace_by_id,
+        namespace::update_namespace,
+        namespace::delete_namespace
     ),
     servers(
         (url = "/", description = "Default server")
@@ -51,11 +63,15 @@ use crate::handlers::list as list;
 pub struct ApiDoc;
 
 pub fn create_router() -> Router {
+    let namespace_repo = Arc::new(NamespaceRepositoryImpl);
+    let namespace_service = namespace_service::NamespaceService::new(namespace_repo);
+
     let api_routes = Router::new()
         .nest("/templates", template_routes::template_routes())
         .nest("/list", list_routes())
         .nest("/contacts", contact_routes::contact_routes())
-        .nest("/mails", mail_routes::mail_routes());
+        .nest("/mails", mail_routes::mail_routes())
+        .nest("/namespaces", namespace_routes::namepsace_routes(namespace_service));
 
     Router::new()
         .nest("/api", api_routes)

@@ -23,6 +23,21 @@ pub struct CreateNamespaceRequest {
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
+pub struct GetNamespaceResponse {
+    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub id: Uuid,
+
+    #[schema(value_type = String, example = "com.yourcompany.mailservice")]
+    pub name: String,
+
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub created_at: DateTime<Utc>,
+
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
 pub struct CreateNamespaceResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub id: Uuid,
@@ -45,4 +60,12 @@ pub struct UpdateNamespaceResponse {
 
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
+pub struct DeleteNamespaceResponse {
+    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub id: Uuid,
+
+    pub name: String,
 }
