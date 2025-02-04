@@ -1,6 +1,31 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    campaign_senders (id) {
+        id -> Uuid,
+        server_id -> Uuid,
+        from_name -> Varchar,
+        from_email -> Varchar,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    campaigns (id) {
+        id -> Uuid,
+        campaign_name -> Varchar,
+        template_id -> Uuid,
+        namespace_id -> Uuid,
+        status -> Varchar,
+        campaign_senders -> Nullable<Uuid>,
+        scheduled_at -> Timestamptz,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     contacts (id) {
         id -> Uuid,
         first_name -> Varchar,
@@ -42,6 +67,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    servers (id) {
+        id -> Uuid,
+        host -> Varchar,
+        smtp_username -> Varchar,
+        smtp_password -> Varchar,
+        namespace_id -> Uuid,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     templates (id) {
         id -> Uuid,
         namespace_id -> Uuid,
@@ -54,15 +91,23 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(campaign_senders -> servers (server_id));
+diesel::joinable!(campaigns -> campaign_senders (campaign_senders));
+diesel::joinable!(campaigns -> namespaces (namespace_id));
+diesel::joinable!(campaigns -> templates (template_id));
 diesel::joinable!(list_contacts -> contacts (contact_id));
 diesel::joinable!(list_contacts -> lists (list_id));
 diesel::joinable!(lists -> namespaces (namespace_id));
+diesel::joinable!(servers -> namespaces (namespace_id));
 diesel::joinable!(templates -> namespaces (namespace_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    campaign_senders,
+    campaigns,
     contacts,
     list_contacts,
     lists,
     namespaces,
+    servers,
     templates,
 );

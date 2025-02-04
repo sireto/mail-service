@@ -1,3 +1,4 @@
+use crate::models::contact::Contact;
 use diesel::prelude::*;
 use uuid::Uuid;
 use crate::schema::list_contacts;
@@ -20,6 +21,7 @@ pub async fn get_connection_pool() -> DbPooledConnection {
 pub trait ListContactRepository {
     async fn add_contacts_to_list(&self, list_id: Uuid, contact_id: Vec<Uuid>) -> Result<Vec<NewContactInList>, diesel::result::Error>;
     async fn delete_contacts_from_list(&self, list_id: Uuid, contact_id: Vec<Uuid>) -> Result<usize, diesel::result::Error>; 
+    async fn get_contacts_from_lists(&self, lists: Vec<Uuid>) -> Result<Vec<Contact>, diesel::result::Error>;
 }
 
 pub struct ListContactRepositoryImpl;
@@ -67,5 +69,17 @@ impl ListContactRepository for ListContactRepositoryImpl {
             .filter(contact_id.eq_any(contact_ids))
     )
     .execute(&mut conn)
+}
+async fn get_contacts_from_lists(&self, lists: Vec<Uuid>) -> Result<Vec<Contact>, diesel::result::Error> {
+    use crate::schema::{contacts, list_contacts};
+    let mut conn = get_connection_pool().await;
+
+    let result = contacts::table
+        .inner_join(list_contacts::table.on(contacts::id.eq(list_contacts::contact_id)))
+        .filter(list_contacts::list_id.eq_any(lists))
+        .select(contacts::all_columns)
+        .load::<Contact>(&mut conn)?;
+
+    Ok(result)
 }
 }
