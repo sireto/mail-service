@@ -7,7 +7,8 @@ use crate::handlers::{
     contact,
     mail,
     campaign as campaign,
-    campaign_sender as campaign_sender
+    campaign_sender as campaign_sender,
+    bounce_logs_handler
 };
 use crate::servers::servers_handler as servers;
 
@@ -19,7 +20,8 @@ use crate::routes::{
     contact as contact_routes,
     mail as mail_routes,
     campaign as campaign_routes,
-    campaign_senders as campaign_senders_routes, 
+    campaign_senders as campaign_senders_routes,
+    bounce_logs_route,
 };
 use crate::handlers::list as list;
 use crate::servers::servers_routes::servers_routes;
@@ -64,7 +66,11 @@ use crate::servers::servers_routes::servers_routes;
         mail::add_mail,
         mail::get_all_mails,
         mail::update_mail,
-        mail::delete_mail
+        mail::delete_mail,
+        bounce_logs_handler::handle_sns_notification,
+        bounce_logs_handler::get_all_bounces,
+        bounce_logs_handler::get_bounces_by_contact_id,
+        bounce_logs_handler::delete_bounce
     ),
     servers(
         (url = "/", description = "Default server")
@@ -79,6 +85,7 @@ pub fn create_router() -> Router {
         .nest("/list", list_routes())
         .nest("/contacts", contact_routes::contact_routes())
         .nest("/mails", mail_routes::mail_routes())
+        .nest("/bounce-logs", bounce_logs_route::bounce_logs_routes())
         .nest("/campaigns", campaign_routes::campaign_routes())
         .nest("/campaign-senders", campaign_senders_routes::campaign_sender_routes())
         .nest("/servers", servers_routes());

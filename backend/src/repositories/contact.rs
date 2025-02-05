@@ -26,6 +26,7 @@ pub trait ContactRepository {
     ) -> Result<Contact, diesel::result::Error>;
     async fn delete_contact(&self, contact_id: Uuid) -> Result<Contact, diesel::result::Error>;
     async fn get_contact_by_id(&self, contact_id: Uuid) -> Result<Contact, diesel::result::Error>;
+    async fn get_contact_by_email(&self, contact_email: String) -> Result<Contact, diesel::result::Error>;
 }
 
 pub struct ContactRepositoryImpl;
@@ -86,6 +87,14 @@ impl ContactRepository for ContactRepositoryImpl {
     
         contacts
             .filter(id.eq(contact_id))
+            .first(&mut conn)
+    }
+
+    async fn get_contact_by_email(&self, contact_email: String) -> Result<Contact, diesel::result::Error> {
+        let mut conn = get_connection_pool().await;
+
+        contacts
+            .filter(email.eq(contact_email))
             .first(&mut conn)
     }
 }
