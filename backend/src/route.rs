@@ -8,6 +8,7 @@ use crate::handlers::{
     campaign as campaign,
     campaign_sender as campaign_sender
 };
+use crate::servers::servers_handler as servers;
 
 use crate::handlers::list::{create_list, get_lists, update_list, get_list_by_id, delete_list, add_contacts_to_list, remove_contacts_from_list};
 
@@ -16,9 +17,10 @@ use crate::routes::{
     template as template_routes,
     contact as contact_routes,
     campaign as campaign_routes,
-    campaign_senders as campaign_senders_routes
+    campaign_senders as campaign_senders_routes, 
 };
 use crate::handlers::list as list;
+use crate::servers::servers_routes::servers_routes;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -52,6 +54,11 @@ use crate::handlers::list as list;
         campaign_sender::get_campaign_sender_by_id,
         campaign_sender::update_campaign_sender,
         campaign_sender::delete_campaign_sender,
+        servers::create_server,
+        servers::get_servers, 
+        servers::get_server_by_id, 
+        servers::update_server, 
+        servers::delete_server
     ),
     servers(
         (url = "/", description = "Default server")
@@ -60,12 +67,14 @@ use crate::handlers::list as list;
 pub struct ApiDoc;
 
 pub fn create_router() -> Router {
+
     let api_routes = Router::new()
         .nest("/templates", template_routes::template_routes())
         .nest("/list", list_routes())
         .nest("/contacts", contact_routes::contact_routes())
         .nest("/campaigns", campaign_routes::campaign_routes())
-        .nest("/campaign-senders", campaign_senders_routes::campaign_sender_routes());
+        .nest("/campaign-senders", campaign_senders_routes::campaign_sender_routes())
+        .nest("/servers", servers_routes());
 
     Router::new()
         .nest("/api", api_routes)

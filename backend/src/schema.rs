@@ -1,5 +1,11 @@
 // @generated automatically by Diesel CLI.
 
+pub mod sql_types {
+    #[derive(diesel::query_builder::QueryId,diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "tls_type"))]
+    pub struct TlsType;
+}
+
 diesel::table! {
     campaign_senders (id) {
         id -> Uuid,
@@ -67,12 +73,17 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::TlsType;
+
     servers (id) {
         id -> Uuid,
         host -> Varchar,
         smtp_username -> Varchar,
         smtp_password -> Varchar,
         namespace_id -> Uuid,
+        tls_type -> TlsType,
+        port -> Int2,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }

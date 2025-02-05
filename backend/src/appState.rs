@@ -5,6 +5,7 @@ use diesel::PgConnection;
 pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 pub type DbPooledConnection = PooledConnection<ConnectionManager<PgConnection>>;
 
+#[derive(Clone)]
 pub struct AppState {
     pub db_pool: DbPool,
 }

@@ -41,6 +41,13 @@ pub mod routes {
     pub mod campaign;
     pub mod campaign_senders;
 }
+pub mod servers {
+    pub mod servers_model;
+    pub mod servers_repo;
+    pub mod servers_services;
+    pub mod servers_handler;
+    pub mod servers_routes;
+}
 pub mod tests;
 
 pub mod schema;
