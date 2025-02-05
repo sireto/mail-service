@@ -1,3 +1,4 @@
+use crate::{establish_connection, get_connection_pool};
 use crate::{appState::DbPooledConnection, GLOBAL_APP_STATE};
 use crate::schema::servers::dsl::*;
 use diesel::prelude::*;
@@ -9,12 +10,6 @@ use uuid::Uuid;
 use mockall::{automock, predicate::*};
 use async_trait::async_trait;
 
-pub async fn get_connection_pool() -> DbPooledConnection {
-    GLOBAL_APP_STATE
-        .db_pool
-        .get()
-        .expect("Failed to get DB connection from pool")
-}
 
 #[automock]
 #[async_trait]

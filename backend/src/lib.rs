@@ -1,3 +1,4 @@
+use appState::DbPooledConnection;
 use diesel::{prelude::*, r2d2::{
     ConnectionManager, 
     Pool 
@@ -97,3 +98,10 @@ pub static GLOBAL_APP_STATE: Lazy<Arc<AppState>> = Lazy::new(|| {
     
     Arc::new(AppState::new(db_pool))
 });
+
+pub async fn get_connection_pool() -> DbPooledConnection {
+    GLOBAL_APP_STATE
+        .db_pool
+        .get()
+        .expect("Failed to get DB connection from pool")
+}
