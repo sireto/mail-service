@@ -21,6 +21,9 @@ jobs:
               uses: moonrepo/setup-rust@v1
               with:
                 channel: 1.83.0
+            
+            - name: Change the directory to the backend
+              run: cd backend
 
             - name: Install dependencies
               run: cargo build
