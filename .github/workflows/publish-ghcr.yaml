@@ -2,7 +2,7 @@ name: Create and publish Docker Compose stack to ghcr
 
 on:
   workflow_run:
-    workflows: ["Run backend tests"]
+    workflows: ["Run Backend Tests"]
     types:
       - completed
 

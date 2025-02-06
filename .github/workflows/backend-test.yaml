@@ -1,4 +1,4 @@
-name: Run backend tests
+name: Run Backend Tests
 
 on:
     push:
@@ -10,8 +10,12 @@ on:
 
 jobs:
     test: 
-        name: Run backend tests
+        name: Run Backend Tests
         runs-on: ubuntu-latest
+
+        permissions:
+          actions: read
+          contents: read
     
         steps:
             - name: Checkout code
@@ -20,7 +24,7 @@ jobs:
             - name: Set up Rust
               uses: moonrepo/setup-rust@v1
               with:
-                channel: 1.83.0
+                channel: 1.83.0   # rustc version
             
             - name: Install dependencies
               run: cargo build
