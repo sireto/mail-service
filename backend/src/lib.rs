@@ -1,3 +1,4 @@
+use appState::DbPooledConnection;
 use diesel::{prelude::*, r2d2::{
     ConnectionManager, 
     Pool 
@@ -40,6 +41,13 @@ pub mod routes {
     pub mod list;
     pub mod campaign;
     pub mod campaign_senders;
+}
+pub mod servers {
+    pub mod servers_model;
+    pub mod servers_repo;
+    pub mod servers_services;
+    pub mod servers_handler;
+    pub mod servers_routes;
 }
 pub mod tests;
 
@@ -90,3 +98,10 @@ pub static GLOBAL_APP_STATE: Lazy<Arc<AppState>> = Lazy::new(|| {
     
     Arc::new(AppState::new(db_pool))
 });
+
+pub async fn get_connection_pool() -> DbPooledConnection {
+    GLOBAL_APP_STATE
+        .db_pool
+        .get()
+        .expect("Failed to get DB connection from pool")
+}
