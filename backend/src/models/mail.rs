@@ -99,11 +99,32 @@ pub struct GetMailResponse {
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq, Insertable)]
 #[diesel(table_name = crate::schema::mails)]
-pub struct CreateMailRequest {
+pub struct NewMail {
     pub mail_message: String,
 
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub contact_id: Uuid,
+
+    #[schema(value_type = String, example = "b1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub template_id: Option<Uuid>,
+
+    #[schema(value_type = String, example = "c1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub campaign_id: Option<Uuid>,
+
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub sent_at: DateTime<Utc>,
+    pub status: String,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq )]
+
+pub struct CreateMailRequest {
+    pub mail_message: String,
+
+    #[schema(value_type = Vec<String>, example = "someone@example.com")]
+    pub email: Vec<String>,
+    // #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    // pub contact_id: Uuid,
 
     #[schema(value_type = String, example = "b1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub template_id: Option<Uuid>,

@@ -3,6 +3,7 @@ use crate::models::template::{ Template, CreateTemplateRequest, CreateTemplateRe
 
 use crate::repositories::template_repo::{self, TemplateRepository, TemplateRespositoryImpl};
 use crate::services::aws_service;
+use crate::utils::email_utils::enumerate_list;
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
 
@@ -190,6 +191,8 @@ pub async fn send_templated_email(
 
     let (receiver_list, cc_list, bcc_list) = handle_receivers(&client, &payload).await?;
 
+    println!("Before sending the email...");
+
     // Send email
     let result = aws_service::send_mail(
         client,
@@ -201,6 +204,9 @@ pub async fn send_templated_email(
         &parsed_html,
     )
     .await;
+
+    println!("After sending the email...");
+
 
     match result {
         Ok(_) => Ok(SendMailResponse {
@@ -289,15 +295,10 @@ async fn process_receivers(client: &aws_sdk_sesv2::Client, receiver: &str) -> Re
         return Ok(vec![receiver.to_string()]);
     }
 
-    // Check if the receiver is a comma-separated list of emails...
-    let receiver_list: Vec<String> = receiver
-        .split(',')
-        .map(|r| r.trim().to_string())
-        .collect();
+    let emails = enumerate_list(receiver.to_string()).map_err(anyhow::Error::from)?;
 
-    // Validate each email in the list...
-    if receiver_list.iter().all(|email| EmailAddress::is_valid(email)) {
-        return Ok(receiver_list);
+    if !emails.is_empty() {
+        return Ok(emails);
     }
 
     // Treat `receiver` as a contact list name...

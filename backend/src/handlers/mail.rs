@@ -7,6 +7,8 @@ use crate::models::mail::{
     DeleteMailResponse
 };
 use crate::services::mail as mail_service;
+use crate::services::contact as contact_service;
+
 use axum::{
     extract:: Path, Json, http::StatusCode
 };
@@ -16,13 +18,13 @@ use uuid::Uuid;
     post,
     path = "/api/mails",
     responses(
-        (status = 200, description = "Add a new mail in record", body = CreateMailRequest),
+        (status = 200, description = "Add a new mail in record", body = Vec<CreateMailRequest>),
         (status = 404)
     )
 )]
 pub async fn add_mail(
     Json(payload): Json<CreateMailRequest>,
-) -> Result<Json<CreateMailResponse>, (StatusCode, String)> {
+) -> Result<Json<Vec<CreateMailResponse>>, (StatusCode, String)> {
     let created_mail = mail_service::create_mail(payload).await?;
 
     Ok(Json(created_mail))

@@ -3,6 +3,7 @@ use crate::schema::mails::dsl::*;
 use diesel::prelude::*;
 use crate::models::mail::{
     Mail,
+    NewMail,
     CreateMailRequest,
     UpdateMailRequest,
 };
@@ -20,7 +21,7 @@ pub async fn get_connection_pool() -> DbPooledConnection {
 #[automock]
 #[async_trait]
 pub trait MailRepository {
-    async fn create_mail(&self, payload: CreateMailRequest) -> Result<Mail, diesel::result::Error>;
+    async fn create_mail(&self, payload: NewMail) -> Result<Mail, diesel::result::Error>;
     async fn get_all_mails(&self) -> Result<Vec<Mail>, diesel::result::Error>;
     async fn update_mail(&self, mail_id: Uuid, payload: UpdateMailRequest) -> Result<Mail, diesel::result::Error>;
     async fn delete_mail(&self, mail_id: Uuid) -> Result<Mail, diesel::result::Error>;
@@ -30,7 +31,7 @@ pub struct MailRepositoryImpl;
 
 #[async_trait]
 impl MailRepository for MailRepositoryImpl {
-    async fn create_mail(&self, payload: CreateMailRequest) -> Result<Mail, diesel::result::Error> {
+    async fn create_mail(&self, payload: NewMail) -> Result<Mail, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
         
         diesel::insert_into(mails)

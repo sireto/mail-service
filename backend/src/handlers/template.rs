@@ -9,6 +9,7 @@ use axum::{
 
 use crate::services::template_service;
 use crate::handlers::mail as mail_handler;
+use crate::utils::template_utils;
 
 
 #[derive(Clone, Debug, PartialEq)]
@@ -146,14 +147,19 @@ pub async fn send_templated_email(
     Path(template_id): Path<String>,
     Json(payload): Json<SendMailRequest>
 ) -> Result<Json<SendMailResponse>, (StatusCode, String)> {
-    let send_templated_email_response = template_service::send_templated_email(template_id, payload).await;
+    let send_templated_email_response = template_service::send_templated_email(template_id, payload.clone()).await;
+
+    let emails = template_utils::merge_receipients(
+        payload.receiver.unwrap_or("".to_string()), 
+        payload.cc.unwrap_or("".to_string()), 
+        payload.bcc.unwrap_or("".to_string())
+    );
 
     match send_templated_email_response {
         Ok(response) => {
-            let contact_id = Uuid::parse_str("c1746c77-6710-43dd-9312-75e5eabfd76c").unwrap();
             let payload = CreateMailRequest {
                 mail_message: response.message.clone(),
-                contact_id,
+                email: emails,
                 template_id: Some(response.id),
                 campaign_id: None,
                 sent_at: response.sent_at,
