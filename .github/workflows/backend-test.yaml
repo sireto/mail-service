@@ -34,8 +34,10 @@ jobs:
 
             - name: Install dependencies
               run: cargo build
+              working-directory: backend
 
             - name: Run tests
               run: cargo test
+              working-directory: backend
 
         
