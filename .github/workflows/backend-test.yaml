@@ -27,7 +27,7 @@ jobs:
               run: ls -la  # This will show the directory contents
 
             - name: Navigate to the backend directory (if applicable)
-              run: cd ../../backend  # If your Cargo.toml is in a subdirectory, change this path
+              run: cd backend  # If your Cargo.toml is in a subdirectory, change this path
 
             - name: Verify Cargo.toml is present
               run: ls -la  # This will confirm if Cargo.toml is in the directory you're running cargo from
