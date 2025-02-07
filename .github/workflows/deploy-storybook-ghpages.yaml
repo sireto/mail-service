@@ -18,7 +18,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "20"
+          node-version: "18" # Use a compatible Node.js version (e.g., 18 or 20)
 
       - name: Install dependencies
         working-directory: frontend
@@ -38,6 +38,6 @@ jobs:
       - name: Deploy to GitHub Pages
         run: |
           yarn add gh-pages
-          npx gh-pages -d frontend/storybook-static # Deploy Storybook static files to GitHub Pages
+          npx gh-pages -d frontend/storybook-static  # Deploy Storybook static files to GitHub Pages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
