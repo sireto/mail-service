@@ -29,11 +29,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Header /> {/* Header stays at the top */}
-        {/* Fix: Wrap layout in a flex container */}
+        <Header />
         <div className="flex flex-col min-h-screen">
-          {/* <Sidebar /> */}
-          <main className="flex-1">{children}</main> {/* Main content below */}
+          <main className="flex-1">{children}</main>
         </div>
       </body>
     </html>
