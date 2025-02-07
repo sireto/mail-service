@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - develop
-      - frontend/29-setup-storybook
 
 jobs:
   build-and-deploy:
