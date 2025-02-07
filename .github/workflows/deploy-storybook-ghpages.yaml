@@ -1,0 +1,43 @@
+name: Build and Deploy Storybook
+
+on:
+  push:
+    branches:
+      - develop
+      - frontend/29-setup-storybook
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy Storybook to GitHub Pages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16" # Specify the node version you want to use
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: |
+          yarn install
+
+      - name: Build Storybook
+        working-directory: frontend
+        run: |
+          yarn build-storybook # This builds the static files for Storybook
+
+      - name: Set up Git configuration
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+
+      - name: Deploy to GitHub Pages
+        run: |
+          yarn add gh-pages
+          npx gh-pages -d frontend/storybook-static # Deploy Storybook static files to GitHub Pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
