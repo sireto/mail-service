@@ -1,8 +1,6 @@
-
 // app/dashboard/layout.tsx
 import Sidebar from "@/components/Sidebar";
 import ReduxProvider from "@/providers/redux-provider";
-
 
 export default function DashboardLayout({
   children,
@@ -16,6 +14,9 @@ export default function DashboardLayout({
         <Sidebar />
         <div className="flex-1 overflow-auto p-8">{children}</div>
       </ReduxProvider>
+    <div className="flex">
+      <Sidebar />
+      <div className="flex-1 overflow-auto p-8">{children}</div>
     </div>
   );
 }
