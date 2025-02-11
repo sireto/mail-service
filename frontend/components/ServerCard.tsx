@@ -38,6 +38,7 @@ export default function ServerCard({
   } = useForm<Server>({
     resolver: zodResolver(ServerSchema),
     defaultValues: {
+      active: server.active || true,
       host: server.host || "",
       namespace_id: server.namespace_id || "",
       port: server.port || 25,
@@ -82,7 +83,11 @@ export default function ServerCard({
       <CardContent className="p-6 space-y-6">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div className="flex items-center space-x-4">
-            <Switch id="enabled" />
+            <Switch
+              id="enabled"
+              checked={watch("active")} // Bind switch to active field
+              onCheckedChange={(checked) => setValue("active", checked)} // Update active on switch change
+            />
             <Label htmlFor="enabled">Enabled</Label>
             {server.id && (
               <Button

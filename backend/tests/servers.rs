@@ -11,6 +11,7 @@ use mockall::predicate::*;
 async fn test_create_server() {
     let mut mock_repo = MockServerRepo::new();
     let test_payload = ServerRequest {
+        active: true,
         host: "smtp.example.com".to_string(),
         smtp_username: "user@example.com".to_string(),
         smtp_password: "securePassword123!".to_string(),
@@ -20,6 +21,7 @@ async fn test_create_server() {
     };
     let expected_server = Server {
         id: Uuid::new_v4(),
+        active: true,
         host: test_payload.host.clone(),
         smtp_username: test_payload.smtp_username.clone(),
         smtp_password: test_payload.smtp_password.clone(),
@@ -47,6 +49,7 @@ async fn test_get_all_servers() {
     let expected_servers = vec![
         Server {
             id: Uuid::new_v4(),
+            active: true,
             host: "smtp.example.com".to_string(),
             smtp_username: "user@example.com".to_string(),
             smtp_password: "securePassword123!".to_string(),
@@ -73,6 +76,7 @@ async fn test_get_server_by_id() {
     let server_id = Uuid::new_v4();
     let expected_server = Server {
         id: server_id,
+        active: true,
         host: "smtp.example.com".to_string(),
         smtp_username: "user@example.com".to_string(),
         smtp_password: "securePassword123!".to_string(),
@@ -113,6 +117,7 @@ async fn test_update_server() {
     let mut mock_repo = MockServerRepo::new();
     let server_id = Uuid::new_v4();
     let update_payload = ServerRequest {
+        active: true,
         host: "smtp.updated.com".to_string(),
         smtp_username: "updated@example.com".to_string(),
         smtp_password: "newSecurePassword!".to_string(),
@@ -122,6 +127,7 @@ async fn test_update_server() {
     };
     let updated_server = Server {
         id: server_id,
+        active: true,
         host: update_payload.host.clone(),
         smtp_username: update_payload.smtp_username.clone(),
         smtp_password: update_payload.smtp_password.clone(),
@@ -144,6 +150,7 @@ async fn test_delete_server() {
     let server_id = Uuid::new_v4();
     let expected_server = Server {
         id: server_id,
+        active: true,
         host: "smtp.example.com".to_string(),
         smtp_username: "user@example.com".to_string(),
         smtp_password: "securePassword123!".to_string(),

@@ -1,7 +1,7 @@
 // @generated automatically by Diesel CLI.
 
 pub mod sql_types {
-    #[derive(diesel::query_builder::QueryId,diesel::sql_types::SqlType)]
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "tls_type"))]
     pub struct TlsType;
 }
@@ -78,6 +78,7 @@ diesel::table! {
 
     servers (id) {
         id -> Uuid,
+        active -> Bool,
         host -> Varchar,
         smtp_username -> Varchar,
         smtp_password -> Varchar,
