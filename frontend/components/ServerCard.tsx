@@ -95,7 +95,7 @@ export default function ServerCard({
               </Button>
             )}
           </div>
-          
+
           <div className="grid md:grid-cols-[2fr,1fr] gap-4">
             <div className="space-y-2">
               <Label htmlFor="host">Host</Label>
@@ -182,7 +182,7 @@ export default function ServerCard({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="STARTTLS">STARTTLS</SelectItem>
-                  <SelectItem value="TLS">TLS</SelectItem>
+                  <SelectItem value="SSL/TLS">SSL/TLS</SelectItem>
                   <SelectItem value="NONE">NONE</SelectItem>
                 </SelectContent>
               </Select>

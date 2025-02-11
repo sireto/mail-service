@@ -6,8 +6,8 @@ export const ServerSchema = z.object({
   namespace_id: z.string().uuid("Invalid namespace ID"),
   port: z.number().min(1).max(65535),
   smtp_password: z.string().min(1, "Password is required"),
-  smtp_username: z.string().email("Invalid email"),
-  tls_type: z.enum(["NONE", "TLS", "STARTTLS"]),
+  smtp_username: z.string(),
+  tls_type: z.enum(["NONE", "SSL/TLS", "STARTTLS"]),
 });
 
 export type Server = z.infer<typeof ServerSchema>;
