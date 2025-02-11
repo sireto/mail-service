@@ -40,6 +40,7 @@ impl ServerRepo for ServerRepoImpl {
         servers
             .select((
                 id,
+                active,
                 host,
                 smtp_username,
                 smtp_password,
@@ -61,6 +62,7 @@ impl ServerRepo for ServerRepoImpl {
     
         diesel::update(servers.filter(id.eq(server_id)))
             .set((
+                active.eq(&payload.active),
                 host.eq(&payload.host),
                 smtp_username.eq(&payload.smtp_username),
                 smtp_password.eq(&payload.smtp_password),

@@ -58,6 +58,7 @@ export const UpdateTemplateResponseDTO = z.object({
 });
 export const ServerSchema = z.object({
   id: z.string().optional(),
+  active: z.boolean(),
   host: z.string().min(1, "Host is required"),
   namespace_id: z.string().uuid("Invalid namespace ID"),
   port: z.number().min(1).max(65535),
