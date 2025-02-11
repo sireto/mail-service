@@ -1,6 +1,9 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { usePathname } from "next/navigation";
 import {
   Home,
   List,
@@ -13,7 +16,7 @@ import {
 } from "lucide-react";
 
 const sidebarItems = [
-  { name: "Dashboard", href: "/dashboard/", icon: Home },
+  { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Lists", href: "/dashboard/lists", icon: List },
   { name: "Subscribers", href: "/dashboard/subscribers", icon: Users },
   { name: "Templates", href: "/dashboard/templates", icon: LayoutPanelTop },
@@ -24,6 +27,11 @@ const sidebarItems = [
 ];
 
 const Sidebar = () => {
+  const pathname = usePathname();
+
+  // for /dashboard/ == /dashboard
+  const normalizedPathname = pathname.replace(/\/$/, "");
+
   return (
     <aside className="w-64 h-screen border-r bg-white hidden md:block">
       <nav className="flex flex-col space-y-1 p-4">
@@ -33,8 +41,7 @@ const Sidebar = () => {
             href={item.href}
             className={cn(
               "flex items-center space-x-3 px-4 py-2 rounded-md text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition",
-              // Highlight the active link (customize this based on your router)
-              item.href === "/dashboard/"
+              normalizedPathname === item.href
                 ? "text-blue-600 font-medium border-r-4 border-blue-600"
                 : ""
             )}
