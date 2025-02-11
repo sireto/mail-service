@@ -10,7 +10,9 @@ export default function DashboardLayout({
     <div className="flex h-[calc(100vh-64px)]">
       {" "}
       {/**minus header height*/}
-      <Sidebar />
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
       <main className="flex-1 overflow-y-auto relative">
         <div className="p-8">{children}</div>
       </main>
