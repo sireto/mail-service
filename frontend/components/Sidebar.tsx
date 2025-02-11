@@ -33,7 +33,7 @@ interface SidebarProps {
 
 const Sidebar = ({ onClose }: SidebarProps) => {
   const pathname = usePathname();
-  const normalizedPathname = pathname.replace(/\/$/, "");
+  const normalizedPathname = pathname ? pathname.replace(/\/$/, "") : "";
 
   return (
     <aside className="w-64 h-screen border-r bg-white relative">
