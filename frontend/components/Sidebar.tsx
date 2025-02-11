@@ -13,6 +13,7 @@ import {
   User,
   LayoutPanelTop,
   Server,
+  X,
 } from "lucide-react";
 
 const sidebarItems = [
@@ -26,15 +27,28 @@ const sidebarItems = [
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
-const Sidebar = () => {
-  const pathname = usePathname();
+interface SidebarProps {
+  onClose?: () => void;
+}
 
-  // for /dashboard/ == /dashboard
+const Sidebar = ({ onClose }: SidebarProps) => {
+  const pathname = usePathname();
   const normalizedPathname = pathname.replace(/\/$/, "");
 
   return (
-    <aside className="w-64 h-screen border-r bg-white hidden md:block">
-      <nav className="flex flex-col space-y-1 p-4">
+    <aside className="w-64 h-screen border-r bg-white relative">
+      {/* Mobile Close Button */}
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 md:hidden"
+          aria-label="Close sidebar"
+        >
+          <X className="w-6 h-6" />
+        </button>
+      )}
+
+      <nav className="flex flex-col space-y-1 p-4 pt-16 md:pt-4">
         {sidebarItems.map((item, index) => (
           <Link
             key={index}
@@ -45,6 +59,7 @@ const Sidebar = () => {
                 ? "text-blue-600 font-medium border-r-4 border-blue-600"
                 : ""
             )}
+            onClick={onClose}
           >
             <item.icon className="w-5 h-5" />
             <span>{item.name}</span>
