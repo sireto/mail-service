@@ -14,15 +14,16 @@ export default function DashboardLayout({
         <Sidebar />
         <div className="flex-1 overflow-auto p-8">{children}</div>
       </ReduxProvider>
-    <div className="flex h-[calc(100vh-64px)]">
-      {" "}
-      {/**minus header height*/}
-      <div className="hidden md:block">
-        <Sidebar />
+      <div className="flex h-[calc(100vh-64px)]">
+        {" "}
+        {/**minus header height*/}
+        <div className="hidden md:block">
+          <Sidebar />
+        </div>
+        <main className="flex-1 overflow-y-auto relative">
+          <div className="p-8">{children}</div>
+        </main>
       </div>
-      <main className="flex-1 overflow-y-auto relative">
-        <div className="p-8">{children}</div>
-      </main>
     </div>
   );
 }
