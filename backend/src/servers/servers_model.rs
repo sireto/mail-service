@@ -27,6 +27,7 @@ pub enum TlsTypeEnum {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Server {
     pub id: Uuid,
+    pub active: bool,
     pub host: String,
     pub smtp_username: String,
     pub smtp_password: String,
@@ -43,6 +44,9 @@ pub struct Server {
 pub struct ServerRequest {
     #[schema(example = "smtp.example.com")]
     pub host: String,
+
+    #[schema(example="true")]
+    pub active: bool,
     
     #[schema(example = "user@example.com")]
     pub smtp_username: String,
@@ -65,6 +69,8 @@ pub struct ServerRequest {
 pub struct ServerResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub id: Uuid,
+    #[schema(example="true")]
+    pub active: bool,
     pub host: String,
     pub smtp_username: String,
     pub smtp_password: String,

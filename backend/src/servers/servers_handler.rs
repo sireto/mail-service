@@ -20,6 +20,7 @@ pub async fn create_server(Extension(server_service): Extension<Arc<ServerServic
     let created_server = server_service.create_server(payload).await?;
     Ok(Json(ServerResponse {
         id: created_server.id,
+        active: created_server.active,
         host: created_server.host,
         smtp_username: created_server.smtp_username,
         smtp_password: created_server.smtp_password,
@@ -46,6 +47,7 @@ pub async fn get_servers(
     let servers = server_service.get_all_servers().await?;
     let response: Vec<ServerResponse> = servers.into_iter().map(|server| ServerResponse {
         id: server.id,
+        active: server.active,
         host: server.host,
         smtp_username: server.smtp_username,
         smtp_password: server.smtp_password,
@@ -75,6 +77,7 @@ pub async fn get_server_by_id(
     let server = server_service.get_server_by_id(&server_id).await?;
     Ok(Json(ServerResponse {
         id: server.id,
+        active: server.active,
         host: server.host,
         smtp_username: server.smtp_username,
         smtp_password: server.smtp_password,
@@ -107,6 +110,7 @@ pub async fn update_server(
 
     Ok(Json(ServerResponse {
         id: updated_server.id,
+        active: updated_server.active,
         host: updated_server.host,
         smtp_username: updated_server.smtp_username,
         smtp_password: updated_server.smtp_password,
@@ -134,6 +138,7 @@ pub async fn delete_server(
     let deleted_server = server_service.delete_server(&server_id).await?;
     Ok(Json(ServerResponse {
         id: deleted_server.id,
+        active: deleted_server.active,
         host: deleted_server.host,
         smtp_username: deleted_server.smtp_username,
         smtp_password: deleted_server.smtp_password,

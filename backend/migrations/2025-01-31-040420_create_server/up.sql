@@ -1,8 +1,8 @@
--- Your SQL goes here
-CREATE TYPE tls_type AS ENUM ('STARTTLS', 'SSL/TLS', 'NONE');
+--CREATE TYPE tls_type AS ENUM ('STARTTLS', 'SSL/TLS', 'NONE');
 
 CREATE TABLE "servers" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+    "active" BOOLEAN DEFAULT TRUE NOT NULL,  
     "host" VARCHAR NOT NULL,
     "smtp_username" VARCHAR NOT NULL,
     "smtp_password" VARCHAR NOT NULL,
