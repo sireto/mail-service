@@ -3,6 +3,7 @@ import { useGetServersQuery } from "@/app/dashboard/servers/serverApi";
 import ServerCard from "@/components/ServerCard";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import NoServersFound from "@/app/dashboard/servers/NotFound";
 
 export default function ServerPage() {
   const { data: servers, isLoading, isError } = useGetServersQuery();
@@ -10,6 +11,8 @@ export default function ServerPage() {
 
   if (isLoading) return <div>Loading...</div>;
   if (isError) return <div>Error loading servers</div>;
+
+  if (servers?.length === 0) return <NoServersFound />;
 
   return (
     <>
@@ -19,10 +22,18 @@ export default function ServerPage() {
           {servers?.map((server) => (
             <ServerCard key={server.id} server={server} />
           ))}
-          {showNewServerCard && <ServerCard key="new" server={{}} />}
-          <Button onClick={() => setShowNewServerCard(true)}>
-            Add New Server
-          </Button>
+          {showNewServerCard && (
+            <ServerCard
+              key="new"
+              server={{}}
+              onCancel={() => setShowNewServerCard(false)}
+            />
+          )}
+          {!showNewServerCard && (
+            <Button onClick={() => setShowNewServerCard(true)}>
+              Add New Server
+            </Button>
+          )}
         </div>
       </div>
     </>
