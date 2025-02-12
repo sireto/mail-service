@@ -24,9 +24,10 @@ import { useEffect } from "react";
 
 interface ServerCardProps {
   server: Partial<Server>;
+  onCancel?: () => void;
 }
 
-export default function ServerCard({ server }: ServerCardProps) {
+export default function ServerCard({ server, onCancel }: ServerCardProps) {
   const [createServer] = useCreateServerMutation();
   const [updateServer] = useUpdateServerMutation();
   const [deleteServer] = useDeleteServerMutation();
@@ -123,20 +124,44 @@ export default function ServerCard({ server }: ServerCardProps) {
     <Card className="w-full max-w-4xl">
       <CardContent className="p-6 space-y-6">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="flex items-center space-x-4">
-            <Switch checked={watch("active")} />
-            <Label>Enabled</Label>
-            {server.id && (
+          {server.id && (
+            <div className="flex items-center space-x-4">
+              <Switch
+                checked={watch("active")}
+                onCheckedChange={(checked) =>
+                  setValue("active", checked, {
+                    shouldDirty: true,
+                    shouldTouch: true,
+                    shouldValidate: true,
+                  })
+                }
+              />
+              <Label>Enabled</Label>
+              {server.id && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="ml-auto text-destructive"
+                  onClick={handleDelete}
+                >
+                  Delete
+                </Button>
+              )}
+            </div>
+          )}
+          {!server.id && (
+            <div className="flex items-center justify-between">
+              <p>Add your server credentials below</p>
               <Button
                 type="button"
                 variant="ghost"
-                className="ml-auto text-destructive"
-                onClick={handleDelete}
+                className="text-destructive"
+                onClick={onCancel}
               >
-                Delete
+                Cancel
               </Button>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="grid md:grid-cols-[2fr,1fr] gap-4">
             <div className="space-y-2">
