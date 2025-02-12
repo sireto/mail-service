@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Meta, StoryObj } from "@storybook/react";
 import ServerCard from "@/components/ServerCard";
+import { ReduxProvider } from "@/app/providers";
 
 // Define mock functions for onUpdate, onDelete, and onCreate
 const mockUpdate = async (id: string, data: any) => {
@@ -33,6 +34,13 @@ const meta: Meta<typeof ServerCard> = {
   parameters: {
     layout: "fullscreen",
   },
+  decorators: [
+    (Story) => (
+      <ReduxProvider>
+        <Story />
+      </ReduxProvider>
+    ),
+  ],
 };
 
 export default meta;
