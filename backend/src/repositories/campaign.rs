@@ -79,7 +79,7 @@ impl CampaignRepository for CampaginRepositoryImpl {
         let mut conn = get_connection_pool().await;
 
         campaigns
-            .filter((id.eq(campaign_id)))
+            .filter(id.eq(campaign_id))
             .first(&mut conn)
     }
     

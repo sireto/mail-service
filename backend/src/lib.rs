@@ -12,15 +12,20 @@ pub mod models {
     pub mod list; 
     pub mod contact; 
     pub mod list_contacts;
+    pub mod mail;
     pub mod campaign;
     pub mod campaign_sender;
+    pub mod bounce_logs;
 }
 pub mod handlers { 
     pub mod template; 
     pub mod contact;
+        pub mod mail;
     pub mod list;
     pub mod campaign;
     pub mod campaign_sender;
+
+    pub mod bounce_logs_handler;
 }
 pub mod services { 
     pub mod template_service; 
@@ -29,11 +34,18 @@ pub mod services {
     pub mod list_service;
     pub mod campaign_service;
     pub mod campaign_sender_service;
+    pub mod mail;
+    pub mod bounce_logs_service;
 }
 pub mod repositories { 
-    pub mod template_repo; pub mod list_repo; pub mod list_contact_repo;
-    pub mod contact; pub mod campaign;
+    pub mod template_repo; 
+    pub mod list_repo; 
+    pub mod list_contact_repo;
+    pub mod contact;
+    pub mod campaign;
     pub mod campaign_sender;
+    pub mod mail;
+    pub mod bounce_logs_repo;
 }
 pub mod routes { 
     pub mod template;
@@ -41,6 +53,8 @@ pub mod routes {
     pub mod list;
     pub mod campaign;
     pub mod campaign_senders;
+    pub mod mail;
+    pub mod bounce_logs_route;
 }
 pub mod servers {
     pub mod servers_model;
@@ -55,7 +69,11 @@ pub mod schema;
 pub mod route;
 pub mod appState;
 pub mod error;
-pub mod utils { pub mod contact_lists_functions; }
+pub mod utils { 
+    pub mod contact_lists_functions; 
+    pub mod template_utils;
+    pub mod email_utils;
+}
 
 use std::sync::Arc;
 use once_cell::sync::Lazy;

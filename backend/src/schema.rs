@@ -7,6 +7,17 @@ pub mod sql_types {
 }
 
 diesel::table! {
+    bounce_logs (id) {
+        id -> Uuid,
+        contact_id -> Uuid,
+        campaign_id -> Nullable<Uuid>,
+        at -> Timestamptz,
+        kind -> Text,
+        reason -> Text,
+    }
+}
+
+diesel::table! {
     campaign_senders (id) {
         id -> Uuid,
         server_id -> Uuid,
@@ -64,6 +75,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    mails (id) {
+        id -> Uuid,
+        mail_message -> Text,
+        contact_id -> Uuid,
+        template_id -> Nullable<Uuid>,
+        campaign_id -> Nullable<Uuid>,
+        sent_at -> Timestamptz,
+        status -> Text,
+    }
+}
+
+diesel::table! {
     namespaces (id) {
         id -> Uuid,
         name -> Varchar,
@@ -102,6 +125,8 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(bounce_logs -> campaigns (campaign_id));
+diesel::joinable!(bounce_logs -> contacts (contact_id));
 diesel::joinable!(campaign_senders -> servers (server_id));
 diesel::joinable!(campaigns -> campaign_senders (campaign_senders));
 diesel::joinable!(campaigns -> namespaces (namespace_id));
@@ -109,15 +134,20 @@ diesel::joinable!(campaigns -> templates (template_id));
 diesel::joinable!(list_contacts -> contacts (contact_id));
 diesel::joinable!(list_contacts -> lists (list_id));
 diesel::joinable!(lists -> namespaces (namespace_id));
+diesel::joinable!(mails -> campaigns (campaign_id));
+diesel::joinable!(mails -> contacts (contact_id));
+diesel::joinable!(mails -> templates (template_id));
 diesel::joinable!(servers -> namespaces (namespace_id));
 diesel::joinable!(templates -> namespaces (namespace_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    bounce_logs,
     campaign_senders,
     campaigns,
     contacts,
     list_contacts,
     lists,
+    mails,
     namespaces,
     servers,
     templates,

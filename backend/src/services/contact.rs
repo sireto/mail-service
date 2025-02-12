@@ -30,6 +30,10 @@ impl ContactService {
         self.repository.get_contact_by_id(contact_id).await
     }
 
+    pub async fn get_contact_by_email(&self, email: String) -> Result<Contact, diesel::result::Error> {
+        self.repository.get_contact_by_email(email).await
+    }
+
     pub async fn update_contact(&self, contact_id: Uuid,
         payload: UpdateContactRequest
     ) -> Result<Contact, diesel::result::Error> {
@@ -85,12 +89,34 @@ pub async fn get_all_contacts() -> Result<Vec<GetContactResponse>, (StatusCode, 
     Ok(response)
 }
 
+/// function to get the contact by email...
 pub async fn get_contact_by_id(contact_id: String) -> Result<GetContactResponse, (StatusCode, String)> {
     let uuid_id = Uuid::parse_str(&contact_id).map_err(|_| (StatusCode::BAD_REQUEST, "Invalid contact ID format".to_string()))?;
 
     let contact_repository = Arc::new(ContactRepositoryImpl);
     let contact_service = ContactService::new(contact_repository);
     let contact = contact_service.get_contact_by_id(uuid_id).await;
+
+    let contact = contact.map_err(|err| (StatusCode::NOT_FOUND, err.to_string()))?;
+
+    let contact_response = GetContactResponse {
+        id: contact.id,
+        first_name: contact.first_name,
+        last_name: contact.last_name,
+        email: contact.email,
+        attribute: contact.attribute,
+        created_at: contact.created_at,
+        updated_at: contact.updated_at,
+    };
+
+    Ok(contact_response)
+}
+
+/// function to get the contact by email...
+pub async fn get_contact_by_email(email: String) -> Result<GetContactResponse, (StatusCode, String)> {
+    let contact_repository = Arc::new(ContactRepositoryImpl);
+    let contact_service = ContactService::new(contact_repository);
+    let contact = contact_service.get_contact_by_email(email).await;
 
     let contact = contact.map_err(|err| (StatusCode::NOT_FOUND, err.to_string()))?;
 

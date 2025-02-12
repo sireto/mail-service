@@ -1,7 +1,7 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE "templates" (
-    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     "namespace_id" UUID NOT NULL,
     "name" VARCHAR NOT NULL,
     "template_data" JSONB NOT NULL,
