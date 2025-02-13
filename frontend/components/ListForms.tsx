@@ -33,7 +33,7 @@ const BASE_URL = "http://localhost:8000/api";
 
 const namespaceId = "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
 
-interface ListModalProps {
+interface ListModalBodyProps {
     modalTitle: string;
     modalDescription: string;
     form: UseFormReturn<z.infer<typeof AddListFormSchemaDTO>>;
@@ -41,13 +41,13 @@ interface ListModalProps {
     triggerButton: React.ReactNode;
 }
 
-const ListModal = ({
+const ListModalBody = ({
     modalTitle,
     modalDescription,
     form,
     submitHandler,
     triggerButton,
-}: ListModalProps) => {
+}: ListModalBodyProps) => {
     return (
         <>
             <DialogHeader className='flex flex-row justify-between items-center'>
@@ -146,7 +146,7 @@ const AddListForm = () => {
     }
 
   return (
-    <ListModal 
+    <ListModalBody 
             modalTitle={"Add List"}
             modalDescription={"Add a new list"}
             form={form}
@@ -205,7 +205,7 @@ const EditListForm = ({ listId }: { listId: string }) => {
     }
 
     return (
-        <ListModal 
+        <ListModalBody 
             modalTitle={"Edit List"}
             modalDescription={"Edit your list"}
             form={form}

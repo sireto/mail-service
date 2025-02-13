@@ -30,7 +30,7 @@ import { DialogClose } from '@radix-ui/react-dialog';
 const BASE_URL = "http://localhost:8000/api";
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-interface TemplateModalProps {
+interface TemplateModalBodyProps {
     modalTitle: string;
     modalDescription: string;
     form: UseFormReturn<z.infer<typeof AddTemplateFormSchemaDTO>>;
@@ -39,13 +39,13 @@ interface TemplateModalProps {
     triggerButton: React.ReactNode;
 }
 
-const TemplateModal = ({
+const TemplateModalBody = ({
     modalTitle,
     modalDescription,
     form,
     submitHandler,
     triggerButton,
-}: TemplateModalProps) => {
+}: TemplateModalBodyProps) => {
     return (
         <>
             <DialogHeader className='flex flex-row justify-between items-center'>
@@ -177,7 +177,7 @@ const AddTemplateForm = () => {
     }
 
   return (
-    <TemplateModal 
+    <TemplateModalBody 
         modalTitle={"Add Template"}
         modalDescription={"Add a new template"}
         form={form}
@@ -241,7 +241,7 @@ const EditTemplateForm = ({ templateId }: { templateId: string }) => {
     }
 
     return (
-        <TemplateModal 
+        <TemplateModalBody 
             modalTitle={"Edit Template"}
             modalDescription={"Edit your template"}
             form={form}
