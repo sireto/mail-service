@@ -33,9 +33,9 @@ const Modal = (props: ModalProps) => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        {triggerButton}
+        { triggerButton }
       </DialogTrigger>
-      <DialogContent className='[&>button]:hidden min-w-[80%] overflow-x-auto rounded'>
+      <DialogContent className='[&>button]:hidden min-w-[80%] overflow-x-auto rounded lg:min-w-[444px] lg:max-w-[888px]'>
         {/* <DialogHeader className='flex flex-row justify-between items-center'>
           <div>
             <DialogTitle>
