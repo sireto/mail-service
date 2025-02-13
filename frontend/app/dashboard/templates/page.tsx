@@ -8,13 +8,18 @@ import { AddTemplateForm } from '@/components/TemplateForms';
 import { useGetTemplatesQuery } from '@/app/services/TemplateApi';
 import DataTable from '@/components/DataTable';
 import columns from './columns';
+import { Button } from '@/components/ui/button';
+
+const addButton = (
+    <Button variant={"default"}>
+        <>
+            <Plus size={24} />
+            <span className='ml-1'>New</span>
+        </>
+    </Button>
+);
 
 const page = () => {
-    const addBtn = {
-        label: "New",
-        icon: <Plus size={24} />
-    };
-
     const { data: templates, error, isLoading } = useGetTemplatesQuery();
 
     if (error) {
@@ -34,14 +39,18 @@ const page = () => {
                 <span>({templates?.length})</span>
             </h1>
             <Modal 
-                triggerLabel={addBtn} 
+                triggerButton={addButton}
                 dialogBody={<AddTemplateForm />}
                 dialogTitle={"New template"}
                 dialogDescription={"Add a new template"}
             />
         </div>
         <div className='my-12'>
-            <DataTable data={templates || []} columns={columns}/>
+            <DataTable 
+                data={templates || []} 
+                columns={columns}
+                fallback={"No templates found"}
+            />
         </div>
     </div>
   )

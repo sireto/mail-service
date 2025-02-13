@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, UseFormReturn } from 'react-hook-form';
 import { 
     Form, 
     FormField ,
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/form';
 import {
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
@@ -23,11 +24,91 @@ import { Textarea } from './ui/textarea';
 import { ScanEye } from 'lucide-react';
 import { AddTemplateFormSchemaDTO } from '@/lib/type';
 import { useCreateTemplateMutation, useGetTemplatesQuery, useUpdateTemplateMutation } from '@/app/services/TemplateApi';
+import { DialogClose } from '@radix-ui/react-dialog';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 const BASE_URL = "http://localhost:8000/api";
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
+interface TemplateModalProps {
+    modalTitle: string;
+    modalDescription: string;
+    form: UseFormReturn<z.infer<typeof AddTemplateFormSchemaDTO>>;
+    submitHandler: (value: z.infer<typeof AddTemplateFormSchemaDTO>) => void;
+    isUpdating: boolean;
+    triggerButton: React.ReactNode;
+}
+
+const TemplateModal = ({
+    modalTitle,
+    modalDescription,
+    form,
+    submitHandler,
+    triggerButton,
+}: TemplateModalProps) => {
+    return (
+        <>
+            <DialogHeader className='flex flex-row justify-between items-center'>
+                      <div>
+                        <DialogTitle>
+                          {modalTitle}
+                        </DialogTitle>
+                        <DialogDescription className='mt-1'>
+                          {modalDescription}
+                        </DialogDescription>
+                      </div>
+                      <Button variant={"default"} className='!mt-0' >
+                        <ScanEye size={16} />
+                        <span>Preview</span>
+                      </Button>
+                    </DialogHeader>
+            <hr className='my-4'/>
+    
+            <Form {...form}>    {/* pass on the all the form-related methods allowing child components to access the form's context... */}
+                <form 
+                    onSubmit={form.handleSubmit(submitHandler)}
+                    className='flex flex-col space-y-4'
+                >
+                    <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field, fieldState }) => (
+                        <FormItem>
+                            <FormLabel className='font-bold text-black'>Name</FormLabel>
+                            <FormControl>
+                                <Input 
+                                    placeholder="Template name" {...field} 
+                                    className={fieldState.invalid ? "border-red-400 focus-visible:ring-red-500" : ""}
+                                />
+                            </FormControl>
+                            <FormMessage>{form.formState.errors.name?.message}</FormMessage>
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="raw_mjml_content"
+                        render={({ field, fieldState }) => (
+                            <FormItem>
+                                <FormLabel className='font-bold text-black'>MJML Content</FormLabel>
+                                <FormControl>
+                                    <Textarea 
+                                        rows={16} 
+                                        placeholder="MJML content" 
+                                        {...field} 
+                                        className={fieldState.invalid ? "border-red-400 focus-visible:ring-red-500" : ""}
+                                    />
+                                </FormControl>
+                                <FormMessage>{form.formState.errors.raw_mjml_content?.message}</FormMessage>
+                            </FormItem>
+                        )}
+                    />
+                    { triggerButton }
+                </form>
+            </Form>
+        </>
+    )
+}
 
 const AddTemplateForm = () => {
     // const [parsedHtml, setParsedHtml] = useState("");
@@ -96,58 +177,19 @@ const AddTemplateForm = () => {
     }
 
   return (
-    <>
-        <DialogHeader className='flex flex-row justify-between items-center'>
-                  <div>
-                    <DialogTitle>
-                      {"New template"}
-                    </DialogTitle>
-                    <DialogDescription className='mt-1'>
-                      {"Add a new template"}
-                    </DialogDescription>
-                  </div>
-                  <Button variant={"default"} className='!mt-0' onClick={preview}>
-                    <ScanEye size={16} />
-                    <span>Preview</span>
-                  </Button>
-                </DialogHeader>
-        <hr className='my-4'/>
-
-        <Form {...form}>    {/* pass on the all the form-related methods allowing child components to access the form's context... */}
-            <form 
-                onSubmit={form.handleSubmit(addNewTemplate)}
-                className='flex flex-col space-y-4'
-            >
-                <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel className='font-bold'>Name</FormLabel>
-                        <FormControl>
-                            <Input placeholder="Template name" {...field} />
-                        </FormControl>
-                        <FormMessage>{form.formState.errors.name?.message}</FormMessage>
-                    </FormItem>
-                )}
-                />
-                <FormField
-                    control={form.control}
-                    name="raw_mjml_content"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className='font-bold'>MJML Content</FormLabel>
-                            <FormControl>
-                                <Textarea placeholder="MJML content" {...field} />
-                            </FormControl>
-                            <FormMessage>{form.formState.errors.raw_mjml_content?.message}</FormMessage>
-                        </FormItem>
-                    )}
-                />
-                <Button type="submit" disabled={isCreating}>Create</Button>
-            </form>
-        </Form>
-    </>
+    <TemplateModal 
+        modalTitle={"Add Template"}
+        modalDescription={"Add a new template"}
+        form={form}
+        submitHandler={addNewTemplate}
+        isUpdating={isCreating}
+        triggerButton={<DialogFooter>
+            <DialogClose asChild>
+                <Button type="button" variant={"outline"}>Close</Button>
+            </DialogClose>
+            <Button type="submit" disabled={isCreating}>Create</Button>
+        </DialogFooter>}
+    />  
   )
 }
 
@@ -199,58 +241,19 @@ const EditTemplateForm = ({ templateId }: { templateId: string }) => {
     }
 
     return (
-        <>
-            <DialogHeader className='flex flex-row justify-between items-center'>
-                      <div>
-                        <DialogTitle>
-                          {"New template"}
-                        </DialogTitle>
-                        <DialogDescription className='mt-1'>
-                          {"Add a new template"}
-                        </DialogDescription>
-                      </div>
-                      <Button variant={"default"} className='!mt-0' >
-                        <ScanEye size={16} />
-                        <span>Preview</span>
-                      </Button>
-                    </DialogHeader>
-            <hr className='my-4'/>
-    
-            <Form {...form}>    {/* pass on the all the form-related methods allowing child components to access the form's context... */}
-                <form 
-                    onSubmit={form.handleSubmit(editTemplate)}
-                    className='flex flex-col space-y-4'
-                >
-                    <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className='font-bold'>Name</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Template name" {...field} />
-                            </FormControl>
-                            <FormMessage>{form.formState.errors.name?.message}</FormMessage>
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="raw_mjml_content"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel className='font-bold'>MJML Content</FormLabel>
-                                <FormControl>
-                                    <Textarea rows={16} placeholder="MJML content" {...field} />
-                                </FormControl>
-                                <FormMessage>{form.formState.errors.raw_mjml_content?.message}</FormMessage>
-                            </FormItem>
-                        )}
-                    />
-                    <Button type="submit" disabled={isUpdating}>Save</Button>
-                </form>
-            </Form>
-        </>
+        <TemplateModal 
+            modalTitle={"Edit Template"}
+            modalDescription={"Edit your template"}
+            form={form}
+            submitHandler={editTemplate}
+            isUpdating={isUpdating}
+            triggerButton={<DialogFooter>
+                <DialogClose asChild>
+                    <Button type="button" variant={"outline"}>Close</Button>
+                </DialogClose>
+                <Button type="submit" disabled={isUpdating}>Save</Button>
+            </DialogFooter>}
+        />
       )
 }
 

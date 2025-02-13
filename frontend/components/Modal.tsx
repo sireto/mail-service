@@ -19,7 +19,7 @@ type TriggerLabel = {
 };
 
 interface ModalProps {
-    triggerLabel: TriggerLabel,
+    triggerButton: React.ReactNode,
     dialogBody: React.ReactNode,
     dialogTitle: string,
     dialogDescription: string,
@@ -27,25 +27,15 @@ interface ModalProps {
 
 const Modal = (props: ModalProps) => {
   /* eslint-disable @typescript-eslint/no-unused-vars */
-  const { triggerLabel, dialogBody, dialogTitle, dialogDescription } : {
-    triggerLabel: TriggerLabel,
-    dialogBody: React.ReactNode,
-    dialogTitle: string,
-    dialogDescription: string,
-  } = props;
+  const { triggerButton, dialogBody, dialogTitle, dialogDescription } = props;
   /* eslint-disable @typescript-eslint/no-unused-vars */
 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant={"default"}>
-          <>
-            {triggerLabel.icon}
-            <span className='ml-1'>{triggerLabel.label}</span>
-          </>
-        </Button>
+        {triggerButton}
       </DialogTrigger>
-      <DialogContent className='[&>button]:hidden min-w-[80%] overflow-x-auto'>
+      <DialogContent className='[&>button]:hidden min-w-[80%] overflow-x-auto rounded'>
         {/* <DialogHeader className='flex flex-row justify-between items-center'>
           <div>
             <DialogTitle>

@@ -29,11 +29,6 @@ const TemplateList = () => {
         )
     }
 
-    const updateBtn = {
-        label: "Edit",
-        icon: <Edit3 size={20} />
-    };
-
     const deleteTemplateHandler = async (id: string) => {
         if (deletionError) {
             return <div>Error deleting the template</div>
@@ -56,7 +51,7 @@ const TemplateList = () => {
                             <button className='transition-all duration-300 ease-in-out hover:scale-105'><ScanEye size={20} /></button>
                             {/* <button className='transition-all duration-300 ease-in-out hover:scale-105'><Edit3 size={16} /></button> */}
                             <Modal 
-                                triggerLabel={updateBtn} 
+                                triggerButton={<Edit3 size={20} />} 
                                 dialogBody={<EditTemplateForm templateId={template.id}/>}
                                 dialogTitle={"Edit Template"}
                                 dialogDescription={"Edit your template"}
