@@ -7,11 +7,12 @@ import {
     getCoreRowModel,
     useReactTable,
 } from "@tanstack/react-table";
-import { Table, TableCaption, TableHeader, TableRow, TableHead, TableBody, TableCell } from './ui/table';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from './ui/table';
 
 interface DataTableProps<TData, TValue> {
     data: TData[]
-    columns: ColumnDef<TData, TValue>[]
+    columns: ColumnDef<TData, TValue>[],
+    fallback: String
 };
 
 /**
@@ -22,7 +23,8 @@ interface DataTableProps<TData, TValue> {
  */
 export function DataTable<TData, TValue>({
     data,
-    columns
+    columns,
+    fallback
 }: DataTableProps<TData, TValue>) {
     const table = useReactTable({
         data,
@@ -32,7 +34,6 @@ export function DataTable<TData, TValue>({
 
     return (
             <Table>
-                <TableCaption>A list of templates</TableCaption>
                 <TableHeader className='bg-secondary'>
                     {table.getHeaderGroups().map((headerGroup) => (
                         <TableRow key={headerGroup.id}>
@@ -63,7 +64,7 @@ export function DataTable<TData, TValue>({
                     ) : (
                         <TableRow>
                             <TableCell colSpan={columns.length} className="h-24 text-center">
-                                No templates.
+                                { fallback }
                             </TableCell>
                         </TableRow>
                     )}
