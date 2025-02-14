@@ -25,7 +25,7 @@ const sidebarItems = [
 
 const Sidebar = () => {
   return (
-    <aside className="w-64 h-screen border-r bg-white">
+    <aside className="w-64 h-screen border-r bg-white hidden md:block">
       <nav className="flex flex-col space-y-1 p-4">
         {sidebarItems.map((item, index) => (
           <Link

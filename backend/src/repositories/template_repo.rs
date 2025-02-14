@@ -87,7 +87,8 @@ impl TemplateRepository for TemplateRespositoryImpl {
                 name.eq(payload.name),
                 template_data.eq(payload.template_data),
                 content_html.eq(payload.content_html),
-                content_plaintext.eq(payload.content_plaintext)
+                content_plaintext.eq(payload.content_plaintext),
+                updated_at.eq(diesel::dsl::now),
             ))
             .get_result(&mut conn)
     }
