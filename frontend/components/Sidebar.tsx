@@ -19,7 +19,7 @@ import {
 const sidebarItems = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Lists", href: "/dashboard/lists", icon: List },
-  { name: "Subscribers", href: "/dashboard/subscribers", icon: Users },
+  { name: "Contacts", href: "/dashboard/contacts", icon: Users },
   { name: "Templates", href: "/dashboard/templates", icon: LayoutPanelTop },
   { name: "Campaigns", href: "/dashboard/campaigns", icon: Rocket },
   { name: "Servers", href: "/dashboard/servers", icon: Server },

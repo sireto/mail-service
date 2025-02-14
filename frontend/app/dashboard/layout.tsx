@@ -1,4 +1,5 @@
-// app/dashboard/layout.tsx
+"use client";
+
 import Sidebar from "@/components/Sidebar";
 import ReduxProvider from "@/providers/redux-provider";
 
@@ -8,22 +9,17 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-[calc(100vh-64px)]">
-      {" "}
-      <ReduxProvider>
-        <Sidebar />
-        <div className="flex-1 overflow-auto p-8">{children}</div>
-      </ReduxProvider>
+    <ReduxProvider>
       <div className="flex h-[calc(100vh-64px)]">
-        {" "}
-        {/**minus header height*/}
-        <div className="hidden md:block">
+        <div className="hidden md:block w-64">
           <Sidebar />
         </div>
-        <main className="flex-1 overflow-y-auto relative">
-          <div className="p-8">{children}</div>
-        </main>
+
+        {/* Main content */}
+        <div className="flex-1 flex flex-col">
+          <main className="flex-1 overflow-auto p-8">{children}</main>
+        </div>
       </div>
-    </div>
+    </ReduxProvider>
   );
 }
