@@ -19,7 +19,7 @@ import {
   useCreateServerMutation,
   useUpdateServerMutation,
   useDeleteServerMutation,
-} from "@/app/dashboard/servers/serverApi";
+} from "@/app/services/ServerApi";
 import { useEffect } from "react";
 
 interface ServerCardProps {

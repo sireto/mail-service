@@ -1,17 +1,8 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-interface Server {
-  id: string;
-  namespace_id: string;
-  host: string;
-  port: number;
-  tls_type: "STARTTLS" | "SSL/TLS" | "NONE";
-  smtp_username: string;
-  smtp_password: string;
-  active: boolean;
-}
+import { Server } from "@/lib/type";
 
-export const serverApi = createApi({
+export const ServerApi = createApi({
   reducerPath: "serverApi",
   baseQuery: fetchBaseQuery({ baseUrl: "http://localhost:8000/api/" }),
   tagTypes: ["Server"],
@@ -51,4 +42,4 @@ export const {
   useCreateServerMutation,
   useUpdateServerMutation,
   useDeleteServerMutation,
-} = serverApi;
+} = ServerApi;

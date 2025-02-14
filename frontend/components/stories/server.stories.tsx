@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Meta, StoryObj } from "@storybook/react";
 import ServerCard from "@/components/ServerCard";
-import { ReduxProvider } from "@/app/providers";
+import { ReduxProvider } from "@/providers/providers";
 
 // Define mock functions for onUpdate, onDelete, and onCreate
 const mockUpdate = async (id: string, data: any) => {
