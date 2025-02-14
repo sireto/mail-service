@@ -1,6 +1,6 @@
 use crate::{models::{campaign::
     {
-    CampaignSendResponse, CreateCampaignRequest, CreateCampaignResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse 
+    CampaignSendRequest, CampaignSendResponse, CreateCampaignRequest, CreateCampaignResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse 
     }, contact::{DeleteContactResponse, UpdateContactResponse}}, services::campaign_service, 
 };
 
@@ -116,10 +116,11 @@ pub async fn delete_campaign(
     )
 )]
 pub async fn send_campaign_email(
-    Path(campaign_id): Path<String>
+    Path(campaign_id): Path<String>,
+    payload: Json<CampaignSendRequest>,
 ) -> Result<Json<CampaignSendResponse>, (StatusCode, String)> {
     
-    let result = campaign_service::send_campaign_email(campaign_id).await;
+    let result = campaign_service::send_campaign_email(campaign_id, payload.list_id.clone()).await;
 
     match result {
         Ok(response) => Ok(Json(response)),

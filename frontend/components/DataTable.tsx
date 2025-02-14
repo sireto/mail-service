@@ -53,7 +53,7 @@ export function DataTable<TData, TValue>({
                 <TableBody>
                     {table.getRowModel().rows?.length ? (
                         table.getRowModel().rows.map((row) => (
-                            <TableRow key={row.id} className='cursor-pointer'>
+                            <TableRow key={row.id} >
                                 {row.getVisibleCells().map((cell, idx) => (
                                     <TableCell key={cell.id} className={`${idx === 0 ? 'text-primary' : 'text-secondary-foreground/60'} min-w-[80px]`}>
                                         {flexRender(cell.column.columnDef.cell, cell.getContext())}

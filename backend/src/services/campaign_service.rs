@@ -159,6 +159,7 @@ pub async fn delete_campaign(campaign_id: String)->Result<DeleteCampaignResponse
 
 pub async fn send_campaign_email(
     campaign_id: String,
+    list_id: String,
 ) -> Result<CampaignSendResponse, anyhow::Error> {
     let client = aws_service::create_aws_client().await;
     let campaign = get_campaign_by_id(campaign_id.clone())
@@ -168,7 +169,8 @@ pub async fn send_campaign_email(
         })?;
 
     // This will come from lists table, but for now it is hardcoded
-    let lists = vec![Uuid::parse_str("2af1e68e-0d28-455b-b88a-8cb1c2a70a01")?];
+    // let lists = vec![Uuid::parse_str("2af1e68e-0d28-455b-b88a-8cb1c2a70a01")?];
+    let lists=  vec![Uuid::parse_str(&list_id)?];
 
     let list_contact_repository = Arc::new(ListContactRepositoryImpl);
     let list_contact_service = ListContactService::new(list_contact_repository);

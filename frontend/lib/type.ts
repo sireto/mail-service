@@ -85,3 +85,58 @@ export const UpdateListResponseDTO = z.object({
     name: z.string(),
     updated_at: z.string(),
 });
+
+
+// campaigns DTOs...
+export const CampaignDTO = z.object({
+    id: z.string(),
+    campaign_name: z.string(),
+    campaign_senders: z.string(),
+    created_at: z.string(), // ISO string...
+    updated_at: z.string(),
+    namespace_id: z.string(),
+    template_id: z.string(),
+    status: z.string(),
+    scheduled_at: z.string(),
+});
+
+export const AddCampaignFormSchemaDTO = z.object({
+    campaign_name: z.string(),
+    campaign_senders: z.string(),
+    namespace_id: z.string(),
+    template_id: z.string(),
+    list_id: z.string(),
+});
+
+export const CreateCampaignRequestDTO = z.object({
+    campaign_name: z.string(),
+    campaign_senders: z.string(),
+    namespace_id: z.string(),
+    template_id: z.string(),
+    status: z.string(),
+    scheduled_at: z.string(),
+});
+
+export const CreateCampaignResponseDTO = z.object({
+    id: z.string(),
+    campaign_name: z.string(),
+    campaign_senders: z.string(),
+    created_at: z.string(), // ISO string...
+    updated_at: z.string(),
+    namespace_id: z.string(),
+    template_id: z.string(),
+    status: z.string(),
+    scheduled_at: z.string(),
+});
+
+
+// mails DTOs...
+export const MailDTO = z.object({
+    id: z.string(),
+    campaign_id: z.string(),
+    contact_id: z.string(),
+    mail_message: z.string(), // ISO string...
+    sent_at: z.string(),
+    template_id: z.string(),
+    status: z.string(),
+});
