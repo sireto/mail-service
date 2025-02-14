@@ -56,6 +56,7 @@ export const UpdateTemplateResponseDTO = z.object({
   name: z.string(),
   updated_at: z.string(),
 });
+
 export const ServerSchema = z.object({
   id: z.string().optional(),
   active: z.boolean(),
