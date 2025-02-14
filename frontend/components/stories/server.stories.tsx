@@ -1,29 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Meta, StoryObj } from "@storybook/react";
 import ServerCard from "@/components/ServerCard";
-import { ReduxProvider } from "@/app/providers";
+import { ReduxProvider } from "@/providers/providers";
 
-// Define mock functions for onUpdate, onDelete, and onCreate
-const mockUpdate = async (id: string, data: any) => {
-  console.log("Updating server with id:", id, data);
-};
+const validTlsTypes = ["NONE", "SSL/TLS", "STARTTLS"] as const;
+const tlsTypeFromApi: string = "STARTTLS"; // Assume this comes dynamically
 
-const mockDelete = async (id: string) => {
-  console.log("Deleting server with id:", id);
-};
-
-const mockCreate = async (data: any) => {
-  console.log("Creating new server:", data);
-};
-
-// Updated mockServer with correct tls_type
 const mockServer = {
   id: "1",
   host: "smtp.example.com",
   port: 25,
   smtp_username: "username",
   smtp_password: "password",
-  tls_type: "STARTTLS",
+  tls_type: validTlsTypes.includes(tlsTypeFromApi as any)
+    ? (tlsTypeFromApi as "NONE" | "SSL/TLS" | "STARTTLS")
+    : "NONE", // Default fallback
   namespace_id: "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82",
 };
 
@@ -50,8 +41,5 @@ type Story = StoryObj<typeof ServerCard>;
 export const Default: Story = {
   args: {
     server: mockServer,
-    onUpdate: mockUpdate,
-    onDelete: mockDelete,
-    onCreate: mockCreate,
   },
 };
