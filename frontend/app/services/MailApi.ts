@@ -3,13 +3,17 @@ import { z } from 'zod';
 import { 
     MailDTO
 } from '@/lib/type';
+<<<<<<< HEAD
 import environments from "@/config/environments";
+=======
+>>>>>>> 9a97571 (WIP campaign)
 
 type Mail = z.infer<typeof MailDTO>;
 
 // Mail API slice...
 export const mailApi = createApi({
     reducerPath: "mailApi",
+<<<<<<< HEAD
     baseQuery: fetchBaseQuery({ baseUrl: environments.MAIL_API_BASE_URL}),
     tagTypes: ["Mail"],
     endpoints: (builder) => ({
@@ -50,10 +54,19 @@ export const mailApi = createApi({
             }),
             invalidatesTags: [{ type: 'Mail' }]
         })
+=======
+    baseQuery: fetchBaseQuery({ baseUrl: "http://localhost:8000/api/mails"}),
+    endpoints: (builder) => ({
+        // Query to fetch all lists...
+        getMails: builder.query<Mail[], void>({query: () => ""}),
+>>>>>>> 9a97571 (WIP campaign)
     })
 });
 
 export const { 
     useGetMailsQuery,
+<<<<<<< HEAD
     useDeleteMailMutation
+=======
+>>>>>>> 9a97571 (WIP campaign)
 } = mailApi;
