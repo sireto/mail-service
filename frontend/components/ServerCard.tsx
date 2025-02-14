@@ -1,5 +1,5 @@
 import React from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,6 +39,7 @@ export default function ServerCard({ server, onCancel }: ServerCardProps) {
     watch,
     reset,
     trigger,
+    control,
     formState: { errors, isValid },
   } = useForm<Server>({
     resolver: zodResolver(ServerSchema),
@@ -249,16 +250,22 @@ export default function ServerCard({ server, onCancel }: ServerCardProps) {
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>TLS Configuration</Label>
-              <Select value={watch("tls_type")}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select TLS" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="STARTTLS">STARTTLS</SelectItem>
-                  <SelectItem value="SSL/TLS">SSL/TLS</SelectItem>
-                  <SelectItem value="NONE">None</SelectItem>
-                </SelectContent>
-              </Select>
+              <Controller
+                control={control} // `control` comes from `useForm`
+                name="tls_type"
+                render={({ field }) => (
+                  <Select {...field} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select TLS" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="STARTTLS">STARTTLS</SelectItem>
+                      <SelectItem value="SSL/TLS">SSL/TLS</SelectItem>
+                      <SelectItem value="NONE">None</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
               {errors.tls_type && (
                 <span className="text-sm text-destructive">
                   {errors.tls_type.message}
