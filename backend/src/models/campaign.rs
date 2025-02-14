@@ -126,3 +126,9 @@ pub struct CampaignSendResponse {
     pub total_recipients: usize,
     pub status: String,
 }
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, PartialEq)]
+pub struct CampaignSendRequest {
+    #[schema(value_type = String, example = "0a48a82f-ec04-4c19-904c-48dcebc80e49")]
+    pub list_id: String,
+}
