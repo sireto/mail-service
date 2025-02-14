@@ -1,5 +1,5 @@
 "use client";
-import { useGetServersQuery } from "@/app/dashboard/servers/serverApi";
+import { useGetServersQuery } from "@/app/services/ServerApi";
 import ServerCard from "@/components/ServerCard";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
