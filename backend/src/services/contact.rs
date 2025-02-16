@@ -183,3 +183,15 @@ pub async fn delete_contact (
 
     Ok(response_contact)
 }
+
+pub async fn check_email_exists(email: String) -> Result<bool, (StatusCode, String)> {
+    let contact_repository = Arc::new(ContactRepositoryImpl);
+    let contact_service = ContactService::new(contact_repository);
+
+    let result = contact_service.get_contact_by_email(email).await;
+
+    match result {
+        Ok(contact) => Ok(true), 
+        Err(_) => Ok(false),     
+    }
+}

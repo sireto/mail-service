@@ -11,7 +11,8 @@ use crate::handlers::contact::{
     get_contacts,
     update_contact,
     delete_contact, 
-    get_contact_by_id
+    get_contact_by_id, 
+    check_email
 };
 
 pub fn contact_routes() -> Router {
@@ -21,4 +22,5 @@ pub fn contact_routes() -> Router {
         .route("/{contactId}", get(get_contact_by_id))
         .route("/{contactId}", patch(update_contact))
         .route("/{contactId}", delete(delete_contact))
+        .route("/check-email", get(check_email)) 
 }

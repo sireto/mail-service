@@ -1,7 +1,7 @@
 use chrono::{ DateTime, NaiveDateTime, Utc };
 use serde_json::Value;
 use serde::{ Serialize, Deserialize };
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 use diesel::prelude::*;
 use uuid::Uuid;
 
@@ -98,4 +98,9 @@ pub struct DeleteContactResponse {
     pub first_name: String,
     pub last_name: String,
     pub email: String,
+}
+
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct EmailQuery {
+    pub email: String
 }

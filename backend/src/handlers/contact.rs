@@ -1,18 +1,12 @@
 use crate::{models::contact::
     { 
-        Contact,
-        CreateContactRequest, 
-        CreateContactResponse, 
-        GetContactResponse, 
-        UpdateContactRequest,
-        UpdateContactResponse,
-        DeleteContactResponse
+        Contact, CreateContactRequest, CreateContactResponse, DeleteContactResponse, EmailQuery, GetContactResponse, UpdateContactRequest, UpdateContactResponse
     }, services::contact
 };
 use crate::services::contact as contact_service;
 
 use axum::{
-    extract:: Path, Json, http::StatusCode
+    extract::{ Path, Query}, http::StatusCode, Json
 };
 
 #[utoipa::path(
@@ -108,4 +102,30 @@ pub async fn delete_contact(
     let delete_contact_response = contact::delete_contact(contact_id).await?;
 
     Ok(Json(delete_contact_response))
+}
+
+
+#[utoipa::path(
+    get,
+    path = "/api/contacts/check-email",
+    params(
+        EmailQuery
+    ),
+    responses(
+        (status = 200, description = "Email existence check result", body = bool),
+        (status = 400, description = "Invalid email format"),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn check_email(
+    Query(query): Query<EmailQuery>
+) -> Result<Json<bool>, (StatusCode, String)> {
+
+    match contact::check_email_exists(query.email).await {
+        Ok(exists) => Ok(Json(exists)),
+        Err(err) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR, 
+            format!("{:?}", err)  
+        )),
+    }
 }
