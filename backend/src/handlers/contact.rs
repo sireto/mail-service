@@ -17,13 +17,22 @@ use axum::{
         (status = 404)
     )
 )]
-pub async fn create_contact(
-    Json(payload): Json<CreateContactRequest>,
-) -> Result<Json<CreateContactResponse>, (StatusCode, String)> {
+pub async fn create_contacts(
+    Json(payloads): Json<Vec<CreateContactRequest>>, // Corrected JSON extractor
+) -> Result<Json<Vec<CreateContactResponse>>, (StatusCode, String)> {
+    
+    let created_contacts = contact_service::create_contacts(payloads).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, "NO Contacts Created".to_string()))?; 
 
-    let created_contact = contact::create_contact(payload).await?;
+    let response: Vec<CreateContactResponse> = created_contacts.iter().map(|contact| CreateContactResponse {
+        id: contact.id,
+        first_name: contact.first_name.clone(),  
+        last_name: contact.last_name.clone(),    
+        email: contact.email.clone(),            
+        attribute: contact.attribute.clone(),    
+    }).collect();
 
-    Ok(Json(created_contact))
+    Ok(Json(response)) // Wrap response inside Json()
 }
 
 #[utoipa::path(

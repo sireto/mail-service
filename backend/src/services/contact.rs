@@ -1,7 +1,7 @@
 use crate::repositories::contact::{self, ContactRepository, ContactRepositoryImpl};
 use uuid::Uuid;
 use std::sync::Arc;
-use axum::http::StatusCode;
+use axum::{http::StatusCode, Json};
 use crate::models::contact::{
     Contact,
     CreateContactRequest,
@@ -18,8 +18,8 @@ impl ContactService {
         Self { repository }
     }
 
-    pub async fn create_contact(&self, payload: CreateContactRequest) -> Result<Contact, diesel::result::Error> {
-        self.repository.create_contact(payload).await
+    pub async fn create_contacts(&self, payload: Vec<CreateContactRequest>) -> Result<Vec<Contact>, diesel::result::Error> {
+        self.repository.create_contacts(payload).await
     }
 
     pub async fn get_all_contacts(&self) -> Result<Vec<Contact>, diesel::result::Error> {
@@ -49,23 +49,24 @@ impl ContactService {
 }
 
 
-pub async fn create_contact(payload: CreateContactRequest) -> Result<CreateContactResponse, (StatusCode, String)> {
+pub async fn create_contacts(
+    payloads: Vec<CreateContactRequest> // Corrected syntax
+) -> Result<Json<Vec<CreateContactResponse>>, (StatusCode, String)> {
+    
     let contact_repository = Arc::new(ContactRepositoryImpl);
     let contact_service = ContactService::new(contact_repository);
-    let response = contact_service.create_contact(payload).await;
+    let created_contacts = contact_service.create_contacts(payloads).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    let response = match response {
-        Ok(contact) => CreateContactResponse {
-            id: contact.id,
-            first_name: contact.first_name,
-            last_name: contact.last_name,
-            email: contact.email,
-            attribute: contact.attribute,
-        },
-        Err(err) => return Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
-    };
+    let response = created_contacts.into_iter().map(|contact| CreateContactResponse {
+        id: contact.id,
+        first_name: contact.first_name,
+        last_name: contact.last_name,
+        email: contact.email,
+        attribute: contact.attribute,
+    }).collect();
 
-    Ok(response)
+    Ok(Json(response))
 }
 
 pub async fn get_all_contacts() -> Result<Vec<GetContactResponse>, (StatusCode, String)> {

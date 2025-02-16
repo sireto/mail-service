@@ -20,7 +20,7 @@ pub async fn get_connection_pool() -> DbPooledConnection {
 #[automock]
 #[async_trait]
 pub trait ContactRepository {
-    async fn create_contact(&self, payload: CreateContactRequest) -> Result<Contact, diesel::result::Error>;
+    async fn create_contacts(&self, payloads: Vec<CreateContactRequest>) -> Result<Vec<Contact>, diesel::result::Error>;
     async fn get_all_contacts(&self) -> Result<Vec<Contact>, diesel::result::Error>;
     async fn update_contact(&self, contact_id: Uuid, payload: UpdateContactRequest
     ) -> Result<Contact, diesel::result::Error>;
@@ -33,13 +33,13 @@ pub struct ContactRepositoryImpl;
 
 #[async_trait]
 impl ContactRepository for ContactRepositoryImpl {
-    async fn create_contact(&self, payload: CreateContactRequest) -> Result<Contact, diesel::result::Error> {
+    async fn create_contacts(&self, payloads: Vec<CreateContactRequest>) -> Result<Vec<Contact>, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
-
+    
         diesel::insert_into(contacts)
-            .values(&payload)
+            .values(&payloads)
             .returning(Contact::as_returning())
-            .get_result::<Contact>(&mut conn)
+            .get_results::<Contact>(&mut conn)
     }
 
     async fn get_all_contacts(&self) -> Result<Vec<Contact>, diesel::result::Error> {

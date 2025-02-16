@@ -35,7 +35,7 @@ use crate::servers::servers_routes::servers_routes;
         template::update_template,
         template::delete_template,
         template::send_templated_email,
-        contact::create_contact,
+        contact::create_contacts,
         contact::get_contacts,
         contact::update_contact,
         contact::delete_contact,
