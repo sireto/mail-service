@@ -2,14 +2,13 @@
 
 import React from 'react'
 
-import Modal from '@/components/Modal';
 import { Plus } from "lucide-react";
-import { AddListForm } from '@/components/ListForms';
 import { Button } from '@/components/ui/button';
 import DataTable from '@/components/DataTable';
 import columns from './columns';
 import { useDeleteCampaignMutation, useGetCampaignsQuery, useStartCampaignMutation } from '@/app/services/CampaignApi';
 import Link from 'next/link';
+
 
 const addButton = (
     <Button variant={"default"}>
@@ -54,6 +53,7 @@ const Page = () => {
         };
 
         await startCampaign(campaignData);
+        window.alert("Campaign started successfully");
     }
 
     return (
