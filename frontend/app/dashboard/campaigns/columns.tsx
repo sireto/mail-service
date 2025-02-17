@@ -5,6 +5,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { formatDate } from '@/lib/utils';
 import { Edit3, Trash2, Rocket } from 'lucide-react';
 import Link from 'next/link';
+import ConfirmationPopup from '@/components/common/ConfirmationPopup';
 
 export const columns = (
     deleteCampaignHandler: (id: string) => void,
@@ -38,11 +39,17 @@ export const columns = (
 
             return (
                 <div className='flex space-x-4 text-primary items-center'>
-                    <Rocket 
-                        size={20} 
-                        strokeWidth={1.5}
-                        className='transition-all duration-300 ease-in-out hover:scale-105 cursor-pointer'
-                        onClick={() => startCampaignHandler(campaignId)} 
+                    <ConfirmationPopup
+                        title="Do you wanna start campaign?"
+                        message="The campaign will start right away."
+                        onConfirm={() => startCampaignHandler(campaignId)}
+                        confirmButton = {
+                            <Rocket 
+                            size={20} 
+                            strokeWidth={1.5}
+                            className='transition-all duration-300 ease-in-out hover:scale-105 cursor-pointer' 
+                            />
+                        }
                     />
                     <Link href={`/dashboard/campaigns/new`}>
                         <Edit3 
@@ -51,12 +58,14 @@ export const columns = (
                             className='text-lime-400 hover:text-lime-500 transition-all duration-300 ease-in-out hover:scale-105'
                         />
                     </Link>
-                    <button 
-                        className='transition-all duration-300 ease-in-out hover:scale-105'
-                        onClick={() => deleteCampaignHandler(campaignId)}
-                    >
-                        <Trash2 strokeWidth={1.5} size={20} className='text-red-400 hover:text-red-500' />
-                    </button>
+                    <ConfirmationPopup
+                        title="Are you sure to delete this campaign?"
+                        message="The campaign will be deleted permanently."
+                        onConfirm={() => deleteCampaignHandler(campaignId)}
+                        confirmButton = {
+                            <Trash2 strokeWidth={1.5} size={20} className='text-red-400 hover:text-red-500 transition-all duration-300 ease-in-out hover:scale-105 cursor-pointer' />
+                        }
+                    />
                 </div>
             );
         }     
