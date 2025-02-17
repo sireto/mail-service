@@ -35,17 +35,8 @@ import {
 
 import { useAddContactsToListMutation } from "@/app/services/ListApi"; // Adjust import path as necessary
 
-// Define form schema using Zod
-const ContactFormSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  name: z.string().optional(),
-  status: z.enum(["Enabled", "Disabled"]).default("Enabled"),
-  listId: z.string().optional(),
-  attributes: z.string().optional(),
-  preconfirm: z.boolean().default(false),
-  created_at: z.string().optional(),
-  updated_at: z.string().optional(),
-});
+import { Contact } from "@/lib/type/contact";
+import { ContactFormSchema } from "@/lib/type/contact";
 
 interface List {
   id: string;
@@ -59,8 +50,8 @@ interface List {
 interface AddContactFormProps {
   open?: boolean;
   onClose: () => void;
-  contactData?: any;
-  lists: List[] | null; // Updated to allow null
+  contactData?: Contact;
+  lists: List[] | null;
 }
 
 const AddContactForm: React.FC<AddContactFormProps> = ({
@@ -80,7 +71,6 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
           name: `${contactData.first_name || ""} ${
             contactData.last_name || ""
           }`.trim(),
-          status: contactData.status || "Enabled",
           listId: contactData.listId || "",
           attributes: contactData.attributes || "{}",
           preconfirm: contactData.preconfirm || false,
@@ -184,25 +174,21 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
           throw new Error("Contact ID missing in API response");
         }
 
-        // Validate listId
-        if (!values.listId) {
-          throw new Error("No list ID provided in form values");
-        }
-
         // Add contact to list
-        try {
-          const addToListResponse = await addContactsToList({
-            listId: values.listId,
-            contacts: [{ id: contactResponse.id }],
-          }).unwrap();
+        if (values.listId) {
+          try {
+            await addContactsToList({
+              listId: values.listId,
+              contacts: [{ id: contactResponse.id }],
+            }).unwrap();
 
-          console.log("Successfully added contact to list");
-        } catch (listError) {
-          console.error("Error adding contact to list:", listError);
-          throw listError;
+            console.log("Successfully added contact to list");
+          } catch (listError) {
+            console.error("Error adding contact to list:", listError);
+            throw listError;
+          }
         }
       }
-
       form.reset();
       onClose?.();
     } catch (error) {
@@ -210,6 +196,7 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
       throw error;
     }
   }
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>

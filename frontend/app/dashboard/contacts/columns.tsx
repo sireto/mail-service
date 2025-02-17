@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit3, Trash2 } from "lucide-react";
 import { AddContactForm } from "@/components/AddContactForm";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Contact } from "@/lib/type/contact";
 
 interface List {
   id: string;
@@ -39,41 +41,80 @@ const ContactActions = ({ contactData, lists }: ContactActionsProps) => {
 
 export const createColumns = (
   deleteHandler: (id: string) => Promise<void>,
-  lists: List[]
-): ColumnDef<Contact>[] => [
+  lists: List[],
+  selectedContacts: Record<string, boolean>,
+  setSelectedContacts: React.Dispatch<
+    React.SetStateAction<Record<string, boolean>>
+  >
+): ColumnDef<Contact, unknown>[] => [
+  {
+    id: "select",
+    enableSorting: false,
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          Object.keys(selectedContacts).length > 0 &&
+          Object.keys(selectedContacts).length ===
+            table.getFilteredRowModel().rows.length
+        }
+        onCheckedChange={(value) => {
+          const isChecked = Boolean(value);
+          setSelectedContacts(
+            isChecked
+              ? Object.fromEntries(
+                  table
+                    .getFilteredRowModel()
+                    .rows.map((row) => [row.original.id, true])
+                )
+              : {}
+          );
+        }}
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={selectedContacts[row.original.id] || false}
+        onCheckedChange={(value) =>
+          setSelectedContacts((prev) => ({
+            ...prev,
+            [row.original.id]: Boolean(value),
+          }))
+        }
+      />
+    ),
+  },
   {
     accessorKey: "email",
-    header: "Email",
+    header: () => "Email",
     cell: ({ row }) => <span>{row.getValue("email")}</span>,
   },
   {
-    header: "Name",
-    cell: ({ row }) => {
-      const firstName = row.original.first_name;
-      const lastName = row.original.last_name;
-      return <span>{`${firstName || ""} ${lastName || ""}`}</span>;
-    },
+    id: "full_name",
+    header: () => "Name",
+    accessorFn: (row) =>
+      `${row.first_name || ""} ${row.last_name || ""}`.trim(),
+    cell: ({ row }) => <span>{row.getValue("full_name")}</span>,
   },
   {
     accessorKey: "created_at",
-    header: "Created",
+    header: () => "Created",
     cell: ({ row }) => (
       <span>{new Date(row.getValue("created_at")).toLocaleDateString()}</span>
     ),
   },
   {
     accessorKey: "updated_at",
-    header: "Updated",
+    header: () => "Updated",
     cell: ({ row }) => (
       <span>{new Date(row.getValue("updated_at")).toLocaleDateString()}</span>
     ),
   },
   {
-    accessorKey: "actions",
-    header: "",
+    id: "actions",
+    enableSorting: false,
+    header: () => "Actions",
     cell: ({ row }) => {
       const contactId = row.original.id;
-
       return (
         <div className="flex space-x-4 text-primary items-center">
           <ContactActions contactData={row.original} lists={lists} />

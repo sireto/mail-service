@@ -17,7 +17,7 @@ export default function DashboardLayout({
 
         {/* Main content */}
         <div className="flex-1 flex flex-col">
-          <main className="flex-1 overflow-auto p-8">{children}</main>
+          <main className="flex-1 overflow-auto p-4">{children}</main>
         </div>
       </div>
     </ReduxProvider>

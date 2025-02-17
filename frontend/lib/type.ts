@@ -114,3 +114,15 @@ export const UpdateListResponseDTO = z.object({
   name: z.string(),
   updated_at: z.string(),
 });
+
+export const Contact = z.object({
+  id: z.string(),
+  email: z.string(),
+  first_name: z.string(),
+  last_name: z.string(),
+  listId: z.string(),
+  attributes: z.string(),
+  preconfirm: z.boolean(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
