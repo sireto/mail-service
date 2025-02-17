@@ -164,6 +164,7 @@ export const CreateCampaignRequestDTO = z.object({
     template_id: z.string(),
     status: z.string(),
     scheduled_at: z.string(),
+    list_id: z.string(),
 });
 
 export const CreateCampaignResponseDTO = z.object({
@@ -176,6 +177,25 @@ export const CreateCampaignResponseDTO = z.object({
     template_id: z.string(),
     status: z.string(),
     scheduled_at: z.string(),
+});
+
+export const UpdateCampaignRequestDTO = z.object({
+  campaign_name: z.string(),
+  campaign_senders: z.string(),
+  template_id: z.string(),
+  status: z.string(),
+  scheduled_at: z.string(),
+});
+
+export const UpdateCampaignResponseDTO = z.object({
+  id: z.string(),
+  campaign_name: z.string(),
+  campaign_senders: z.string(),
+  template_id: z.string(),
+  status: z.string(),
+  scheduled_at: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
 });
 
 

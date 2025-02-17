@@ -5,6 +5,7 @@ import { ServerApi } from "@/app/services/ServerApi";
 import { contactApi } from "@/app/services/ContactApi";
 import { listApi } from "@/app/services/ListApi";
 import { campaignApi } from '@/app/services/CampaignApi';
+import { mailApi } from '@/app/services/MailApi';
 
 export const store = configureStore({
   reducer: {
@@ -13,6 +14,7 @@ export const store = configureStore({
     [contactApi.reducerPath]: contactApi.reducer,
     [listApi.reducerPath]: listApi.reducer,
     [campaignApi.reducerPath]: campaignApi.reducer,
+    [mailApi.reducerPath]: mailApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -20,7 +22,8 @@ export const store = configureStore({
       .concat(ServerApi.middleware)
       .concat(listApi.middleware)
       .concat(contactApi.middleware)
-      .concat(campaignApi.middleware),
+      .concat(campaignApi.middleware)
+      .concat(mailApi.middleware)
 });
 
 setupListeners(store.dispatch);

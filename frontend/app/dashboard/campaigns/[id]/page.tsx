@@ -1,17 +1,17 @@
 'use client';
 
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { Textarea } from '@/components/ui/textarea';
 import { Form } from '@/components/ui/form';
 import { Select, SelectTrigger, SelectItem, SelectValue, SelectContent } from '@/components/ui/select';
 import { AddCampaignFormSchemaDTO, AddTemplateFormSchemaDTO } from '@/lib/type';
 import { Input } from '@/components/ui/input';
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation';
 import { UseFormReturn, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCreateTemplateMutation, useGetTemplatesQuery } from '@/app/services/TemplateApi';
-import { useCreateCampaignMutation, useGetCampaignsQuery } from '@/app/services/CampaignApi';
+import { useCreateCampaignMutation, useGetCampaignByIdQuery, useGetCampaignsQuery, useUpdateCampaignMutation } from '@/app/services/CampaignApi';
 import { Save, ClipboardX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useGetListsQuery } from '@/app/services/ListApi';
@@ -120,7 +120,7 @@ const CampaignForm = (props: CampaignFormProps) => {
               <FormItem>
                 <FormLabel className="font-bold text-black">Template</FormLabel>
                 <FormControl>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Select your Template" />
                     </SelectTrigger>
@@ -141,7 +141,7 @@ const CampaignForm = (props: CampaignFormProps) => {
               <FormItem>
                 <FormLabel className="font-bold text-black">Lists</FormLabel>
                 <FormControl>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Select your Lists" />
                     </SelectTrigger>
@@ -174,6 +174,9 @@ const CampaignForm = (props: CampaignFormProps) => {
   };
 
 const page = () => {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+    const isEditing = id !== "new";  // if not new this page is opened in the editing mode...
     const form = useForm<z.infer<typeof AddCampaignFormSchemaDTO>>({
         resolver: zodResolver(AddCampaignFormSchemaDTO),
         defaultValues: {
@@ -181,27 +184,57 @@ const page = () => {
             campaign_senders: "",
             namespace_id: "",
             template_id: "",
+            list_id: "",
         }
     });
 
     const { refetch } = useGetCampaignsQuery();
+    const { data: campaignData, error, isLoading } = useGetCampaignByIdQuery(id, { skip: !isEditing }); 
     const [ createCampaign, { isLoading: isCreating, error: creationError }] = useCreateCampaignMutation();
+    const [ updateCampaign, { isLoading: isUpdating, error: updateError }] = useUpdateCampaignMutation();
 
-    const addNewCampaign = async (value: z.infer<typeof AddCampaignFormSchemaDTO>) => {
-        console.log(value);
+    useEffect(() => {
+      if (isEditing && campaignData) {
+        form.reset(campaignData);
+      }
+    }, [campaignData, form, isEditing]);
 
-        const newCampaign = {
+    const saveCampaignChanges = async (value: z.infer<typeof AddCampaignFormSchemaDTO>) => {
+        console.warn("THE FORM VALUES:", value);
+
+
+        if (isEditing) {
+          const updatedCampaign = {
+            campaign_name: value.campaign_name.trim(),
+            campaign_senders: value.campaign_senders.trim(),
+            status: "draft",  // Update status if needed
+            template_id: value.template_id.trim(),
+            scheduled_at: "2023-01-01T00:00:00Z" // Ensure this is in the correct format
+          };
+
+          const updatedCampaignData = {
+            campaignId: id,
+            updatedCampaign: updatedCampaign
+          };
+
+          await updateCampaign(updatedCampaignData);
+          form.reset();
+        } else {
+          const newCampaign = {
             campaign_name: value.campaign_name.trim(),
             campaign_senders: value.campaign_senders.trim(),
             namespace_id: "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82",
             template_id: value.template_id.trim(),
             status: "draft",
+            list_id: value.list_id.trim(),
             // scheduled_at: (new Date()).toISOString(),
             scheduled_at: "2025-02-10T12:00:00"
-        };
+          };
 
-        await createCampaign(newCampaign);
-        form.reset();
+          await createCampaign(newCampaign);
+          form.reset();
+        }
+        router.push('/dashboard/campaigns');
         refetch();
     }
     
@@ -210,7 +243,7 @@ const page = () => {
     <>
         <CampaignForm 
             form={form}
-            submitHandler={addNewCampaign}
+            submitHandler={saveCampaignChanges}
             triggerButton={
                 <Button type="submit" className="bg-primary text-white py-2 px-4 rounded-md">
                     <Save size={16} />

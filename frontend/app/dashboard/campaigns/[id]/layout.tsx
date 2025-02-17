@@ -25,7 +25,10 @@ export default function NewLayout({
       {/* Sub-navigation */}
       <nav className="flex space-x-4 border-b pb-3 mb-6">
         {FormNavLinks.map((link) => {
-            const isActive = pathname === link.path;
+          // replace the UUID with a /dashboard/campaigns/new for active status...
+            const normalizedPath = pathname.replace(/^\/dashboard\/campaigns\/[a-f0-9\-]{36}$/, '/dashboard/campaigns/new');
+
+            const isActive = normalizedPath === link.path;
 
             return (
               <Link
