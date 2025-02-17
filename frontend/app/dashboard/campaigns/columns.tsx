@@ -14,7 +14,7 @@ export const columns = (
     {
         accessorKey: "campaign_name",
         header: "Name",
-        cell: ({ row }) => <Link href={`/dashboard/campaigns/new`}>{row.getValue("campaign_name")}</Link>,
+        cell: ({ row }) => <Link href={`/dashboard/campaigns/${row.original.id}`}>{row.getValue("campaign_name")}</Link>,
     },
     {
         accessorKey: "status",
@@ -51,7 +51,7 @@ export const columns = (
                             />
                         }
                     />
-                    <Link href={`/dashboard/campaigns/new`}>
+                    <Link href={`/dashboard/campaigns/${campaignId}`}>
                         <Edit3 
                             size={20} 
                             strokeWidth={1.5} 

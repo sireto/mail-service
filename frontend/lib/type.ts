@@ -165,9 +165,13 @@ export const CreateCampaignRequestDTO = z.object({
     status: z.string(),
     scheduled_at: z.string(),
 <<<<<<< HEAD
+<<<<<<< HEAD
     list_id: z.string(),
 =======
 >>>>>>> 9a97571 (WIP campaign)
+=======
+    list_id: z.string(),
+>>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
 });
 
 export const CreateCampaignResponseDTO = z.object({
@@ -183,6 +187,9 @@ export const CreateCampaignResponseDTO = z.object({
 });
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
 export const UpdateCampaignRequestDTO = z.object({
   campaign_name: z.string(),
   campaign_senders: z.string(),
@@ -202,8 +209,11 @@ export const UpdateCampaignResponseDTO = z.object({
   updated_at: z.string(),
 });
 
+<<<<<<< HEAD
 =======
 >>>>>>> 9a97571 (WIP campaign)
+=======
+>>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
 
 // mails DTOs...
 export const MailDTO = z.object({
