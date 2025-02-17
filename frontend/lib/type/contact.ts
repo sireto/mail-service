@@ -21,4 +21,5 @@ export interface Contact {
   preconfirm?: boolean;
   created_at: string;
   updated_at: string;
+  list_names: string[];
 }

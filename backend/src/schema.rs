@@ -58,8 +58,8 @@ diesel::table! {
     list_contacts (list_id, contact_id) {
         list_id -> Uuid,
         contact_id -> Uuid,
-        created_at -> Nullable<Timestamp>,
-        updated_at -> Nullable<Timestamp>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 

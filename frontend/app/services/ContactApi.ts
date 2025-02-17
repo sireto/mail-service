@@ -8,6 +8,7 @@ interface Contact {
   attribute: string;
   created: string;
   updated: string;
+  list_names: string[];
 }
 
 export const contactApi = createApi({

@@ -12,7 +12,7 @@ use crate::handlers::contact::{
     update_contact,
     delete_contact, 
     get_contact_by_id, 
-    check_email
+    check_email,
 };
 
 pub fn contact_routes() -> Router {

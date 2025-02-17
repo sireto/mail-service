@@ -4,7 +4,10 @@ import { AddContactForm } from "@/components/AddContactForm";
 import DataTable from "@/components/DataTable";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { useGetContactsQuery, useDeleteContactMutation } from "./contactApi";
+import {
+  useGetContactsQuery,
+  useDeleteContactMutation,
+} from "@/app/services/ContactApi";
 import { useGetListsQuery } from "@/app/services/ListApi";
 import { createColumns } from "./columns";
 import { Download, Trash2 } from "lucide-react";
@@ -25,6 +28,7 @@ const ContactsPage = () => {
   const { data: contacts, isLoading, isError, refetch } = useGetContactsQuery();
   const { data: listsData, isLoading: listsLoading } =
     useGetListsQuery(NAMESPACE_ID);
+  console.log("Initial contacts data:", contacts);
   const lists: List[] = listsData ?? [];
   const [deleteContact] = useDeleteContactMutation();
   const [selectedContacts, setSelectedContacts] = useState<

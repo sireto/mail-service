@@ -1,6 +1,6 @@
 use crate::{models::contact::
     { 
-        Contact, CreateContactRequest, CreateContactResponse, DeleteContactResponse, EmailQuery, GetContactResponse, UpdateContactRequest, UpdateContactResponse
+        Contact, CreateContactRequest, CreateContactResponse, DeleteContactResponse, EmailQuery, GetContactResponse, GetContactResponsee, UpdateContactRequest, UpdateContactResponse
     }, services::contact
 };
 use crate::services::contact as contact_service;
@@ -43,15 +43,19 @@ pub async fn create_contacts(
         (status = 404)
     )
 )]
-pub async fn get_contacts() -> Result<Json<Vec<GetContactResponse>>, (StatusCode, String)> {
-    let contacts = contact_service::get_all_contacts().await?;
+pub async fn get_contacts() -> Result<Json<Vec<GetContactResponsee>>, (StatusCode, String)> {
+    println!("Handler called");
+    let contacts = contact_service::get_all_contactss().await?;
 
     if contacts.is_empty() {
+        println!("No contacts found");
         return Err((StatusCode::NOT_FOUND, "No contacts found".to_string()));
     }
 
+    println!("Found {} contacts", contacts.len()); 
     Ok(Json(contacts))
 }
+
 
 #[utoipa::path(
     get,
@@ -138,3 +142,4 @@ pub async fn check_email(
         )),
     }
 }
+

@@ -104,3 +104,23 @@ pub struct DeleteContactResponse {
 pub struct EmailQuery {
     pub email: String
 }
+
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
+pub struct GetContactResponsee {
+    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub id: Uuid,
+    pub first_name: String,
+    pub last_name: String,
+    pub email: String,
+
+    #[schema(value_type = String, example = "{\"address\": \"Shinjuku\", \"city\": \"Tokyo\"}")]
+    pub attribute: Option<Value>,
+
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub created_at: DateTime<Utc>,
+
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub updated_at: DateTime<Utc>,
+
+    pub list_names: Vec<String>,
+}
