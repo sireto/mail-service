@@ -52,6 +52,17 @@ export const contactApi = createApi({
         params: { email },
       }),
     }),
+    importContacts: builder.mutation<
+      { success: boolean; imported: number; errors?: string[] },
+      FormData
+    >({
+      query: (formData) => ({
+        url: "contacts/import",
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: ["Contact"],
+    }),
   }),
 });
 
@@ -62,5 +73,6 @@ export const {
   useUpdateContactMutation,
   useDeleteContactMutation,
   useCheckEmailQuery,
+  useImportContactsMutation,
   useLazyCheckEmailQuery,
 } = contactApi;
