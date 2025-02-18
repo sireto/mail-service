@@ -52,6 +52,7 @@ interface AddContactFormProps {
   open?: boolean;
   onClose: () => void;
   contactData?: Contact;
+  onContactUpdate?: () => void;
   lists: List[] | null;
 }
 
@@ -59,6 +60,7 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
   open,
   onClose,
   contactData,
+  onContactUpdate,
   lists,
 }) => {
   console.log(lists);
@@ -75,32 +77,23 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
     resolver: zodResolver(ContactFormSchema),
     mode: "onChange",
     reValidateMode: "onChange",
-    defaultValues: contactData
-      ? {
-          email: contactData.email,
-          name: `${contactData.first_name || ""} ${
-            contactData.last_name || ""
-          }`.trim(),
-          // Convert single listId to an array for MultiSelect
-          listIds: contactData.list_names
-            .map((listName) => {
-              const list = lists?.find((list) => list.name === listName);
-              return list ? list.id : "";
-            })
-            .filter(Boolean),
-          attributes: contactData.attributes || "{}",
-          preconfirm: contactData.preconfirm || false,
-          updated_at: contactData.updated_at,
-          created_at: contactData.created_at,
-        }
-      : {
-          email: "",
-          name: "",
-          status: "Enabled",
-          listIds: [],
-          attributes: "{}",
-          preconfirm: false,
-        },
+    defaultValues: {
+      email: contactData?.email,
+      name: `${contactData?.first_name || ""} ${
+        contactData?.last_name || ""
+      }`.trim(),
+      // Convert single listId to an array for MultiSelect
+      listIds: contactData?.list_names
+        .map((listName) => {
+          const list = lists?.find((list) => list.name === listName);
+          return list ? list.id : "";
+        })
+        .filter(Boolean),
+      attributes: contactData?.attributes || "{}",
+      preconfirm: contactData?.preconfirm || false,
+      updated_at: contactData?.updated_at,
+      created_at: contactData?.created_at,
+    },
   });
 
   const [addContact, { isLoading }] = useAddContactMutation();
@@ -234,6 +227,9 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
     } catch (error) {
       console.error("Form submission error:", error);
       throw error;
+    }
+    if (onContactUpdate) {
+      await onContactUpdate();
     }
   }
 

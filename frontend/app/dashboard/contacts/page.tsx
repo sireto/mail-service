@@ -143,6 +143,7 @@ const ContactsPage = () => {
         open={isOpen}
         onClose={() => setIsOpen(false)}
         lists={lists}
+        onContactUpdate={refetch}
       />
 
       <div className="p-6">
