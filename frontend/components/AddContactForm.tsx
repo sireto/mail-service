@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,6 +37,7 @@ import { useAddContactsToListMutation } from "@/app/services/ListApi"; // Adjust
 
 import { Contact } from "@/lib/type/contact";
 import { ContactFormSchema } from "@/lib/type/contact";
+import { MultiSelect } from "./multi-select";
 
 interface List {
   id: string;
@@ -61,6 +62,15 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
   lists,
 }) => {
   console.log(lists);
+  const multiSelectRef = useRef(null);
+
+  // Transform lists into options format required by MultiSelect
+  const listOptions =
+    lists?.map((list) => ({
+      label: list.name,
+      value: list.id,
+    })) || [];
+
   const form = useForm<z.infer<typeof ContactFormSchema>>({
     resolver: zodResolver(ContactFormSchema),
     mode: "onChange",
@@ -71,7 +81,13 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
           name: `${contactData.first_name || ""} ${
             contactData.last_name || ""
           }`.trim(),
-          listId: contactData.listId || "",
+          // Convert single listId to an array for MultiSelect
+          listIds: contactData.list_names
+            .map((listName) => {
+              const list = lists?.find((list) => list.name === listName);
+              return list ? list.id : "";
+            })
+            .filter(Boolean),
           attributes: contactData.attributes || "{}",
           preconfirm: contactData.preconfirm || false,
           updated_at: contactData.updated_at,
@@ -81,7 +97,7 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
           email: "",
           name: "",
           status: "Enabled",
-          listId: "",
+          listIds: [],
           attributes: "{}",
           preconfirm: false,
         },
@@ -128,6 +144,10 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
     return () => subscription.unsubscribe();
   }, [form, triggerCheckEmail, contactData]);
 
+  const handleListChange = (selectedLists: string[]) => {
+    form.setValue("listIds", selectedLists);
+  };
+
   async function onSubmit(values: z.infer<typeof ContactFormSchema>) {
     try {
       console.log("Submitting form with values:", values);
@@ -137,19 +157,41 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
         email: values.email,
         first_name: nameParts[0] || "",
         last_name: nameParts.slice(1).join(" ") || "",
-        listId: values.listId,
         attribute: values.attributes || "{}",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
+      console.log("Submitting contact payload:", payload);
+
+      const listIds = values.listIds ?? []; // Ensure listIds is always an array
 
       if (contactData) {
         await updateContact({ id: contactData.id, data: payload }).unwrap();
+        const currentListIds = contactData.list_names
+          .map((listName) => {
+            const list = lists?.find((list) => list.name === listName);
+            return list ? list.id : "";
+          })
+          .filter(Boolean);
+
+        const listsToAdd = listIds.filter(
+          (listId) => !currentListIds.includes(listId)
+        );
+        console.log("listsToAdd", listsToAdd);
+
+        for (const listId of listsToAdd) {
+          try {
+            await addContactsToList({
+              listId,
+              contacts: [{ id: contactData.id }],
+            }).unwrap();
+          } catch (listError) {
+            console.error(`Error adding to list ${listId}:`, listError);
+          }
+        }
       } else {
-        // Get the response and handle array format
         const response = await addContact(payload).unwrap();
 
-        // Define the expected contact shape
         interface Contact {
           id: string;
           first_name: string;
@@ -158,7 +200,6 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
           attribute: string;
         }
 
-        // Extract the contact from the array response
         let contactResponse: Contact;
 
         if (Array.isArray(response) && response.length > 0) {
@@ -169,26 +210,25 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
           throw new Error("Invalid API response format");
         }
 
-        // Validate the contact has an ID
         if (!contactResponse.id) {
           throw new Error("Contact ID missing in API response");
         }
 
-        // Add contact to list
-        if (values.listId) {
+        for (const listId of listIds) {
           try {
+            console.log(
+              `Adding contact ${contactResponse.id} to list ${listId}`
+            );
             await addContactsToList({
-              listId: values.listId,
+              listId,
               contacts: [{ id: contactResponse.id }],
             }).unwrap();
-
-            console.log("Successfully added contact to list");
           } catch (listError) {
-            console.error("Error adding contact to list:", listError);
-            throw listError;
+            console.error(`Error adding to list ${listId}:`, listError);
           }
         }
       }
+
       form.reset();
       onClose?.();
     } catch (error) {
@@ -284,27 +324,22 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
             {/* List Select */}
             <FormField
               control={form.control}
-              name="listId"
+              name="listIds"
               render={({ field }) => (
                 <FormItem>
-                  <div className="text-sm font-medium">List</div>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="mt-1.5">
-                        <SelectValue placeholder="Select List" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {lists?.map((list) => (
-                        <SelectItem key={list.id} value={list.id}>
-                          {list.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="text-sm font-medium">Lists</div>
+                  <FormControl>
+                    <MultiSelect
+                      ref={multiSelectRef}
+                      options={listOptions}
+                      onValueChange={handleListChange}
+                      defaultValue={field.value || []}
+                      placeholder="Select lists"
+                      variant="default"
+                      className="mt-1.5"
+                      maxCount={3}
+                    />
+                  </FormControl>
                   <FormMessage className="text-xs" />
                 </FormItem>
               )}
