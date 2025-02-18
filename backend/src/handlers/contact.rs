@@ -1,6 +1,6 @@
 use crate::{models::contact::
     { 
-        Contact, CreateContactRequest, CreateContactResponse, DeleteContactResponse, EmailQuery, GetContactResponse, GetContactResponsee, UpdateContactRequest, UpdateContactResponse
+        Contact, CreateContactRequest, CreateContactResponse, DeleteContactResponse, EmailQuery, GetContactResponse, GetContactResponsee, UpdateContactRequest, UpdateContactResponse, ImportOptions, ImportResponse
     }, services::contact
 };
 use crate::services::contact as contact_service;
@@ -8,6 +8,13 @@ use crate::services::contact as contact_service;
 use axum::{
     extract::{ Path, Query}, http::StatusCode, Json
 };
+
+use axum_extra::extract::Multipart;
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+use uuid::Uuid;
+
+use crate::utils::contact_lists_functions::parse_csv_data;
 
 #[utoipa::path(
     post,
@@ -141,5 +148,86 @@ pub async fn check_email(
             format!("{:?}", err)  
         )),
     }
+}
+
+
+#[utoipa::path(
+    post,
+    path = "/api/contacts/import",
+    request_body = ImportOptions,
+    responses(
+        (status = 200, description = "Import contacts from CSV", body = ImportResponse),
+        (status = 400, description = "Bad request"),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn import_contacts(
+    options: Query<ImportOptions>,
+    mut multipart: Multipart,
+) -> Result<Json<ImportResponse>, (StatusCode, String)> {
+    // Extract file from multipart form
+    let mut file_data = Vec::new();
+    let mut file_found = false;
+
+    while let Some(field) = multipart.next_field().await.map_err(|e| {
+        (
+            StatusCode::BAD_REQUEST,
+            format!("Failed to process multipart form: {}", e),
+        )
+    })? {
+        if field.name() == Some("file") {
+            file_data = field.bytes().await.map_err(|e| {
+                (
+                    StatusCode::BAD_REQUEST,
+                    format!("Failed to read file data: {}", e),
+                )
+            })?
+            .to_vec();
+            file_found = true;
+            break;
+        }
+    }
+
+    if !file_found {
+        return Err((StatusCode::BAD_REQUEST, "No file found in the request".to_string()));
+    }
+
+    // Parse list ids from the options
+    let list_ids = match &options.lists {
+        Some(lists_json) => {
+            serde_json::from_str::<Vec<String>>(lists_json)
+                .map(|strs| {
+                    strs.iter()
+                        .filter_map(|s| Uuid::parse_str(s).ok())
+                        .collect::<Vec<Uuid>>()
+                })
+                .unwrap_or_else(|_| Vec::new())
+        }
+        None => Vec::new(),
+    };
+
+    // Parse the csv file
+    let contacts = parse_csv_data(
+        &file_data,
+        options.delimiter.as_deref().unwrap_or(","),
+        options.mode.as_deref().unwrap_or("subscribe"),
+        options.status.as_deref().unwrap_or("unconfirmed"),
+        options.overwrite.unwrap_or(false),
+    )
+    .map_err(|e| (StatusCode::BAD_REQUEST, format!("Failed to parse CSV: {}", e)))?;
+
+    // Import contacts
+    let result = contact_service::import_contacts(contacts, list_ids).await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to import contacts: {}", e)))?;
+
+    Ok(Json(ImportResponse {
+        success: true,
+        imported: result.imported,
+        errors: if result.errors.is_empty() {
+            None
+        } else {
+            Some(result.errors)
+        },
+    }))
 }
 

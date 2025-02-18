@@ -46,6 +46,13 @@ impl ContactService {
     ) -> Result<Contact, diesel::result::Error> {
         self.repository.delete_contact(contact_id).await
     }
+    pub async fn associate_contacts_with_lists(
+        &self,
+        contact_ids: Vec<Uuid>,
+        list_ids: Vec<Uuid>,
+    ) -> Result<(), diesel::result::Error> {
+        self.repository.associate_contacts_with_lists(contact_ids, list_ids).await
+    }
 }
 
 
@@ -271,4 +278,48 @@ pub async fn get_all_contactss() -> Result<Vec<GetContactResponsee>, (StatusCode
     }
 
     Ok(response)
+}
+
+#[derive(Debug)]
+pub struct ImportResult {
+    pub imported: usize,
+    pub errors: Vec<String>,
+}
+
+pub async fn import_contacts(
+    contacts: Vec<CreateContactRequest>,
+    list_ids: Vec<Uuid>,
+) -> Result<ImportResult, String> {
+    let contact_repository = Arc::new(ContactRepositoryImpl);
+    let contact_service = ContactService::new(contact_repository);
+    
+    let mut result = ImportResult {
+        imported: 0,
+        errors: Vec::new(),
+    };
+    
+    // Batch create contacts
+    let created_contacts = match contact_service.create_contacts(contacts).await {
+        Ok(contacts) => {
+            result.imported = contacts.len();
+            contacts
+        },
+        Err(e) => {
+            return Err(format!("Failed to create contacts: {}", e));
+        }
+    };
+    
+    // Associate contacts with lists if any lists were provided
+    if !list_ids.is_empty() && !created_contacts.is_empty() {
+        let contact_ids: Vec<Uuid> = created_contacts.iter().map(|c| c.id).collect();
+        
+        match contact_service.associate_contacts_with_lists(contact_ids, list_ids).await {
+            Ok(_) => {},
+            Err(e) => {
+                result.errors.push(format!("Warning: Created contacts but failed to associate with lists: {}", e));
+            }
+        }
+    }
+    
+    Ok(result)
 }

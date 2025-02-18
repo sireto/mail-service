@@ -31,6 +31,7 @@ pub trait ContactRepository {
     async fn get_contact_by_email(&self, contact_email: String) -> Result<Contact, diesel::result::Error>;
     async fn get_list_contacts(&self, contact_ids: Vec<Uuid>) -> Result<Vec<ListContact>, diesel::result::Error>;
     async fn get_lists_by_ids(&self, list_ids: Vec<Uuid>) -> Result<Vec<List>, diesel::result::Error>;
+    async fn associate_contacts_with_lists(&self,contact_ids: Vec<Uuid>,list_ids: Vec<Uuid>,) -> Result<(), diesel::result::Error>;
 }
 
 pub struct ContactRepositoryImpl;
@@ -115,6 +116,32 @@ impl ContactRepository for ContactRepositoryImpl {
         lists
             .filter(id.eq_any(list_ids))
             .load::<List>(&mut conn)
+    }
+    async fn associate_contacts_with_lists(
+        &self,
+        contact_ids: Vec<Uuid>,
+        list_ids: Vec<Uuid>,
+    ) -> Result<(), diesel::result::Error> {
+        use crate::schema::list_contacts::{self, dsl::*};
+        let mut conn = get_connection_pool().await;
+        
+        // Create list_contact entries for each combination of contact_id and list_id
+        let mut values = Vec::new();
+        for c_id in &contact_ids {
+            for l_id in &list_ids {
+                values.push((
+                    contact_id.eq(*c_id),
+                    list_id.eq(*l_id),
+                ));
+            }
+        }
+        
+        diesel::insert_into(list_contacts::table)
+            .values(&values)
+            .on_conflict_do_nothing()
+            .execute(&mut conn)?;
+        
+        Ok(())
     }
 }
 

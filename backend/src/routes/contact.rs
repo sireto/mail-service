@@ -13,6 +13,7 @@ use crate::handlers::contact::{
     delete_contact, 
     get_contact_by_id, 
     check_email,
+    import_contacts
 };
 
 pub fn contact_routes() -> Router {
@@ -23,4 +24,5 @@ pub fn contact_routes() -> Router {
         .route("/{contactId}", patch(update_contact))
         .route("/{contactId}", delete(delete_contact))
         .route("/check-email", get(check_email)) 
+        .route("/import", post(import_contacts))
 }

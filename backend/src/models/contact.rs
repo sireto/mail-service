@@ -124,3 +124,19 @@ pub struct GetContactResponsee {
 
     pub list_names: Vec<String>,
 }
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ImportOptions {
+    pub mode: Option<String>,
+    pub status: Option<String>,
+    pub overwrite: Option<bool>,
+    pub delimiter: Option<String>,
+    pub lists: Option<String>, // JSON string of list ids
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ImportResponse {
+    pub success: bool,
+    pub imported: usize,
+    pub errors: Option<Vec<String>>,
+}

@@ -41,6 +41,7 @@ use crate::servers::servers_routes::servers_routes;
         contact::delete_contact,
         contact::get_contact_by_id, 
         contact::check_email,
+        contact::import_contacts,
         list::create_list, 
         list::get_lists, 
         list::get_list_by_id, 

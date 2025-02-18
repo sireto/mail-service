@@ -1,4 +1,4 @@
---CREATE TYPE tls_type AS ENUM ('STARTTLS', 'SSL/TLS', 'NONE');
+CREATE TYPE tls_type AS ENUM ('STARTTLS', 'SSL/TLS', 'NONE');
 
 CREATE TABLE "servers" (
     "id" UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
