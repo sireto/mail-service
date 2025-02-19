@@ -31,7 +31,7 @@ import {
   useAddContactMutation,
   useUpdateContactMutation,
   useLazyCheckEmailQuery,
-} from "@/app/dashboard/contacts/contactApi";
+} from "@/app/services/ContactApi";
 
 import { useAddContactsToListMutation } from "@/app/services/ListApi"; // Adjust import path as necessary
 

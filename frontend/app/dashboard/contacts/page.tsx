@@ -9,7 +9,7 @@ import {
   useDeleteContactMutation,
 } from "@/app/services/ContactApi";
 import { useGetListsQuery } from "@/app/services/ListApi";
-import { createColumns } from "./columns";
+import { createColumns } from "@/app/dashboard/contacts/_columns";
 import { Download, Trash2 } from "lucide-react";
 import NoContactsFound from "./NotFound";
 
