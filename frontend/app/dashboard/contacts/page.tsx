@@ -11,6 +11,7 @@ import {
 import { useGetListsQuery } from "@/app/services/ListApi";
 import { createColumns } from "./columns";
 import { Download, Trash2 } from "lucide-react";
+import NoContactsFound from "./NotFound";
 
 const NAMESPACE_ID = "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
 
@@ -75,7 +76,7 @@ const ContactsPage = () => {
   };
 
   if (isError) {
-    return <div>Error loading contacts...</div>;
+    return <NoContactsFound lists={lists} />;
   }
 
   if (isLoading || listsLoading) {
