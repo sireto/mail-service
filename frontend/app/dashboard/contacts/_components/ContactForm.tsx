@@ -37,7 +37,7 @@ import { useAddContactsToListMutation } from "@/app/services/ListApi"; // Adjust
 
 import { Contact } from "@/lib/type/contact";
 import { ContactFormSchema } from "@/lib/type/contact";
-import { MultiSelect } from "./multi-select";
+import { MultiSelect } from "../../../../components/multi-select";
 
 interface List {
   id: string;
@@ -55,7 +55,7 @@ interface AddContactFormProps {
   lists: List[] | null;
 }
 
-const AddContactForm: React.FC<AddContactFormProps> = ({
+const ContactForm: React.FC<AddContactFormProps> = ({
   open,
   onClose,
   contactData,
@@ -407,4 +407,4 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
   );
 };
 
-export { AddContactForm };
+export { ContactForm };

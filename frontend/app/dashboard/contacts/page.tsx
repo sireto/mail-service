@@ -1,6 +1,5 @@
 "use client";
 
-import { AddContactForm } from "@/components/AddContactForm";
 import DataTable from "@/components/DataTable";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -12,6 +11,7 @@ import { useGetListsQuery } from "@/app/services/ListApi";
 import { createColumns } from "@/app/dashboard/contacts/_columns";
 import { Download, Trash2 } from "lucide-react";
 import NoContactsFound from "./NotFound";
+import { AddContact } from "./_components/ContactForms/AddContact";
 
 const NAMESPACE_ID = "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
 
@@ -139,7 +139,7 @@ const ContactsPage = () => {
           </Button>
         </div>
       )}
-      <AddContactForm
+      <AddContact
         open={isOpen}
         onClose={() => setIsOpen(false)}
         lists={lists}

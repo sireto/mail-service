@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { AddContactForm } from "@/components/AddContactForm"; // Adjust import path as necessary
+import { ContactForm } from "@/app/dashboard/contacts/_components/ContactForm";
 import { useState } from "react";
 
 interface List {
@@ -44,7 +44,7 @@ const NoContactsFound: React.FC<NoContactsFoundProps> = ({ lists }) => {
 
       {/* Modal for adding a contact */}
       {openAddContactModal && (
-        <AddContactForm
+        <ContactForm
           open={openAddContactModal}
           onClose={() => setOpenAddContactModal(false)}
           lists={lists}

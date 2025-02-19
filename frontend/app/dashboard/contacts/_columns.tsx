@@ -3,9 +3,9 @@
 import React, { useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Edit3, Trash2 } from "lucide-react";
-import { AddContactForm } from "@/components/AddContactForm";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Contact } from "@/lib/type/contact";
+import { EditContact } from "./_components/ContactForms/EditContact";
 
 interface List {
   id: string;
@@ -29,7 +29,7 @@ const ContactActions = ({ contactData, lists }: ContactActionsProps) => {
       <button onClick={() => setIsOpen(true)}>
         <Edit3 className="w-5 h-5 text-blue-500" />
       </button>
-      <AddContactForm
+      <EditContact
         open={isOpen}
         onClose={() => setIsOpen(false)}
         contactData={contactData}
