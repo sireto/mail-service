@@ -7,6 +7,7 @@ import {
     UpdateListRequestDTO,
     UpdateListResponseDTO
 } from '@/lib/type';
+import environments from "@/config/environments";
 
 type List = z.infer<typeof ListDTO>;
 type CreateListRequest = z.infer<typeof CreateListRequestDTO>;
@@ -17,16 +18,24 @@ type UpdateListResponse = z.infer<typeof UpdateListResponseDTO>;
 // List API slice...
 export const listApi = createApi({
     reducerPath: "listApi",
-    baseQuery: fetchBaseQuery({ baseUrl: "http://localhost:8000/api/list"}),
+    baseQuery: fetchBaseQuery({ baseUrl: environments.LIST_API_BASE_URL }),
+    tagTypes: ['List'],
     endpoints: (builder) => ({
         // Query to fetch all lists...
-        getLists: builder.query<List[], string>({query: (namespaceId) => `/namespaces/${namespaceId}/list`}),
+        getLists: builder.query<List[], string>({
+            query: (namespaceId) => `/namespaces/${namespaceId}/list`,
+            providesTags: (result) => 
+                result
+                ? result.map((list) => ({ type: 'List', id: list.id }))
+                : [{ type: 'List' }]
+        }),
         createList: builder.mutation<CreateListResponse, CreateListRequest>({
             query: (newList) => ({
                 url: "",
                 method: "POST",
                 body: newList,
-            })
+            }),
+            invalidatesTags: ['List']
         }),
         updateList: builder.mutation<UpdateListResponse, {
             listId: string, 
@@ -37,7 +46,8 @@ export const listApi = createApi({
                 url: `/namespaces/${namespaceId}/list/${listId}`,
                 method: "PATCH",
                 body: updatedList
-            })
+            }),
+            invalidatesTags: ['List']
         }),
         deleteList: builder.mutation<void, {
             listId: string, 
@@ -46,7 +56,8 @@ export const listApi = createApi({
             query: ({listId, namespaceId}) => ({
                 url: `/namespaces/${namespaceId}/list/${listId}`,
                 method: "DELETE",
-            })
+            }),
+            invalidatesTags: ['List']
         })
     })
 });

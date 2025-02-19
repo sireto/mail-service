@@ -3,21 +3,12 @@
 import React from 'react'
 
 import Modal from '@/components/Modal';
-import { Plus } from "lucide-react";
 import { AddTemplateForm } from '@/components/TemplateForms';
 import { useGetTemplatesQuery } from '@/app/services/TemplateApi';
 import DataTable from '@/components/DataTable';
 import columns from './columns';
-import { Button } from '@/components/ui/button';
+import AddButton from '@/components/common/AddButton';
 
-const addButton = (
-    <Button variant={"default"}>
-        <>
-            <Plus size={24} />
-            <span className='ml-1'>New</span>
-        </>
-    </Button>
-);
 
 const page = () => {
     const { data: templates, error, isLoading } = useGetTemplatesQuery();
@@ -39,7 +30,7 @@ const page = () => {
                 <span>({templates?.length})</span>
             </h1>
             <Modal 
-                triggerButton={addButton}
+                triggerButton={<AddButton />}
                 dialogBody={<AddTemplateForm />}
                 dialogTitle={"New template"}
                 dialogDescription={"Add a new template"}

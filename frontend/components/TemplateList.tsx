@@ -9,7 +9,7 @@ import { useDeleteTemplateMutation, useGetTemplatesQuery } from '@/app/services/
 import Modal from './Modal'
 
 const TemplateList = () => {
-    const { data, error, isLoading, refetch } = useGetTemplatesQuery();
+    const { data, error, isLoading } = useGetTemplatesQuery();
     const [ deleteTemplate, { isLoading: isDeleting, error: deletionError } ] = useDeleteTemplateMutation();
 
 
@@ -35,7 +35,6 @@ const TemplateList = () => {
         }
     
         await deleteTemplate(id);
-        refetch();
     }
 
   return (

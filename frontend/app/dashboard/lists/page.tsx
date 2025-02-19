@@ -3,21 +3,11 @@
 import React from 'react'
 
 import Modal from '@/components/Modal';
-import { Plus } from "lucide-react";
 import { AddListForm } from '@/components/ListForms';
 import { useGetListsQuery } from '@/app/services/ListApi';
-import { Button } from '@/components/ui/button';
 import DataTable from '@/components/DataTable';
 import columns from './columns';
-
-const addButton = (
-    <Button variant={"default"}>
-        <>
-            <Plus size={24} />
-            <span className='ml-1'>New</span>
-        </>
-    </Button>
-);
+import AddButton from '@/components/common/AddButton';
 
 const page = () => {
     const namespaceId = "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
@@ -41,7 +31,7 @@ const page = () => {
                     <span>({lists?.length})</span>
                 </h1>
                 <Modal 
-                    triggerButton={addButton}
+                    triggerButton={<AddButton />}
                     dialogBody={<AddListForm />}
                     dialogTitle={"New template"}
                     dialogDescription={"Add a new template"}

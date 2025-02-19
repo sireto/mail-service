@@ -120,7 +120,6 @@ const AddTemplateForm = () => {
         }
     });
 
-    const { refetch } = useGetTemplatesQuery();
     const [createTemplate, { isLoading: isCreating, error: createError }] = useCreateTemplateMutation();
 
     if (createError) {
@@ -146,7 +145,6 @@ const AddTemplateForm = () => {
 
         await createTemplate(newTemplate);
         form.reset();
-        refetch();
     }
 
     const preview = async () => {
@@ -194,7 +192,7 @@ const AddTemplateForm = () => {
 }
 
 const EditTemplateForm = ({ templateId }: { templateId: string }) => {
-    const { data, refetch } = useGetTemplatesQuery();
+    const { data } = useGetTemplatesQuery();
     const [updateTemplate, { isLoading: isUpdating, error: updateError }] = useUpdateTemplateMutation();
     
     const form = useForm<z.infer<typeof AddTemplateFormSchemaDTO>>({
@@ -237,7 +235,6 @@ const EditTemplateForm = ({ templateId }: { templateId: string }) => {
             updatedTemplate
         });
         form.reset();
-        refetch();
     }
 
     return (

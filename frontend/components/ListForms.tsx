@@ -22,9 +22,7 @@ import {
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { ScanEye } from 'lucide-react';
 import { AddListFormSchemaDTO } from '@/lib/type';
-import { useCreateTemplateMutation, useGetTemplatesQuery, useUpdateTemplateMutation } from '@/app/services/TemplateApi';
 import { useCreateListMutation, useGetListsQuery, useUpdateListMutation } from '@/app/services/ListApi';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -120,7 +118,7 @@ const AddListForm = () => {
         }
     });
 
-    const { refetch } = useGetListsQuery(namespaceId);
+    // const { refetch } = useGetListsQuery(namespaceId);
     const [createList, { isLoading: isCreating, error: createError }] = useCreateListMutation();
 
     if (createError) {
@@ -142,7 +140,6 @@ const AddListForm = () => {
 
         await createList(newList);
         form.reset();
-        refetch();
     }
 
   return (
@@ -162,7 +159,7 @@ const AddListForm = () => {
 }
 
 const EditListForm = ({ listId }: { listId: string }) => {
-    const { data, refetch } = useGetListsQuery(namespaceId);
+    const { data } = useGetListsQuery(namespaceId);
     const [updateList, { isLoading: isUpdating, error: updateError }] = useUpdateListMutation();
     
     const form = useForm<z.infer<typeof AddListFormSchemaDTO>>({
@@ -201,7 +198,6 @@ const EditListForm = ({ listId }: { listId: string }) => {
             updatedList
         });
         form.reset();
-        refetch();
     }
 
     return (
