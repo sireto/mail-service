@@ -1,26 +1,29 @@
 import { DialogTitle, DialogDescription, DialogHeader } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { AddListFormSchemaDTO } from "@/lib/type";
+import { AddTemplateFormSchemaDTO } from "@/lib/type";
 import { Input } from "@/components/ui/input";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { ScanEye } from "lucide-react";
 
-interface ListModalBodyProps {
+interface TemplateModalBodyProps {
     modalTitle: string;
     modalDescription: string;
-    form: UseFormReturn<z.infer<typeof AddListFormSchemaDTO>>;
-    submitHandler: (value: z.infer<typeof AddListFormSchemaDTO>) => void;
+    form: UseFormReturn<z.infer<typeof AddTemplateFormSchemaDTO>>;
+    submitHandler: (value: z.infer<typeof AddTemplateFormSchemaDTO>) => void;
+    isUpdating: boolean;
     triggerButton: React.ReactNode;
 }
 
-const ListModalBody = ({
+const TemplateModalBody = ({
     modalTitle,
     modalDescription,
     form,
     submitHandler,
     triggerButton,
-}: ListModalBodyProps) => {
+}: TemplateModalBodyProps) => {
     return (
         <>
             <DialogHeader className='flex flex-row justify-between items-center'>
@@ -32,6 +35,10 @@ const ListModalBody = ({
                           {modalDescription}
                         </DialogDescription>
                       </div>
+                      <Button variant={"default"} className='!mt-0' >
+                        <ScanEye size={16} />
+                        <span>Preview</span>
+                      </Button>
                     </DialogHeader>
             <hr className='my-4'/>
     
@@ -48,8 +55,7 @@ const ListModalBody = ({
                             <FormLabel className='font-bold text-black'>Name</FormLabel>
                             <FormControl>
                                 <Input 
-                                    placeholder="List name" 
-                                    {...field} 
+                                    placeholder="Template name" {...field} 
                                     className={fieldState.invalid ? "border-red-400 focus-visible:ring-red-500" : ""}
                                 />
                             </FormControl>
@@ -59,19 +65,19 @@ const ListModalBody = ({
                     />
                     <FormField
                         control={form.control}
-                        name="description"
+                        name="raw_mjml_content"
                         render={({ field, fieldState }) => (
                             <FormItem>
-                                <FormLabel className='font-bold text-black'>Description</FormLabel>
+                                <FormLabel className='font-bold text-black'>MJML Content</FormLabel>
                                 <FormControl>
                                     <Textarea 
-                                        rows={8} 
-                                        placeholder="Add Description here..." 
+                                        rows={16} 
+                                        placeholder="MJML content" 
                                         {...field} 
                                         className={fieldState.invalid ? "border-red-400 focus-visible:ring-red-500" : ""}
                                     />
                                 </FormControl>
-                                <FormMessage>{form.formState.errors.description?.message}</FormMessage>
+                                <FormMessage>{form.formState.errors.raw_mjml_content?.message}</FormMessage>
                             </FormItem>
                         )}
                     />
@@ -82,4 +88,4 @@ const ListModalBody = ({
     )
 }
 
-export default ListModalBody;
+export default TemplateModalBody;

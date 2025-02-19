@@ -4,7 +4,7 @@ import React, { useEffect } from 'react'
 import { TableBody, TableCell, TableRow } from './ui/table'
 import { Edit3, ScanEye, Trash2 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
-import { EditTemplateForm } from './TemplateForms';
+import EditTemplateForm from '@/app/dashboard/templates/_components/templateForms/EditTemplateForm';
 import { useDeleteTemplateMutation, useGetTemplatesQuery } from '@/app/services/TemplateApi';
 import Modal from './Modal'
 import { Button } from './ui/button'

@@ -3,7 +3,7 @@
 import React from 'react'
 
 import Modal from '@/components/Modal';
-import { AddTemplateForm } from '@/components/TemplateForms';
+import AddTemplateForm from './_components/templateForms/AddTemplateForm';
 import { useGetTemplatesQuery } from '@/app/services/TemplateApi';
 import DataTable from '@/components/DataTable';
 import columns from './_columns';

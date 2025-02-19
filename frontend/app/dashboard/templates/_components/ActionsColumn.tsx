@@ -1,6 +1,6 @@
-import { useGetTemplatesQuery, useDeleteTemplateMutation } from '@/app/services/TemplateApi';
+import { useDeleteTemplateMutation } from '@/app/services/TemplateApi';
 import Modal from '@/components/Modal';
-import { EditTemplateForm } from '@/components/TemplateForms';
+import EditTemplateForm from './templateForms/EditTemplateForm';
 import { Row } from '@tanstack/react-table';
 import { Edit3, ScanEye, Trash2 } from 'lucide-react';
 import React from 'react';

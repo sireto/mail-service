@@ -3,7 +3,7 @@
 import React from 'react'
 
 import Modal from '@/components/Modal';
-import { AddListForm } from '@/components/ListForms';
+import AddListForm from './_components/listForms/AddListForm';
 import { useGetListsQuery } from '@/app/services/ListApi';
 import DataTable from '@/components/DataTable';
 import columns from './_columns';

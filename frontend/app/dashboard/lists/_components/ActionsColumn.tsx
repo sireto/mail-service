@@ -1,5 +1,5 @@
-import { useGetListsQuery, useDeleteListMutation } from '@/app/services/ListApi';
-import { EditListForm } from '@/components/ListForms';
+import { useDeleteListMutation } from '@/app/services/ListApi';
+import EditListForm from './listForms/EditListForm';
 import Modal from '@/components/Modal';
 import { Row } from '@tanstack/react-table';
 import { Edit3, Trash2 } from 'lucide-react';
