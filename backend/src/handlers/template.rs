@@ -158,6 +158,7 @@ pub async fn send_templated_email(
     match send_templated_email_response {
         Ok(response) => {
             let payload = CreateMailRequest {
+                id: response.id.to_string(),
                 mail_message: response.message.clone(),
                 email: emails,
                 template_id: Some(response.id),
@@ -166,8 +167,9 @@ pub async fn send_templated_email(
                 status: "pending".to_string(),
             };
 
-            let mail_added_response = mail_handler::add_mail(Json(payload)).await;
+            println!("\n\nSEND MAIL RESPONSE ===> {:?}\n\n", response);
 
+            let mail_added_response = mail_handler::add_mail(Json(payload)).await;
             let _ = match mail_added_response {
                 Ok(mail_response) => Ok(Json(mail_response)),
                 Err((status, message)) => Err((status, message)),

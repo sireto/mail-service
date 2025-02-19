@@ -68,7 +68,7 @@ enum MailStatus {
 #[diesel(table_name = crate::schema::mails)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Mail {
-    pub id: Uuid,
+    pub id: String,
     pub mail_message: String,
     pub contact_id: Uuid,
     pub template_id: Option<Uuid>,
@@ -80,7 +80,7 @@ pub struct Mail {
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
 pub struct GetMailResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
-    pub id: Uuid,
+    pub id: String,
     pub mail_message: String,
 
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
@@ -100,6 +100,7 @@ pub struct GetMailResponse {
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq, Insertable)]
 #[diesel(table_name = crate::schema::mails)]
 pub struct NewMail {
+    pub id: String,
     pub mail_message: String,
 
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
@@ -119,6 +120,7 @@ pub struct NewMail {
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq )]
 
 pub struct CreateMailRequest {
+    pub id: String,
     pub mail_message: String,
 
     #[schema(value_type = Vec<String>, example = "someone@example.com")]
@@ -140,7 +142,7 @@ pub struct CreateMailRequest {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateMailResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
-    pub id: Uuid,
+    pub id: String,
 
     pub mail_message: String,
 
@@ -173,7 +175,7 @@ pub struct UpdateMailRequest {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateMailResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
-    pub id: Uuid,
+    pub id: String,
     
     pub mail_message: String,
 
@@ -191,7 +193,21 @@ pub struct UpdateMailResponse {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct DeleteMailResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
-    pub id: Uuid,
+    pub id: String,
     
     pub status: Option<String>,
+}
+
+/**
+ * query struct for mail query...
+ */
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
+pub struct MailQuery {
+    #[schema(value_type = String, example = "[a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8, a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8]")]
+    pub campaign_ids: Option<Uuid>,
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub from: Option<DateTime<Utc>>,
+
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub to: Option<DateTime<Utc>>,
 }

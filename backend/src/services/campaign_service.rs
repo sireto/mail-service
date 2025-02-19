@@ -241,7 +241,6 @@ pub async fn send_campaign_email(
             Err(e) => {
                 //The failed emails will be stored in bounce_logs table later
                 failed_emails.push(contact.email.clone());
-                anyhow!("SES SDK Error: {}", e);
             }
         }
     }

@@ -76,7 +76,7 @@ diesel::table! {
 
 diesel::table! {
     mails (id) {
-        id -> Uuid,
+        id -> Text,
         mail_message -> Text,
         contact_id -> Uuid,
         template_id -> Nullable<Uuid>,

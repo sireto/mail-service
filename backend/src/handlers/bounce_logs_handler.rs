@@ -48,8 +48,8 @@ pub async fn handle_sns_notification (
             let receipent = bounced_notification.clone().bounce.bounced_recipients;
 
                 for recp in receipent {
-                    println!("The bounced email is: {recp:?}");
-                    println!("THe bounced notification is::::::> {bounced_notification:?}");
+                    // println!("The bounced email is: {recp:?}");
+                    // println!("THe bounced notification is::::::> {bounced_notification:?}");
 
                     let contact_repository = Arc::new(ContactRepositoryImpl);
                     let contact_service = ContactService::new(contact_repository);

@@ -1,16 +1,11 @@
 use crate::models::mail::{
-    CreateMailRequest, 
-    CreateMailResponse, 
-    GetMailResponse, 
-    UpdateMailRequest,
-    UpdateMailResponse,
-    DeleteMailResponse
+    CreateMailRequest, CreateMailResponse, DeleteMailResponse, GetMailResponse, MailQuery, UpdateMailRequest, UpdateMailResponse
 };
 use crate::services::mail as mail_service;
 use crate::services::contact as contact_service;
 
 use axum::{
-    extract:: Path, Json, http::StatusCode
+    extract:: { Path, Query }, Json, http::StatusCode
 };
 use uuid::Uuid;
 
@@ -32,14 +27,20 @@ pub async fn add_mail(
 
 #[utoipa::path(
     get,
-    path = "/api/mails",
+    path = "/api/mails/",
     responses(
         (status = 200, description = "Get all mails", body = Vec<GetMailResponse>),
         (status = 404)
     )
 )]
-pub async fn get_all_mails() -> Result<Json<Vec<GetMailResponse>>, (StatusCode, String)> {
-    let all_mails = mail_service::get_all_mails().await?;
+pub async fn get_all_mails(
+    query: Query<MailQuery>
+) -> Result<Json<Vec<GetMailResponse>>, (StatusCode, String)> {
+    let all_mails = mail_service::get_all_mails(
+        query.campaign_ids,
+        query.from,
+        query.to
+    ).await?;
 
     Ok(Json(all_mails))
 }
@@ -56,9 +57,7 @@ pub async fn update_mail(
     Path(mail_id): Path<String>,
     Json(payload): Json<UpdateMailRequest>,
 ) -> Result<Json<UpdateMailResponse>, (StatusCode, String)> {
-    let uuid_id = Uuid::parse_str(&mail_id).map_err(|_| (StatusCode::BAD_REQUEST, "Invalid contact ID format".to_string()))?;
-
-    let updated_mail = mail_service::update_mail(uuid_id, payload).await?;
+    let updated_mail = mail_service::update_mail(mail_id, payload).await?;
 
     Ok(Json(updated_mail))
 }
@@ -74,9 +73,9 @@ pub async fn update_mail(
 pub async fn delete_mail(
     Path(mail_id): Path<String>,
 ) -> Result<Json<DeleteMailResponse>, (StatusCode, String)> {
-    let uuid_id = Uuid::parse_str(&mail_id).map_err(|_| (StatusCode::BAD_REQUEST, "Invalid contact ID format".to_string()))?;
+    // let uuid_id = Uuid::parse_str(&mail_id).map_err(|_| (StatusCode::BAD_REQUEST, "Invalid contact ID format".to_string()))?;
 
-    let deleted_mail = mail_service::delete_mail(uuid_id).await?;
+    let deleted_mail = mail_service::delete_mail(mail_id).await?;
 
     Ok(Json(deleted_mail))
 }

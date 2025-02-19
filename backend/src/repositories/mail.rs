@@ -1,6 +1,7 @@
 use crate::{ appState::DbPooledConnection, GLOBAL_APP_STATE };
 use crate::schema::mails::dsl::*;
 use diesel::prelude::*;
+use chrono::{ Utc, DateTime };
 use crate::models::mail::{
     Mail,
     NewMail,
@@ -22,9 +23,9 @@ pub async fn get_connection_pool() -> DbPooledConnection {
 #[async_trait]
 pub trait MailRepository {
     async fn create_mail(&self, payload: NewMail) -> Result<Mail, diesel::result::Error>;
-    async fn get_all_mails(&self) -> Result<Vec<Mail>, diesel::result::Error>;
-    async fn update_mail(&self, mail_id: Uuid, payload: UpdateMailRequest) -> Result<Mail, diesel::result::Error>;
-    async fn delete_mail(&self, mail_id: Uuid) -> Result<Mail, diesel::result::Error>;
+    async fn get_all_mails(&self, campaign_ids: Option<Uuid>, from: Option<DateTime<Utc>>, to: Option<DateTime<Utc>>) -> Result<Vec<Mail>, diesel::result::Error>;
+    async fn update_mail(&self, mail_id: String, payload: UpdateMailRequest) -> Result<Mail, diesel::result::Error>;
+    async fn delete_mail(&self, mail_id: String) -> Result<Mail, diesel::result::Error>;
 }
 
 pub struct MailRepositoryImpl;
@@ -40,23 +41,34 @@ impl MailRepository for MailRepositoryImpl {
             .get_result::<Mail>(&mut conn)
     }
 
-    async fn get_all_mails(&self) -> Result<Vec<Mail>, diesel::result::Error> {
+    async fn get_all_mails(&self, campaign_ids: Option<Uuid>, from: Option<DateTime<Utc>>, to: Option<DateTime<Utc>>) -> Result<Vec<Mail>, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
+
+        // Start the query...
+        let mut query = mails.into_boxed();
+
+        // Add filter to the campaign_ids if present...
+        if !campaign_ids.is_none() {
+            query = query.filter(campaign_id.eq(campaign_ids));
+        }
+
+        // Add filter to the from date if present...
+        if let Some(from_date) = from {
+            query = query.filter(sent_at.ge(from_date));
+        }
+
+        if let Some(to_date) = to {
+            query = query.filter(sent_at.le(to_date));
+        }
+
+        // Execute the query and return
+        let results = query.load::<Mail>(&mut conn)?;
         
-        mails
-            .select((
-                id,
-                mail_message,
-                contact_id,
-                template_id,
-                campaign_id,
-                sent_at,
-                status,
-            ))
-            .load::<Mail>(&mut conn)
+        Ok(results)
+        
     }
 
-    async fn update_mail(&self, mail_id: Uuid, payload: UpdateMailRequest) -> Result<Mail, diesel::result::Error> {
+    async fn update_mail(&self, mail_id: String, payload: UpdateMailRequest) -> Result<Mail, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
 
         diesel::update(mails.find(mail_id))
@@ -69,7 +81,7 @@ impl MailRepository for MailRepositoryImpl {
             .get_result(&mut conn)
     }
 
-    async fn delete_mail(&self, mail_id: Uuid) -> Result<Mail, diesel::result::Error> {
+    async fn delete_mail(&self, mail_id: String) -> Result<Mail, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
 
         diesel::delete(mails.find(mail_id))

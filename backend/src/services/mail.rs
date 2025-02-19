@@ -1,5 +1,6 @@
-use crate::{models::mail::{DeleteMailResponse, GetMailResponse, NewMail}, repositories::mail::{self, MailRepository, MailRepositoryImpl}};
+use crate::{handlers::campaign, models::mail::{DeleteMailResponse, GetMailResponse, NewMail}, repositories::mail::{self, MailRepository, MailRepositoryImpl}};
 use crate::services::contact as contact_service;
+use chrono::{DateTime, Utc};
 use uuid::Uuid;
 use std::sync::Arc;
 use axum::http::StatusCode;
@@ -25,15 +26,15 @@ impl MailService {
         self.repository.create_mail(payload).await
     }
 
-    pub async fn get_all_mails(&self) -> Result<Vec<Mail>, diesel::result::Error> {
-        self.repository.get_all_mails().await
+    pub async fn get_all_mails(&self, campaign_ids: Option<Uuid>, from: Option<DateTime<Utc>>, to: Option<DateTime<Utc>>) -> Result<Vec<Mail>, diesel::result::Error> {
+        self.repository.get_all_mails(campaign_ids, from, to).await
     }
 
-    pub async fn update_mail(&self, mail_id: Uuid, payload: UpdateMailRequest) -> Result<Mail, diesel::result::Error> {
+    pub async fn update_mail(&self, mail_id: String, payload: UpdateMailRequest) -> Result<Mail, diesel::result::Error> {
         self.repository.update_mail(mail_id, payload).await
     }
 
-    pub async fn delete_mail(&self, mail_id: Uuid) -> Result<Mail, diesel::result::Error> {
+    pub async fn delete_mail(&self, mail_id: String) -> Result<Mail, diesel::result::Error> {
         self.repository.delete_mail(mail_id).await
     }
 }
@@ -42,14 +43,14 @@ impl MailService {
 pub async fn create_mail(payload: CreateMailRequest) -> Result<Vec<CreateMailResponse>, (StatusCode, String)> {
     let mail_repository = Arc::new(MailRepositoryImpl);
     let mail_service = MailService::new(mail_repository);
-    
+    println!("PAYLOAD EMAIL: {:?}", payload.email);
     // let contact_uuid = Uuid::parse_str(&payload.contact_id).unwrap();
     let mut responses = Vec::new(); // Vec<CreateMailResponse>;
-    
     for email in payload.email {
         let contact = contact_service::get_contact_by_email(email).await?;
 
         let new_mail = NewMail {
+            id: payload.id.clone(),
             mail_message: payload.mail_message.clone(),
             contact_id: contact.id,
             template_id: payload.template_id,
@@ -57,7 +58,12 @@ pub async fn create_mail(payload: CreateMailRequest) -> Result<Vec<CreateMailRes
             sent_at: payload.sent_at,
             status: payload.status.clone(),
         };
+        println!("BEFORE ADDING TO THE MAIL");
+
         let response = mail_service.create_mail(new_mail).await;
+
+        println!("THE RESPONSE MAIL ====> {response:?}");
+        println!("AFTER AFTER ADDING TO THE MAIL");
 
         match response {
             Ok(mail) => responses.push(CreateMailResponse {
@@ -74,14 +80,21 @@ pub async fn create_mail(payload: CreateMailRequest) -> Result<Vec<CreateMailRes
             }
         };
     }
+
+    println!("ADDED TO THE MAIL");
+
     Ok(responses)
 }
 
 /// a function to get all mails from the record...
-pub async fn get_all_mails() -> Result<Vec<GetMailResponse>, (StatusCode, String)> {
+pub async fn get_all_mails(
+    campaign_ids: Option<Uuid>,
+    from: Option<DateTime<Utc>>,
+    to: Option<DateTime<Utc>>
+) -> Result<Vec<GetMailResponse>, (StatusCode, String)> {
     let mail_repository = Arc::new(MailRepositoryImpl);
     let mail_service = MailService::new(mail_repository);
-    let response = mail_service.get_all_mails().await;
+    let response = mail_service.get_all_mails(campaign_ids, from, to).await;
 
     match response {
         Ok(mails) => Ok(mails.into_iter().map(|mail| GetMailResponse {
@@ -98,7 +111,7 @@ pub async fn get_all_mails() -> Result<Vec<GetMailResponse>, (StatusCode, String
 }
 
 /// a function to update mail in the record...
-pub async fn update_mail(mail_id: Uuid, payload: UpdateMailRequest) -> Result<UpdateMailResponse, (StatusCode, String)> {
+pub async fn update_mail(mail_id: String, payload: UpdateMailRequest) -> Result<UpdateMailResponse, (StatusCode, String)> {
     let mail_repository = Arc::new(MailRepositoryImpl);
     let mail_service = MailService::new(mail_repository);
 
@@ -118,7 +131,7 @@ pub async fn update_mail(mail_id: Uuid, payload: UpdateMailRequest) -> Result<Up
 }
 
 /// a function to delete mail from the db relation...
-pub async fn delete_mail(mail_id: Uuid) -> Result<DeleteMailResponse, (StatusCode, String)> {
+pub async fn delete_mail(mail_id: String) -> Result<DeleteMailResponse, (StatusCode, String)> {
     let mail_repository = Arc::new(MailRepositoryImpl);
     let mail_service = MailService::new(mail_repository);
 
