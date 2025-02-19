@@ -3,7 +3,7 @@
 import React from 'react'
 import { ColumnDef } from '@tanstack/react-table';
 import { formatDate } from '@/lib/utils';
-import ActionsColumn from './components/ActionsColumn';
+import ActionsColumn from './_components/ActionsColumn';
 
 
 export const columns: ColumnDef<any>[] = [

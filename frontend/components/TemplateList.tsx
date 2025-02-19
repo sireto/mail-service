@@ -7,6 +7,7 @@ import { formatDate } from '@/lib/utils'
 import { EditTemplateForm } from './TemplateForms';
 import { useDeleteTemplateMutation, useGetTemplatesQuery } from '@/app/services/TemplateApi';
 import Modal from './Modal'
+import { Button } from './ui/button'
 
 const TemplateList = () => {
     const { data, error, isLoading } = useGetTemplatesQuery();
@@ -47,7 +48,9 @@ const TemplateList = () => {
                     <TableCell>{formatDate(template.updated_at)}</TableCell>
                     <TableCell >
                         <div className='flex space-x-4 text-primary items-center'>
-                            <button className='transition-all duration-300 ease-in-out hover:scale-105'><ScanEye size={20} /></button>
+                            <Button variant={'icon'}> 
+                                <ScanEye size={20} />
+                            </Button>
                             {/* <button className='transition-all duration-300 ease-in-out hover:scale-105'><Edit3 size={16} /></button> */}
                             <Modal 
                                 triggerButton={<Edit3 size={20} />} 
@@ -55,12 +58,14 @@ const TemplateList = () => {
                                 dialogTitle={"Edit Template"}
                                 dialogDescription={"Edit your template"}
                             />
-                            <button 
-                                className='transition-all duration-300 ease-in-out hover:scale-105'
+                            <Button 
+                                variant={'icon'}
                                 onClick={() => {
                                     deleteTemplateHandler(template.id);
                                 }}
-                            ><Trash2 size={20} /></button>
+                            > 
+                                <Trash2 size={20} />
+                            </Button>
                         </div>
                     </TableCell>
                 </TableRow>

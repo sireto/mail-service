@@ -6,7 +6,7 @@ import Modal from '@/components/Modal';
 import { AddTemplateForm } from '@/components/TemplateForms';
 import { useGetTemplatesQuery } from '@/app/services/TemplateApi';
 import DataTable from '@/components/DataTable';
-import columns from './columns';
+import columns from './_columns';
 import AddButton from '@/components/common/AddButton';
 
 

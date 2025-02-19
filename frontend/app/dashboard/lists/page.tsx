@@ -6,7 +6,7 @@ import Modal from '@/components/Modal';
 import { AddListForm } from '@/components/ListForms';
 import { useGetListsQuery } from '@/app/services/ListApi';
 import DataTable from '@/components/DataTable';
-import columns from './columns';
+import columns from './_columns';
 import AddButton from '@/components/common/AddButton';
 
 const page = () => {
