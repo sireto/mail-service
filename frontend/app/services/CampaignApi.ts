@@ -46,13 +46,6 @@ export const campaignApi = createApi({
             }),
             invalidatesTags: [{ type: 'Campaign' }]
         }),
-        updateCampaign: builder.mutation<UpdateCampaignResponse, {campaignId: string, updatedCampaign: UpdateCampaignRequest}>({
-            query: ({campaignId, updatedCampaign}) => ({
-                url: `/${campaignId}`,
-                method: "PATCH",
-                body: updatedCampaign
-            })
-        }),
         deleteCampaign: builder.mutation<void, string>({
             query: (campaignId) => ({
                 url: `/${campaignId}`,

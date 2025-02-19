@@ -167,6 +167,8 @@ pub async fn send_templated_email(
                 status: "pending".to_string(),
             };
 
+            println!("\n\nSEND MAIL RESPONSE ===> {:?}\n\n", response);
+
             let mail_added_response = mail_handler::add_mail(Json(payload)).await;
             let _ = match mail_added_response {
                 Ok(mail_response) => Ok(Json(mail_response)),

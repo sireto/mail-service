@@ -48,7 +48,7 @@ impl MailService {
 pub async fn create_mail(payload: CreateMailRequest) -> Result<Vec<CreateMailResponse>, (StatusCode, String)> {
     let mail_repository = Arc::new(MailRepositoryImpl);
     let mail_service = MailService::new(mail_repository);
-    
+    println!("PAYLOAD EMAIL: {:?}", payload.email);
     // let contact_uuid = Uuid::parse_str(&payload.contact_id).unwrap();
     let mut responses = Vec::new(); // Vec<CreateMailResponse>;
     for email in payload.email {
@@ -65,6 +65,9 @@ pub async fn create_mail(payload: CreateMailRequest) -> Result<Vec<CreateMailRes
         };
 
         let response = mail_service.create_mail(new_mail).await;
+
+        println!("THE RESPONSE MAIL ====> {response:?}");
+        println!("AFTER AFTER ADDING TO THE MAIL");
 
         match response {
             Ok(mail) => responses.push(CreateMailResponse {

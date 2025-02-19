@@ -58,8 +58,34 @@ export const mailApi = createApi({
     baseQuery: fetchBaseQuery({ baseUrl: "http://localhost:8000/api/mails"}),
     endpoints: (builder) => ({
         // Query to fetch all lists...
+<<<<<<< HEAD
         getMails: builder.query<Mail[], void>({query: () => ""}),
 >>>>>>> 9a97571 (WIP campaign)
+=======
+        getMails: builder.query<Mail[], { 
+            campaign_ids?: string[], 
+            from?: string, 
+            to?: string }>({query: ({ campaign_ids, from, to }) => {
+                const params = new URLSearchParams();
+    
+                if (campaign_ids) {
+                    params.append("campaign_ids", campaign_ids.join(","));
+                }
+                if (from) {
+                    params.append("from", from);
+                }
+                if (to) {
+                    params.append("to", to);
+                }
+
+                console.warn("THE latest query is ==> ", params.toString());
+    
+                // Return the query URL with the query parameters
+                return {
+                    url: `?${params.toString()}`,  // Concatenate query parameters to the base URL
+                };
+        }}),
+>>>>>>> 5569103 (feat: show the analytics of the respective campaign)
     })
 });
 
