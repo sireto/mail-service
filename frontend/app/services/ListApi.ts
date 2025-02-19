@@ -8,6 +8,7 @@ import {
   UpdateListResponseDTO,
 } from "@/lib/type";
 import environments from "@/config/environments";
+import { contactApi } from "@/app/services/ContactApi";
 
 type List = z.infer<typeof ListDTO>;
 type CreateListRequest = z.infer<typeof CreateListRequestDTO>;
@@ -77,6 +78,10 @@ export const listApi = createApi({
         method: "POST",
         body: { contact_ids: contacts.map((contact) => contact.id) },
       }),
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        await queryFulfilled;
+        dispatch(contactApi.util.invalidateTags(["Contact"]));
+      },
     }),
   }),
 });

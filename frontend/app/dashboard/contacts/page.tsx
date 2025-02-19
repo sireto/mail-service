@@ -26,7 +26,7 @@ interface List {
 
 const ContactsPage = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { data: contacts, isLoading, isError, refetch } = useGetContactsQuery();
+  const { data: contacts, isLoading, isError } = useGetContactsQuery();
   const { data: listsData, isLoading: listsLoading } =
     useGetListsQuery(NAMESPACE_ID);
   console.log("Initial contacts data:", contacts);
@@ -51,7 +51,6 @@ const ContactsPage = () => {
     try {
       await Promise.all(contactIds.map((id) => deleteContact(id).unwrap()));
       setSelectedContacts({});
-      refetch();
     } catch (error) {
       console.error("Error deleting contacts:", error);
     }
@@ -144,7 +143,6 @@ const ContactsPage = () => {
         open={isOpen}
         onClose={() => setIsOpen(false)}
         lists={lists}
-        onContactUpdate={refetch}
       />
 
       <div className="p-6">

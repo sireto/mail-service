@@ -52,7 +52,6 @@ interface AddContactFormProps {
   open?: boolean;
   onClose: () => void;
   contactData?: Contact;
-  onContactUpdate?: () => void;
   lists: List[] | null;
 }
 
@@ -60,7 +59,6 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
   open,
   onClose,
   contactData,
-  onContactUpdate,
   lists,
 }) => {
   console.log(lists);
@@ -230,9 +228,6 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
     } catch (error) {
       console.error("Form submission error:", error);
       throw error;
-    }
-    if (onContactUpdate) {
-      await onContactUpdate();
     }
   }
 
