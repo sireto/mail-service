@@ -259,6 +259,7 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
                       className="mt-1.5"
                       placeholder="Enter email"
                       {...field}
+                      value={field.value || ""}
                       onChange={(e) => {
                         field.onChange(e); // Ensure real-time validation
                         form.trigger("email");
