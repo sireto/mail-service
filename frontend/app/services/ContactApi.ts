@@ -13,7 +13,7 @@ interface Contact {
 
 export const contactApi = createApi({
   reducerPath: "contactApi",
-  baseQuery: fetchBaseQuery({ baseUrl: "http://localhost:8000/api/" }),
+  baseQuery: fetchBaseQuery({ baseUrl: process.env.NEXT_PUBLIC_BASE_URL }),
   tagTypes: ["Contact"],
   endpoints: (builder) => ({
     getContacts: builder.query<Contact[], void>({
