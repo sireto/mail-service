@@ -140,3 +140,9 @@ pub struct ImportResponse {
     pub imported: usize,
     pub errors: Option<Vec<String>>,
 }
+
+#[derive(Debug)]
+pub struct ImportResult {
+    pub imported: usize,
+    pub errors: Vec<String>,
+}

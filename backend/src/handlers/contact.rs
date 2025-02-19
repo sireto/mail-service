@@ -162,72 +162,88 @@ pub async fn check_email(
     )
 )]
 pub async fn import_contacts(
-    options: Query<ImportOptions>,
     mut multipart: Multipart,
 ) -> Result<Json<ImportResponse>, (StatusCode, String)> {
-    // Extract file from multipart form
-    let mut file_data = Vec::new();
-    let mut file_found = false;
+    // Default form values
+    let mut file_data = None;
+    let mut mode = "subscribe".to_string();
+    let mut status = "unconfirmed".to_string();
+    let mut overwrite = false;
+    let mut delimiter = ",".to_string();
+    let mut lists_json = None;
 
-    while let Some(field) = multipart.next_field().await.map_err(|e| {
-        (
-            StatusCode::BAD_REQUEST,
-            format!("Failed to process multipart form: {}", e),
-        )
-    })? {
-        if field.name() == Some("file") {
-            file_data = field.bytes().await.map_err(|e| {
-                (
-                    StatusCode::BAD_REQUEST,
-                    format!("Failed to read file data: {}", e),
-                )
-            })?
-            .to_vec();
-            file_found = true;
-            break;
+    // Process multipart form fields
+    while let Some(field) = multipart.next_field().await.map_err(|e| 
+        (StatusCode::BAD_REQUEST, format!("Failed to process form: {}", e))
+    )? {
+        if let Some(name) = field.name() {
+            match name {
+                "file" => {
+                    file_data = Some(field.bytes().await.map_err(|e| 
+                        (StatusCode::BAD_REQUEST, format!("Failed to read file: {}", e))
+                    )?.to_vec());
+                },
+                "mode" => {
+                    mode = field.text().await.map_err(|e|
+                        (StatusCode::BAD_REQUEST, format!("Invalid mode: {}", e))
+                    )?.to_string();
+                },
+                "status" => {
+                    status = field.text().await.map_err(|e|
+                        (StatusCode::BAD_REQUEST, format!("Invalid status: {}", e))
+                    )?.to_string();
+                },
+                "overwrite" => {
+                    overwrite = field.text().await.map_err(|e|
+                        (StatusCode::BAD_REQUEST, format!("Invalid overwrite value: {}", e))
+                    )?.to_lowercase() == "true";
+                },
+                "delimiter" => {
+                    delimiter = field.text().await.map_err(|e|
+                        (StatusCode::BAD_REQUEST, format!("Invalid delimiter: {}", e))
+                    )?.to_string();
+                },
+                "lists" => {
+                    lists_json = Some(field.text().await.map_err(|e|
+                        (StatusCode::BAD_REQUEST, format!("Invalid lists data: {}", e))
+                    )?.to_string());
+                },
+                _ => {} // Ignore unknown fields
+            }
         }
     }
 
-    if !file_found {
-        return Err((StatusCode::BAD_REQUEST, "No file found in the request".to_string()));
-    }
+    // Ensure file was uploaded
+    let file_data = file_data.ok_or((
+        StatusCode::BAD_REQUEST, 
+        "Missing required file upload".to_string()
+    ))?;
 
-    // Parse list ids from the options
-    let list_ids = match &options.lists {
-        Some(lists_json) => {
-            serde_json::from_str::<Vec<String>>(lists_json)
-                .map(|strs| {
-                    strs.iter()
-                        .filter_map(|s| Uuid::parse_str(s).ok())
-                        .collect::<Vec<Uuid>>()
-                })
-                .unwrap_or_else(|_| Vec::new())
-        }
-        None => Vec::new(),
-    };
+    // Parse list IDs from JSON
+    let list_ids = lists_json
+        .map(|json| serde_json::from_str::<Vec<String>>(&json)
+            .map(|ids| ids.iter()
+                .filter_map(|id| Uuid::parse_str(id).ok())
+                .collect::<Vec<Uuid>>())
+            .unwrap_or_default())
+        .unwrap_or_default();
 
-    // Parse the csv file
+    // Parse CSV and import contacts
     let contacts = parse_csv_data(
         &file_data,
-        options.delimiter.as_deref().unwrap_or(","),
-        options.mode.as_deref().unwrap_or("subscribe"),
-        options.status.as_deref().unwrap_or("unconfirmed"),
-        options.overwrite.unwrap_or(false),
-    )
-    .map_err(|e| (StatusCode::BAD_REQUEST, format!("Failed to parse CSV: {}", e)))?;
+        &delimiter,
+        &mode,
+        &status,
+        overwrite,
+    ).map_err(|e| (StatusCode::BAD_REQUEST, format!("CSV parsing error: {}", e)))?;
 
-    // Import contacts
     let result = contact_service::import_contacts(contacts, list_ids).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to import contacts: {}", e)))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Import failed: {}", e)))?;
 
     Ok(Json(ImportResponse {
         success: true,
         imported: result.imported,
-        errors: if result.errors.is_empty() {
-            None
-        } else {
-            Some(result.errors)
-        },
+        errors: (!result.errors.is_empty()).then_some(result.errors),
     }))
 }
 

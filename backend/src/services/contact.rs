@@ -6,8 +6,10 @@ use crate::models::contact::{
     Contact,
     CreateContactRequest,
     CreateContactResponse, GetContactResponse, UpdateContactRequest, UpdateContactResponse,
-    DeleteContactResponse
+    DeleteContactResponse, ImportResult
 };
+
+use super::list_service;
 
 pub struct ContactService {
     repository: Arc<dyn ContactRepository + Send + Sync>
@@ -45,13 +47,6 @@ impl ContactService {
         contact_id: Uuid,
     ) -> Result<Contact, diesel::result::Error> {
         self.repository.delete_contact(contact_id).await
-    }
-    pub async fn associate_contacts_with_lists(
-        &self,
-        contact_ids: Vec<Uuid>,
-        list_ids: Vec<Uuid>,
-    ) -> Result<(), diesel::result::Error> {
-        self.repository.associate_contacts_with_lists(contact_ids, list_ids).await
     }
 }
 
@@ -280,12 +275,6 @@ pub async fn get_all_contactss() -> Result<Vec<GetContactResponsee>, (StatusCode
     Ok(response)
 }
 
-#[derive(Debug)]
-pub struct ImportResult {
-    pub imported: usize,
-    pub errors: Vec<String>,
-}
-
 pub async fn import_contacts(
     contacts: Vec<CreateContactRequest>,
     list_ids: Vec<Uuid>,
@@ -297,6 +286,9 @@ pub async fn import_contacts(
         imported: 0,
         errors: Vec::new(),
     };
+
+    println!("{:?}", contacts);
+    println!("{:?}", list_ids);
     
     // Batch create contacts
     let created_contacts = match contact_service.create_contacts(contacts).await {
@@ -313,10 +305,12 @@ pub async fn import_contacts(
     if !list_ids.is_empty() && !created_contacts.is_empty() {
         let contact_ids: Vec<Uuid> = created_contacts.iter().map(|c| c.id).collect();
         
-        match contact_service.associate_contacts_with_lists(contact_ids, list_ids).await {
-            Ok(_) => {},
-            Err(e) => {
-                result.errors.push(format!("Warning: Created contacts but failed to associate with lists: {}", e));
+        for list_id in &list_ids {
+            match list_service::add_contacts_to_list(*list_id, contact_ids.clone()).await {
+                Ok(_) => {println!("Succesfully added to list")},
+                Err(e) => {
+                    result.errors.push(format!("Warning: Created contacts but failed to associate with list {}: {}", list_id, e.1));
+                }
             }
         }
     }
