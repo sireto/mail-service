@@ -89,7 +89,10 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
           return list ? list.id : "";
         })
         .filter(Boolean),
-      attributes: contactData?.attributes || "{}",
+      attribute:
+        typeof contactData?.attribute === "string"
+          ? contactData.attribute
+          : JSON.stringify(contactData?.attribute || {}),
       preconfirm: contactData?.preconfirm || false,
       updated_at: contactData?.updated_at,
       created_at: contactData?.created_at,
@@ -150,7 +153,7 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
         email: values.email,
         first_name: nameParts[0] || "",
         last_name: nameParts.slice(1).join(" ") || "",
-        attribute: values.attributes || "{}",
+        attribute: values.attribute || "{}",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
@@ -372,7 +375,7 @@ const AddContactForm: React.FC<AddContactFormProps> = ({
             {/* Attributes Field */}
             <FormField
               control={form.control}
-              name="attributes"
+              name="attribute"
               render={({ field }) => (
                 <FormItem>
                   <div className="text-sm font-medium">Attributes</div>

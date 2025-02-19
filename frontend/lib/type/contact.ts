@@ -5,7 +5,7 @@ export const ContactFormSchema = z.object({
   name: z.string().optional(),
   status: z.enum(["Enabled", "Disabled"]).default("Enabled"),
   listIds: z.array(z.string()).default([]).optional(),
-  attributes: z.string().optional(),
+  attribute: z.string().optional(),
   preconfirm: z.boolean().default(false),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
@@ -17,7 +17,7 @@ export interface Contact {
   first_name?: string;
   last_name?: string;
   listId?: string;
-  attributes?: string;
+  attribute?: string;
   preconfirm?: boolean;
   created_at: string;
   updated_at: string;
