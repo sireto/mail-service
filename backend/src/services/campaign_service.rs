@@ -1,4 +1,4 @@
-use crate::{models::campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, list_contact_repo::ListContactRepositoryImpl}, utils::contact_lists_functions::populate_contact_template};
+use crate::{models::{campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse}, mail::CreateMailRequest}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, list_contact_repo::ListContactRepositoryImpl, mail::MailRepositoryImpl}, utils::contact_lists_functions::populate_contact_template};
 use uuid::Uuid;
 use std::sync::Arc;
 use axum::http::StatusCode;
@@ -8,10 +8,11 @@ use crate::models::campaign::{
     CreateCampaignResponse,
 };
 use aws_sdk_sesv2::types::{Body, Content, Destination, Message, EmailContent};
-use crate::{services::{aws_service, list_service::ListContactService, template_service::get_template_by_id}};
+use crate::services::{aws_service, list_service::ListContactService, template_service::get_template_by_id};
 use anyhow::{anyhow, Result};
 
-use super::campaign_sender_service::get_campaign_sender_by_id;
+use super::{campaign_sender_service::get_campaign_sender_by_id, mail::MailService };
+use crate::services::mail as mail_service;
 
 
 pub struct CampaignService {
@@ -194,9 +195,6 @@ pub async fn send_campaign_email(
 
     let sender_email = campaign_sender_response.from_email;
     //These variables are temporary
-    let mut success_mails = Vec::new();
-    let mut failed_emails = Vec::new();
-    
 
     //This current logic may need to be changed while implementing queue
     for contact in contacts.clone() {
@@ -204,7 +202,7 @@ pub async fn send_campaign_email(
 
         let body = Body::builder()
             .html(Content::builder()
-                .data(parsed_html)
+                .data(parsed_html.clone())
                 .charset("UTF-8")
                 .build()?
             )
@@ -234,13 +232,25 @@ pub async fn send_campaign_email(
 
         match result {
             Ok(response) => {
-                //this will actually be stored in the mail table in the db later
-                success_mails.push(response.message_id().unwrap().to_string());
-                println!("{:?}",success_mails);
+                // after successfull send mail, at it to the mail table with the pending status...
+                let new_mail = CreateMailRequest {
+                    id: response.message_id().unwrap().to_string(),
+                    mail_message: parsed_html,
+                    email: vec![contact.email.clone()],
+                    template_id: Some(Uuid::parse_str(&template.id)?),
+                    campaign_id: Some(Uuid::parse_str(&campaign_id)?),
+                    sent_at: chrono::Utc::now(),
+                    status: "pending".to_string(),
+                };
+
+                mail_service::create_mail(new_mail).await.map_err(|(status_code, message)| {
+                    anyhow!("Failed to create mail ({}): {}", status_code, message)
+                })?;
+
             },
             Err(e) => {
-                //The failed emails will be stored in bounce_logs table later
-                failed_emails.push(contact.email.clone());
+                //Handle the send mail Error from the SES side only ( not bounces )...
+                println!("SEND MAIL ERROR FROM SES: {:?}", e);
             }
         }
     }
