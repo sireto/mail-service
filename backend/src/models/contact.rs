@@ -1,7 +1,7 @@
 use chrono::{ DateTime, NaiveDateTime, Utc };
 use serde_json::Value;
 use serde::{ Serialize, Deserialize };
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 use diesel::prelude::*;
 use uuid::Uuid;
 
@@ -98,4 +98,51 @@ pub struct DeleteContactResponse {
     pub first_name: String,
     pub last_name: String,
     pub email: String,
+}
+
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct EmailQuery {
+    pub email: String
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
+pub struct GetContactResponsee {
+    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub id: Uuid,
+    pub first_name: String,
+    pub last_name: String,
+    pub email: String,
+
+    #[schema(value_type = String, example = "{\"address\": \"Shinjuku\", \"city\": \"Tokyo\"}")]
+    pub attribute: Option<Value>,
+
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub created_at: DateTime<Utc>,
+
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub updated_at: DateTime<Utc>,
+
+    pub list_names: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ImportOptions {
+    pub mode: Option<String>,
+    pub status: Option<String>,
+    pub overwrite: Option<bool>,
+    pub delimiter: Option<String>,
+    pub lists: Option<String>, // JSON string of list ids
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ImportResponse {
+    pub success: bool,
+    pub imported: usize,
+    pub errors: Option<Vec<String>>,
+}
+
+#[derive(Debug)]
+pub struct ImportResult {
+    pub imported: usize,
+    pub errors: Vec<String>,
 }

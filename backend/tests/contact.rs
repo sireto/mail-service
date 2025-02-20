@@ -3,11 +3,11 @@ use backend::{models::contact::{Contact, CreateContactRequest, UpdateContactRequ
 use uuid::Uuid;
 use mockall::predicate::*;
 
+
 #[tokio::test]
-async fn test_create_contact() {
+async fn test_create_contacts() {
     let mut mock_repo = MockContactRepository::new();
 
-    // Creating a payload with extra fields
     let test_payload = CreateContactRequest {
         first_name: "John".to_string(),
         last_name: "Doe".to_string(),
@@ -15,29 +15,31 @@ async fn test_create_contact() {
         attribute: None,
     };
 
-    // Define the expected output without the extra field
+
     let expected_output = Contact {
         id: Uuid::new_v4(),
-        first_name: "Paul".to_string(),
-        last_name: "Jack".to_string(),
-        email: "paul@gmail.com".to_string(),
+        first_name: "John".to_string(),  
+        last_name: "Doe".to_string(),    
+        email: "john@gmail.com".to_string(),  
         attribute: None,
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
     };
 
     mock_repo
-        .expect_create_contact()
-        .with(eq(test_payload.clone()))
-        .returning(move |_| Ok(expected_output.clone()));
+        .expect_create_contacts()
+        .with(eq(vec![test_payload.clone()]))  
+        .returning(move |_| Ok(vec![expected_output.clone()]));  // Return a vector of expected output
 
     let contact_service = ContactService::new(Arc::new(mock_repo));
 
-    let result = contact_service.create_contact(test_payload.clone()).await;
+    let result = contact_service.create_contacts(vec![test_payload]).await;
 
     assert!(result.is_ok());
-    assert_eq!(result.as_ref().unwrap().email, "paul@gmail.com");
-    assert_eq!(result.unwrap().attribute, None);
+    let created_contact = result.unwrap();
+    assert_eq!(created_contact.len(), 1);  // Check that we got one contact back
+    assert_eq!(created_contact[0].email, "john@gmail.com");
+    assert_eq!(created_contact[0].attribute, None);
 }
 
 #[tokio::test]

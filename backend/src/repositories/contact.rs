@@ -1,3 +1,5 @@
+use crate::models::list::List;
+use crate::models::list_contacts::ListContact;
 use crate::{ appState::DbPooledConnection, GLOBAL_APP_STATE };
 use crate::schema::contacts::dsl::*;
 use diesel::prelude::*;
@@ -20,26 +22,29 @@ pub async fn get_connection_pool() -> DbPooledConnection {
 #[automock]
 #[async_trait]
 pub trait ContactRepository {
-    async fn create_contact(&self, payload: CreateContactRequest) -> Result<Contact, diesel::result::Error>;
+    async fn create_contacts(&self, payloads: Vec<CreateContactRequest>) -> Result<Vec<Contact>, diesel::result::Error>;
     async fn get_all_contacts(&self) -> Result<Vec<Contact>, diesel::result::Error>;
     async fn update_contact(&self, contact_id: Uuid, payload: UpdateContactRequest
     ) -> Result<Contact, diesel::result::Error>;
     async fn delete_contact(&self, contact_id: Uuid) -> Result<Contact, diesel::result::Error>;
     async fn get_contact_by_id(&self, contact_id: Uuid) -> Result<Contact, diesel::result::Error>;
     async fn get_contact_by_email(&self, contact_email: String) -> Result<Contact, diesel::result::Error>;
+    async fn get_list_contacts(&self, contact_ids: Vec<Uuid>) -> Result<Vec<ListContact>, diesel::result::Error>;
+    async fn get_lists_by_ids(&self, list_ids: Vec<Uuid>) -> Result<Vec<List>, diesel::result::Error>;
+    async fn upsert_contacts(&self, payloads: Vec<CreateContactRequest>, overwrite: bool) -> Result<Vec<Contact>, diesel::result::Error>;
 }
 
 pub struct ContactRepositoryImpl;
 
 #[async_trait]
 impl ContactRepository for ContactRepositoryImpl {
-    async fn create_contact(&self, payload: CreateContactRequest) -> Result<Contact, diesel::result::Error> {
+    async fn create_contacts(&self, payloads: Vec<CreateContactRequest>) -> Result<Vec<Contact>, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
-
+    
         diesel::insert_into(contacts)
-            .values(&payload)
+            .values(&payloads)
             .returning(Contact::as_returning())
-            .get_result::<Contact>(&mut conn)
+            .get_results::<Contact>(&mut conn)
     }
 
     async fn get_all_contacts(&self) -> Result<Vec<Contact>, diesel::result::Error> {
@@ -96,6 +101,55 @@ impl ContactRepository for ContactRepositoryImpl {
         contacts
             .filter(email.eq(contact_email))
             .first(&mut conn)
+    }
+    async fn get_list_contacts(&self, contact_ids: Vec<Uuid>) -> Result<Vec<ListContact>, diesel::result::Error> {
+        use crate::schema::list_contacts::dsl::*;
+        let mut conn = get_connection_pool().await;
+        list_contacts
+            .filter(contact_id.eq_any(contact_ids))
+            .load::<ListContact>(&mut conn)
+    }
+
+    async fn get_lists_by_ids(&self, list_ids: Vec<Uuid>) -> Result<Vec<List>, diesel::result::Error> {
+        use crate::schema::lists::dsl::*;
+        let mut conn = get_connection_pool().await;
+        lists
+            .filter(id.eq_any(list_ids))
+            .load::<List>(&mut conn)
+    }
+
+    async fn upsert_contacts(
+        &self,
+        payloads: Vec<CreateContactRequest>,
+        overwrite: bool
+    ) -> Result<Vec<Contact>, diesel::result::Error> {
+        use diesel::pg::upsert::excluded;
+        let mut conn = get_connection_pool().await;
+    
+        
+        let result = if overwrite {
+            diesel::insert_into(contacts)
+                .values(&payloads)
+                .on_conflict(email)
+                .do_update()
+                .set((
+                    first_name.eq(excluded(first_name)),
+                    last_name.eq(excluded(last_name)),
+                    attribute.eq(excluded(attribute)),
+                    updated_at.eq(diesel::dsl::now),
+                ))
+                .returning(Contact::as_returning())
+                .get_results(&mut conn)
+        } else {
+            diesel::insert_into(contacts)
+                .values(&payloads)
+                .on_conflict(email)
+                .do_nothing()
+                .returning(Contact::as_returning())
+                .get_results(&mut conn)
+        };
+    
+        result
     }
 }
 

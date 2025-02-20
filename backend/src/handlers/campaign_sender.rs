@@ -13,7 +13,6 @@ use crate::{
 use axum::{
     extract::Path, Json, http::StatusCode
 };
-use utoipa::ToSchema;
 
 #[utoipa::path(
     post,
