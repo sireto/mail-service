@@ -91,18 +91,19 @@ export const createColumns = (
         <div className="text-blue-600 hover:underline cursor-pointer">
           {row.original.email}
         </div>
-        {row.original.list_names?.length > 0 && (
-          <div className="flex gap-2 mt-1">
-            {row.original.list_names.map((listName, index) => (
-              <span
-                key={index}
-                className="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-700"
-              >
-                {listName}
-              </span>
-            ))}
-          </div>
-        )}
+        {Array.isArray(row.original.list_names) &&
+          row.original.list_names?.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-1">
+              {row.original.list_names.map((listName, index) => (
+                <span
+                  key={index}
+                  className="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-700"
+                >
+                  {listName}
+                </span>
+              ))}
+            </div>
+          )}
       </div>
     ),
   },

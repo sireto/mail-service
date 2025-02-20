@@ -1,24 +1,14 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ContactFormSchema } from "@/lib/type/contact";
-import {
-  useAddContactMutation,
-  useLazyCheckEmailQuery,
-} from "@/app/services/ContactApi";
+import { useAddContactMutation } from "@/app/services/ContactApi";
 import { useAddContactsToListMutation } from "@/app/services/ListApi";
 import { ContactDialog } from "./ContactDialog";
 import { ContactFormFields } from "./ContactFormFields";
-
-interface List {
-  id: string;
-  name: string;
-  description: string;
-  namespace_id: string;
-  created_at: string;
-  updated_at: string;
-}
+import { useEmailValidation } from "../../hooks/useEmailValidator";
+import { List } from "@/lib/type";
 
 interface AddContactProps {
   open?: boolean;
@@ -42,42 +32,8 @@ const AddContact: React.FC<AddContactProps> = ({ open, onClose, lists }) => {
 
   const [addContact, { isLoading }] = useAddContactMutation();
   const [addContactsToList] = useAddContactsToListMutation();
-  const [triggerCheckEmail] = useLazyCheckEmailQuery();
 
-  useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      if (name === "email") {
-        const email = value.email;
-        const isValidEmail = z.string().email().safeParse(email).success;
-
-        if (!isValidEmail) return;
-
-        const handler = setTimeout(() => {
-          if (email) {
-            triggerCheckEmail(email)
-              .unwrap()
-              .then((exists) => {
-                if (exists) {
-                  form.setError("email", {
-                    type: "manual",
-                    message: "Email already exists",
-                  });
-                } else {
-                  form.clearErrors("email");
-                }
-              })
-              .catch((error) => {
-                console.error("Email check failed:", error);
-              });
-          }
-        }, 500);
-
-        return () => clearTimeout(handler);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [form, triggerCheckEmail]);
+  useEmailValidation(form);
 
   const handleListChange = (selectedLists: string[]) => {
     form.setValue("listIds", selectedLists);

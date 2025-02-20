@@ -1,15 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { ContactForm } from "@/app/dashboard/contacts/_components/ContactForm";
 import { useState } from "react";
-
-interface List {
-  id: string;
-  name: string;
-  description: string;
-  namespace_id: string;
-  created_at: string;
-  updated_at: string;
-}
+import { AddContact } from "@/app/dashboard/contacts/_components/ContactForms/AddContact";
+import { List } from "@/lib/type";
 
 interface NoContactsFoundProps {
   lists: List[] | null;
@@ -44,7 +36,7 @@ const NoContactsFound: React.FC<NoContactsFoundProps> = ({ lists }) => {
 
       {/* Modal for adding a contact */}
       {openAddContactModal && (
-        <ContactForm
+        <AddContact
           open={openAddContactModal}
           onClose={() => setOpenAddContactModal(false)}
           lists={lists}

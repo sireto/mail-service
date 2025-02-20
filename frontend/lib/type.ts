@@ -126,3 +126,12 @@ export const Contact = z.object({
   created_at: z.string(),
   updated_at: z.string(),
 });
+
+export interface List {
+  id: string;
+  name: string;
+  description: string;
+  namespace_id: string;
+  created_at: string;
+  updated_at: string;
+}

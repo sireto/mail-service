@@ -19,6 +19,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { ContactFormSchema } from "@/lib/type/contact";
 import { MultiSelect } from "@/components/multi-select";
+import { Textarea } from "@/components/ui/textarea";
 
 interface List {
   id: string;
@@ -180,10 +181,10 @@ const ContactFormFields: React.FC<ContactFormFieldsProps> = ({
             <FormItem>
               <div className="text-sm font-medium">Attributes</div>
               <FormControl>
-                <textarea
-                  className="mt-1.5 w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder='{"key": "value"}'
+                <Textarea
                   {...field}
+                  placeholder='{"key": "value"}'
+                  className="mt-1.5 w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </FormControl>
               <FormMessage />
