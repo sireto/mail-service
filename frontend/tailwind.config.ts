@@ -40,6 +40,14 @@ export default {
   				DEFAULT: 'hsl(var(--destructive))',
   				foreground: 'hsl(var(--destructive-foreground))'
   			},
+			danger: {
+				DEFAULT: 'hsl(var(--danger))',
+				foreground: 'hsl(var(--danger-foreground))',
+				onHover: 'hsl(var(--danger-background-on-hover))'
+			},
+			neutral: {
+				DEFAULT: 'hsl(var(--neutral))',
+			},
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',

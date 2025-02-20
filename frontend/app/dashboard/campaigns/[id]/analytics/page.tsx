@@ -1,6 +1,6 @@
 'use client';
 
-import { useGetMailsQuery } from '@/app/services/MailApi';
+import { useDeleteMailMutation, useGetMailsQuery } from '@/app/services/MailApi';
 import DataTable from '@/components/DataTable';
 import columns from './_columns';
 import React, { useState, useEffect, useRef } from 'react';
@@ -32,7 +32,7 @@ const page = () => {
     
     const { data: campaigns, error: fetchError, isLoading: isFetching } = useGetCampaignsQuery();
     let [campaignList, setCampaignList] = useState<ICampaignData[] | []>([]);
-    const [selectedCampaigns, setSelectedCampaigns] = useState<string[]>([]);
+    const [ deleteMail, { isLoading: isDeleting, error: deletionError }] = useDeleteMailMutation();
 
     const today = new Date();
     const oneWeekAgo = new Date(today);
@@ -47,13 +47,14 @@ const page = () => {
         }
     });
 
+    const [searchParams, setSearchParams] = useState({
+        campaign_ids: typeof id === 'string' ? [id] : [],
+        from: oneWeekAgo.toISOString(),
+        to: today.toISOString(),
+    });
+
     // Adjust the mail query to trigger based on campaign ID (from URL params) and form inputs
-    const { data: mails, isLoading, error, refetch } = useGetMailsQuery({
-        campaign_ids: typeof id === 'string' ? [id] : [],  // Pass the campaign ID directly here
-        from: new Date(form.getValues("from")).toISOString(),
-        to: new Date(form.getValues("to")).toISOString(),
-    },
-    { skip: !id || !form.getValues("from") || !form.getValues("to") });  // Skip if no valid data
+    const { data: mails, isLoading, error } = useGetMailsQuery(searchParams);  // Skip if no valid data
 
     useEffect(() => {
         if (campaigns) {
@@ -71,7 +72,6 @@ const page = () => {
             form.setValue("campaigns", initialValue);
         }
 
-        console.warn("The current mails are ===> ", mails);
     }, [campaignList, form, mails]);
 
     const multiSelectRef = useRef(null);
@@ -80,15 +80,27 @@ const page = () => {
         return <div>There was an error fetching campaign mails data...</div>
     }
 
+    useEffect(() => {
+        console.warn("THE SEARCH PARAMS ARE =====> ", searchParams);
+    }, [searchParams]);
+
     const searchHandler = async (value: any) => {
         const { campaigns, from, to } = value;
-        // Refetch mails when the form is submitted
-        refetch();
         console.warn("Form submitted with value ===> ", value);
+
+        setSearchParams({
+            campaign_ids: campaigns,
+            from: new Date(from).toISOString(),
+            to: new Date(to).toISOString(),
+        });
     };
 
     const deleteMailHandler = async (id: string ) => {
+        if (deletionError) {
+            return <div>Error deleting the mail</div>
+        }
 
+        await deleteMail(id);
     }
 
     return (
@@ -102,7 +114,7 @@ const page = () => {
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(searchHandler)} className="flex flex-col lg:flex-row gap-x-4 space-y-4 lg:items-end ">
                             {/* Campaigns Name to search for */}
-                            <FormField
+                            {/* <FormField
                                 control={form.control}
                                 name="campaigns"
                                 render={({ field, fieldState }) => (
@@ -127,7 +139,7 @@ const page = () => {
                                         <FormMessage>{form.formState.errors.campaigns?.message}</FormMessage>
                                     </FormItem>
                                 )}
-                            />
+                            /> */}
 
                             <div className='flex gap-x-4'>
                                 <DatePicker
@@ -160,7 +172,7 @@ const page = () => {
             </div>
 
             {/* Data Table */}
-            <div className='my-4 z-20 max-h-[444px] overflow-y-scroll thin-scrollbar'>
+            <div className='my-4 z-20 max-h-[444px] overflow-y-auto thin-scrollbar'>
                 <DataTable 
                     data={mails || []} 
                     columns={columns(deleteMailHandler)}  // Pass columns directly

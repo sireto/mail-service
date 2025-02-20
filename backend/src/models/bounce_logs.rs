@@ -10,6 +10,7 @@ use uuid::Uuid;
 pub struct BounceLog {
     pub id: Uuid,
     pub contact_id: Uuid,
+    pub mail_id: String,
     pub campaign_id: Option<Uuid>,
     pub at: DateTime<Utc>,
     pub kind: String,
@@ -47,6 +48,7 @@ pub struct CreateBounceLogRequest {
     pub at: DateTime<Utc>,
     pub kind: String,
     pub reason: String,
+    pub mail_id: String,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq)]
@@ -85,7 +87,8 @@ pub struct SnsNotification {
 pub struct BounceNotification {
     #[serde(rename = "notificationType")]
     pub notification_type: String,
-    pub bounce: BounceDetails,
+    pub bounce: Option<BounceDetails>,
+    pub delivery: Option<DeliveryDetails>,
     pub mail: MailDetails,
 }
 
@@ -111,4 +114,19 @@ pub struct BouncedRecipient {
 pub struct MailDetails {
     pub source: String,
     pub destination: Vec<String>,
+    #[serde(rename = "messageId")]
+    pub mail_id: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
+pub struct DeliveryDetails {
+    pub timestamp: String,
+
+    #[serde(rename = "processingTimeMillis")]
+    pub processing_time_millis: u64,
+
+    pub recipients: Vec<String>,
+
+    #[serde(rename = "smtpResponse")]
+    pub smtp_response: String,
 }

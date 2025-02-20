@@ -11,7 +11,8 @@ use crate::models::mail::{
     UpdateMailRequest,
     UpdateMailResponse
 };
-use crate::utils::template_utils;
+
+use super::bounce_logs_service;
 
 pub struct MailService {
     repository: Arc<dyn MailRepository + Send + Sync>
@@ -32,6 +33,10 @@ impl MailService {
 
     pub async fn update_mail(&self, mail_id: String, payload: UpdateMailRequest) -> Result<Mail, diesel::result::Error> {
         self.repository.update_mail(mail_id, payload).await
+    }
+
+    pub async fn update_mail_status(&self, mail_id: String, new_status: &str) -> Result<Mail, diesel::result::Error> {
+        self.repository.update_mail_status(mail_id, new_status).await
     }
 
     pub async fn delete_mail(&self, mail_id: String) -> Result<Mail, diesel::result::Error> {
@@ -62,7 +67,6 @@ pub async fn create_mail(payload: CreateMailRequest) -> Result<Vec<CreateMailRes
 
         let response = mail_service.create_mail(new_mail).await;
 
-        println!("THE RESPONSE MAIL ====> {response:?}");
         println!("AFTER AFTER ADDING TO THE MAIL");
 
         match response {
@@ -97,15 +101,38 @@ pub async fn get_all_mails(
     let response = mail_service.get_all_mails(campaign_ids, from, to).await;
 
     match response {
-        Ok(mails) => Ok(mails.into_iter().map(|mail| GetMailResponse {
-            id: mail.id,
-            mail_message: mail.mail_message,
-            contact_id: mail.contact_id,
-            template_id: mail.template_id,
-            campaign_id: mail.campaign_id,
-            sent_at: mail.sent_at,
-            status: mail.status,
-        }).collect()),
+        Ok(mails) => {
+            let mut responses = Vec::new();
+            for mail in mails {
+                let contact = match contact_service::get_contact_by_id(mail.contact_id.to_string()).await {
+                    Ok(contact) => contact,
+                    Err(e) => return Err((StatusCode::NOT_FOUND, format!("{:?}", e))),
+                };
+
+                let bounce = match bounce_logs_service::get_bounce_by_mail_id(mail.id.clone()).await {
+                    Ok(bounce) => Some(bounce),
+                    Err(_) => None,  // No bounce log, set to None
+                };
+
+                let status_reason = match bounce {
+                    Some(bounce) => Some(bounce.reason),
+                    None => None,  // No bounce reason if there is no bounce log
+                };
+
+                responses.push(GetMailResponse {
+                    id: mail.id,
+                    mail_message: mail.mail_message,
+                    email: contact.email,
+                    template_id: mail.template_id,
+                    campaign_id: mail.campaign_id,
+                    sent_at: mail.sent_at,
+                    status: mail.status,
+                    status_reason,
+                });
+            }
+
+            Ok(responses)
+        },
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
     }
 }
@@ -116,6 +143,26 @@ pub async fn update_mail(mail_id: String, payload: UpdateMailRequest) -> Result<
     let mail_service = MailService::new(mail_repository);
 
     let response = mail_service.update_mail(mail_id, payload).await;
+
+    match response {
+        Ok(mail) => Ok(UpdateMailResponse {
+            id: mail.id,
+            mail_message: mail.mail_message,
+            template_id: mail.template_id,
+            campaign_id: mail.campaign_id,
+            status: Some(mail.status),
+            updated_at: chrono::Utc::now(),
+        }),
+        Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
+    }
+}
+
+/// a function to update mail status...
+pub async fn update_mail_status(mail_id: String, new_status: String) -> Result<UpdateMailResponse, (StatusCode, String)> {
+    let mail_repository = Arc::new(MailRepositoryImpl);
+    let mail_service = MailService::new(mail_repository);
+
+    let response = mail_service.update_mail_status(mail_id, &new_status).await;
 
     match response {
         Ok(mail) => Ok(UpdateMailResponse {

@@ -10,6 +10,7 @@ diesel::table! {
     bounce_logs (id) {
         id -> Uuid,
         contact_id -> Uuid,
+        mail_id -> Text,
         campaign_id -> Nullable<Uuid>,
         at -> Timestamptz,
         kind -> Text,
@@ -128,7 +129,7 @@ diesel::table! {
 
 diesel::joinable!(bounce_logs -> campaigns (campaign_id));
 diesel::joinable!(bounce_logs -> contacts (contact_id));
-diesel::joinable!(campaign_senders -> servers (server_id));
+diesel::joinable!(bounce_logs -> mails (mail_id));
 diesel::joinable!(campaigns -> campaign_senders (campaign_senders));
 diesel::joinable!(campaigns -> namespaces (namespace_id));
 diesel::joinable!(campaigns -> templates (template_id));

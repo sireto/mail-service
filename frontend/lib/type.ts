@@ -208,4 +208,5 @@ export const MailDTO = z.object({
     sent_at: z.string(),
     template_id: z.string(),
     status: z.string(),
+    status_reason: z.string().nullable(),
 });

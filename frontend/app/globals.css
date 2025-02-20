@@ -41,7 +41,11 @@ body {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
-    --error: lightcoral;
+    --error: 0 79% 72%;
+    --danger: 10 98% 59%;
+    --danger-foreground: 0 0% 98%;
+    --danger-background-on-hover: 12 91% 46%;
+    --neutral: 0 0% 20%;
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -76,6 +80,9 @@ body {
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --danger: 10 98% 59%;
+    --danger-foreground: 0 0% 98%;
+    --danger-background-on-hover: 12 91% 46%;
   }
 }
 

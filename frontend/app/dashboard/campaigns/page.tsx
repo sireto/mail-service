@@ -5,22 +5,14 @@ import React from 'react'
 import { Plus } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import DataTable from '@/components/DataTable';
-import columns from './columns';
+import columns from './_columns';
 import { useDeleteCampaignMutation, useGetCampaignsQuery, useStartCampaignMutation } from '@/app/services/CampaignApi';
 import Link from 'next/link';
+import AddButton from '@/components/common/AddButton';
 
-
-const addButton = (
-    <Button variant={"default"}>
-        <>
-            <Plus size={24} />
-            <span className='ml-1'>New</span>
-        </>
-    </Button>
-);
 
 const Page = () => {
-    const { data: campaigns, error, isLoading, refetch } = useGetCampaignsQuery();
+    const { data: campaigns, error, isLoading } = useGetCampaignsQuery();
     const [ deleteCampaign, { isLoading: isDeleting, error: deletionError }] = useDeleteCampaignMutation();
     const [ startCampaign, { isLoading: isStarting, error: startingError }] = useStartCampaignMutation();
     
@@ -39,7 +31,6 @@ const Page = () => {
         }
     
         await deleteCampaign(id);
-        refetch();
     }
 
     const startCampaignHandler = async (id: string) => {
@@ -65,7 +56,7 @@ const Page = () => {
                     <span>({campaigns?.length})</span>
                 </h1>
                 <Link href={'/dashboard/campaigns/new'}>
-                    { addButton }
+                    <AddButton />
                 </Link>
             </div>
             <div className='my-12'>

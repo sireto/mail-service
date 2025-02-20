@@ -10,12 +10,14 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Button } from '../ui/button';
 
 interface ConfirmationPopupProps {
     title: string;
     message: string;
     onConfirm: () => void;
-    confirmButton: React.ReactNode;
+    popupTriggerButton: React.ReactNode;
+    confirmButton?: React.ReactNode;
     cancelText?: string;
     isLoading ?: boolean;
 }
@@ -24,14 +26,15 @@ const ConfirmationPopup: React.FC<ConfirmationPopupProps> = ({
     title,
     message,
     onConfirm,
-    confirmButton,
+    popupTriggerButton,
+    confirmButton = <Button variant={'default'}>Continue</Button>,
     cancelText = "Cancel",
     isLoading = false
 }) => {
   return (
     <AlertDialog>
         <AlertDialogTrigger asChild>
-            { confirmButton }
+            { popupTriggerButton }
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -45,7 +48,8 @@ const ConfirmationPopup: React.FC<ConfirmationPopupProps> = ({
             <AlertDialogAction
                 onClick={ onConfirm }
                 disabled={ isLoading }
-            >Continue</AlertDialogAction>
+                asChild
+            >{ confirmButton }</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
