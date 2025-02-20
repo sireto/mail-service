@@ -278,9 +278,9 @@ pub async fn get_all_contactss() -> Result<Vec<GetContactResponsee>, (StatusCode
 pub async fn import_contacts(
     contacts: Vec<CreateContactRequest>,
     list_ids: Vec<Uuid>,
+    overwrite: bool, 
 ) -> Result<ImportResult, String> {
     let contact_repository = Arc::new(ContactRepositoryImpl);
-    let contact_service = ContactService::new(contact_repository);
     
     let mut result = ImportResult {
         imported: 0,
@@ -289,15 +289,16 @@ pub async fn import_contacts(
 
     println!("{:?}", contacts);
     println!("{:?}", list_ids);
+    println!("Overwrite mode: {}", overwrite);
     
-    // Batch create contacts
-    let created_contacts = match contact_service.create_contacts(contacts).await {
+   
+    let created_contacts = match contact_repository.upsert_contacts(contacts, overwrite).await {
         Ok(contacts) => {
             result.imported = contacts.len();
             contacts
         },
         Err(e) => {
-            return Err(format!("Failed to create contacts: {}", e));
+            return Err(format!("Failed to import contacts: {}", e));
         }
     };
     
@@ -307,9 +308,9 @@ pub async fn import_contacts(
         
         for list_id in &list_ids {
             match list_service::add_contacts_to_list(*list_id, contact_ids.clone()).await {
-                Ok(_) => {println!("Succesfully added to list")},
+                Ok(_) => { println!("Succesfully added to list") },
                 Err(e) => {
-                    result.errors.push(format!("Warning: Created contacts but failed to associate with list {}: {}", list_id, e.1));
+                    result.errors.push(format!("Warning: Imported contacts but failed to associate with list {}: {}", list_id, e.1));
                 }
             }
         }

@@ -31,6 +31,7 @@ pub trait ContactRepository {
     async fn get_contact_by_email(&self, contact_email: String) -> Result<Contact, diesel::result::Error>;
     async fn get_list_contacts(&self, contact_ids: Vec<Uuid>) -> Result<Vec<ListContact>, diesel::result::Error>;
     async fn get_lists_by_ids(&self, list_ids: Vec<Uuid>) -> Result<Vec<List>, diesel::result::Error>;
+    async fn upsert_contacts(&self, payloads: Vec<CreateContactRequest>, overwrite: bool) -> Result<Vec<Contact>, diesel::result::Error>;
 }
 
 pub struct ContactRepositoryImpl;
@@ -115,6 +116,40 @@ impl ContactRepository for ContactRepositoryImpl {
         lists
             .filter(id.eq_any(list_ids))
             .load::<List>(&mut conn)
+    }
+
+    async fn upsert_contacts(
+        &self,
+        payloads: Vec<CreateContactRequest>,
+        overwrite: bool
+    ) -> Result<Vec<Contact>, diesel::result::Error> {
+        use diesel::pg::upsert::excluded;
+        let mut conn = get_connection_pool().await;
+    
+        
+        let result = if overwrite {
+            diesel::insert_into(contacts)
+                .values(&payloads)
+                .on_conflict(email)
+                .do_update()
+                .set((
+                    first_name.eq(excluded(first_name)),
+                    last_name.eq(excluded(last_name)),
+                    attribute.eq(excluded(attribute)),
+                    updated_at.eq(diesel::dsl::now),
+                ))
+                .returning(Contact::as_returning())
+                .get_results(&mut conn)
+        } else {
+            diesel::insert_into(contacts)
+                .values(&payloads)
+                .on_conflict(email)
+                .do_nothing()
+                .returning(Contact::as_returning())
+                .get_results(&mut conn)
+        };
+    
+        result
     }
 }
 

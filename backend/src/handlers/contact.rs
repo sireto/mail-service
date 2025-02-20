@@ -237,7 +237,7 @@ pub async fn import_contacts(
         overwrite,
     ).map_err(|e| (StatusCode::BAD_REQUEST, format!("CSV parsing error: {}", e)))?;
 
-    let result = contact_service::import_contacts(contacts, list_ids).await
+    let result = contact_service::import_contacts(contacts, list_ids, overwrite).await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Import failed: {}", e)))?;
 
     Ok(Json(ImportResponse {
