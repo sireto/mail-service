@@ -9,7 +9,6 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-<<<<<<< HEAD
     <ReduxProvider>
       <div className="flex h-[calc(100vh-64px)]">
         <div className="hidden md:block w-64">
@@ -22,14 +21,5 @@ export default function DashboardLayout({
         </div>
       </div>
     </ReduxProvider>
-=======
-    <div className="flex h-[calc(100vh-64px)]">
-      {" "}
-      <ReduxProvider>
-        <Sidebar />
-        <div className="flex-1 overflow-auto p-8 no-scrollbar">{children}</div>
-      </ReduxProvider>
-    </div>
->>>>>>> 0657a80 (feat: show the analytics of the respective campaign)
   );
 }
