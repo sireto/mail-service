@@ -25,23 +25,40 @@ export const columns = (
         // the Link here can be useful to navigate to that specific contact mail log history...
 =======
 import { formatDate } from '@/lib/utils';
-import { Edit3, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import ConfirmationPopup from '@/components/common/ConfirmationPopup';
+import ActionsColumn from './_components/ActionsColumn';
+import ToolTip from '@/components/common/ToolTip';
+
+const statusTagStyleMap = {
+    draft: 'bg-gray-100 text-gray-800',
+    pending: 'bg-yellow-100 text-yellow-800',
+    sent: 'bg-blue-100 text-blue-800',
+    failed: 'bg-red-100 text-red-800',
+}
 
 export const columns = (
-    deleteCampaignHandler: (id: string) => void,
+    deleteMailHandler: (id: string) => void,
 ): ColumnDef<any>[] => [
     {
+<<<<<<< HEAD
         accessorKey: "id",
         header: "Id",
         cell: ({ row }) => <Link href={`/`}>{row.getValue("id")}</Link>,
 >>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
+=======
+        accessorKey: "email",
+        header: "Email",
+        cell: ({ row }) => <Link href={`/`}>{row.getValue("email")}</Link>,
+        // the Link here can be useful to navigate to that specific contact mail log history...
+>>>>>>> f3ca610 (fix: add status reasons on the status tags tooltip and backend fixes)
     },
     {
         accessorKey: "status",
         header: "Status",
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> f3ca610 (fix: add status reasons on the status tags tooltip and backend fixes)
         cell: ({ row }) => {
             const status = row.getValue("status") as keyof typeof statusTagStyleMap;
             const bounceReason: string | null = row.original.status_reason ?? "No reason available";
@@ -52,9 +69,12 @@ export const columns = (
                 tooltipTrigger={<span className={`px-2 py-1 rounded-full text-xs ${statusStyle}`}>{status}</span>}
             />
         },
+<<<<<<< HEAD
 =======
         cell: ({ row }) => <span>{row.getValue("status")}</span>,
 >>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
+=======
+>>>>>>> f3ca610 (fix: add status reasons on the status tags tooltip and backend fixes)
     },
     {
         accessorKey: "sent_at",
@@ -74,6 +94,7 @@ export const columns = (
     {
         accessorKey: "actions",
         header: "",
+<<<<<<< HEAD
 <<<<<<< HEAD
         cell: ({ row }) => <ActionsColumn row={row} deleteMailHandler={deleteMailHandler}/>
 =======
@@ -101,6 +122,9 @@ export const columns = (
             );
         }     
 >>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
+=======
+        cell: ({ row }) => <ActionsColumn row={row} deleteMailHandler={deleteMailHandler}/>
+>>>>>>> f3ca610 (fix: add status reasons on the status tags tooltip and backend fixes)
     },
 ];
 

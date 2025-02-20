@@ -225,6 +225,7 @@ export const MailDTO = z.object({
     template_id: z.string(),
     status: z.string(),
 <<<<<<< HEAD
+<<<<<<< HEAD
     status_reason: z.string().nullable(),
 });
 
@@ -241,3 +242,7 @@ export const SendTransactionalMailRequestDTO = z.object({
 =======
 });
 >>>>>>> 9a97571 (WIP campaign)
+=======
+    status_reason: z.string().nullable(),
+});
+>>>>>>> f3ca610 (fix: add status reasons on the status tags tooltip and backend fixes)

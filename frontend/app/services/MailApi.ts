@@ -3,17 +3,13 @@ import { z } from 'zod';
 import { 
     MailDTO
 } from '@/lib/type';
-<<<<<<< HEAD
 import environments from "@/config/environments";
-=======
->>>>>>> 9a97571 (WIP campaign)
 
 type Mail = z.infer<typeof MailDTO>;
 
 // Mail API slice...
 export const mailApi = createApi({
     reducerPath: "mailApi",
-<<<<<<< HEAD
     baseQuery: fetchBaseQuery({ baseUrl: environments.MAIL_API_BASE_URL}),
     tagTypes: ["Mail"],
     endpoints: (builder) => ({
@@ -54,45 +50,10 @@ export const mailApi = createApi({
             }),
             invalidatesTags: [{ type: 'Mail' }]
         })
-=======
-    baseQuery: fetchBaseQuery({ baseUrl: "http://localhost:8000/api/mails"}),
-    endpoints: (builder) => ({
-        // Query to fetch all lists...
-<<<<<<< HEAD
-        getMails: builder.query<Mail[], void>({query: () => ""}),
->>>>>>> 9a97571 (WIP campaign)
-=======
-        getMails: builder.query<Mail[], { 
-            campaign_ids?: string[], 
-            from?: string, 
-            to?: string }>({query: ({ campaign_ids, from, to }) => {
-                const params = new URLSearchParams();
-    
-                if (campaign_ids) {
-                    params.append("campaign_ids", campaign_ids.join(","));
-                }
-                if (from) {
-                    params.append("from", from);
-                }
-                if (to) {
-                    params.append("to", to);
-                }
-
-                console.warn("THE latest query is ==> ", params.toString());
-    
-                // Return the query URL with the query parameters
-                return {
-                    url: `?${params.toString()}`,  // Concatenate query parameters to the base URL
-                };
-        }}),
->>>>>>> 5569103 (feat: show the analytics of the respective campaign)
     })
 });
 
 export const { 
     useGetMailsQuery,
-<<<<<<< HEAD
     useDeleteMailMutation
-=======
->>>>>>> 9a97571 (WIP campaign)
 } = mailApi;

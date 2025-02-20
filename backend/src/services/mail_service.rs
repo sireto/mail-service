@@ -66,7 +66,6 @@ pub async fn create_mail(payload: CreateMailRequest) -> Result<Vec<CreateMailRes
 
         let response = mail_service.create_mail(new_mail).await;
 
-        println!("THE RESPONSE MAIL ====> {response:?}");
         println!("AFTER AFTER ADDING TO THE MAIL");
 
         match response {
