@@ -210,3 +210,14 @@ export const MailDTO = z.object({
     status: z.string(),
     status_reason: z.string().nullable(),
 });
+
+
+// send transactional mail request DTO...
+export const SendTransactionalMailRequestDTO = z.object({
+    bcc: z.string().nullable(),
+    cc: z.string().nullable(),
+    from: z.string(),
+    receiver: z.string(),
+    subject: z.string(),
+    template_data: z.string(),
+})

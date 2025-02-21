@@ -15,6 +15,7 @@ import { z } from 'zod';
 import { MultiSelect } from '@/components/common/Multiselect';
 import { useGetCampaignsQuery } from '@/app/services/CampaignApi';
 import DatePicker from '@/components/common/DatePicker';
+import { setToEndOfDay } from '@/lib/utils';
 
 const SearchCampaignAnalyticsDTO = z.object({
     campaigns: z.array(z.string().nonempty("At least one campaign is needed")).min(1, "Select at least one campaign"),
@@ -30,8 +31,8 @@ interface ICampaignData {
 const page = () => {
     const { id } = useParams(); // Get campaign ID from URL parameters
     
-    const { data: campaigns, error: fetchError, isLoading: isFetching } = useGetCampaignsQuery();
-    let [campaignList, setCampaignList] = useState<ICampaignData[] | []>([]);
+    // const { data: campaigns, error: fetchError, isLoading: isFetching } = useGetCampaignsQuery();
+    // let [campaignList, setCampaignList] = useState<ICampaignData[] | []>([]);
     const [ deleteMail, { isLoading: isDeleting, error: deletionError }] = useDeleteMailMutation();
 
     const today = new Date();
@@ -42,8 +43,8 @@ const page = () => {
         resolver: zodResolver(SearchCampaignAnalyticsDTO),
         defaultValues: {
             campaigns: typeof id === 'string' ? [id] : [],
-            from: oneWeekAgo.toISOString(),
-            to: today.toISOString(),
+            from: oneWeekAgo,
+            to: today,
         }
     });
 
@@ -53,26 +54,33 @@ const page = () => {
         to: today.toISOString(),
     });
 
+    const datesChanged = form.formState.dirtyFields.from || form.formState.dirtyFields.to;
+
+
     // Adjust the mail query to trigger based on campaign ID (from URL params) and form inputs
-    const { data: mails, isLoading, error } = useGetMailsQuery(searchParams);  // Skip if no valid data
+    const { data: mails, isLoading, error } = useGetMailsQuery(
+        searchParams, 
+        // skip when the form dates are not changed here...
+        { skip: !form.formState.isValid || (form.formState.isDirty && !datesChanged)  }
+    );
 
-    useEffect(() => {
-        if (campaigns) {
-            setCampaignList(campaigns?.map((campaign) => ({
-                value: campaign.id,
-                label: campaign.campaign_name,
-            })));
-        }
-    }, [campaigns]);
+    // useEffect(() => {
+    //     if (campaigns) {
+    //         setCampaignList(campaigns?.map((campaign) => ({
+    //             value: campaign.id,
+    //             label: campaign.campaign_name,
+    //         })));
+    //     }
+    // }, [campaigns]);
 
-    useEffect(() => {
-        if (campaignList.length > 0) {
-            const initialValue = [campaignList[0].value];
-            // setSelectedCampaigns(initialValue);
-            form.setValue("campaigns", initialValue);
-        }
+    // useEffect(() => {
+    //     if (campaignList.length > 0) {
+    //         const initialValue = [campaignList[0].value];
+    //         // setSelectedCampaigns(initialValue);
+    //         form.setValue("campaigns", initialValue);
+    //     }
 
-    }, [campaignList, form, mails]);
+    // }, [campaignList, form, mails]);
 
     const multiSelectRef = useRef(null);
 
@@ -80,18 +88,13 @@ const page = () => {
         return <div>There was an error fetching campaign mails data...</div>
     }
 
-    useEffect(() => {
-        console.warn("THE SEARCH PARAMS ARE =====> ", searchParams);
-    }, [searchParams]);
-
     const searchHandler = async (value: any) => {
         const { campaigns, from, to } = value;
-        console.warn("Form submitted with value ===> ", value);
 
         setSearchParams({
             campaign_ids: campaigns,
             from: new Date(from).toISOString(),
-            to: new Date(to).toISOString(),
+            to: setToEndOfDay(new Date(to)).toISOString(),
         });
     };
 

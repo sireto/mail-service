@@ -5,7 +5,8 @@ import {
     CreateTemplateResponseDTO, 
     CreateTemplateRequestDTO, 
     UpdateTemplateRequestDTO, 
-    UpdateTemplateResponseDTO 
+    UpdateTemplateResponseDTO ,
+    SendTransactionalMailRequestDTO
 } from '@/lib/type';
 import environments from "@/config/environments";
 
@@ -14,6 +15,7 @@ type CreateTemplateRequest = z.infer<typeof CreateTemplateRequestDTO>;
 type CreateTemplateResponse = z.infer<typeof CreateTemplateResponseDTO>;
 type UpdateTemplateRequest = z.infer<typeof UpdateTemplateRequestDTO>;
 type UpdateTemplateResponse = z.infer<typeof UpdateTemplateResponseDTO>;
+type SendTransactionalMailRequest = z.infer<typeof SendTransactionalMailRequestDTO>;
 
 // Template API slice...
 export const templateApi = createApi({
@@ -51,6 +53,13 @@ export const templateApi = createApi({
                 method: "DELETE",
             }),
             invalidatesTags: ['Template']
+        }),
+        sendTemplatedEmail: builder.mutation<void, { templateId: string, payload: SendTransactionalMailRequest}>({
+            query: ({templateId, payload}) => ({
+                url: `/${templateId}/send`,
+                method: "POST",
+                body: payload
+            }),
         })
     })
 });
@@ -59,5 +68,6 @@ export const {
     useGetTemplatesQuery, 
     useCreateTemplateMutation, 
     useUpdateTemplateMutation, 
-    useDeleteTemplateMutation 
+    useDeleteTemplateMutation,
+    useSendTemplatedEmailMutation
 } = templateApi;

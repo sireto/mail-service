@@ -16,7 +16,7 @@ enum MailStatus {
     Draft,
     Pending,
     Sent,
-    Failed,
+    Bounced,
 }
 
 // impl ToString for MailStatus {

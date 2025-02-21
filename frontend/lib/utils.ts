@@ -19,3 +19,15 @@ export function formatDate(dateString: string) {
     year: "numeric",
   });
 }
+
+/**
+ * 
+ * @param date 
+ * @description Set the time of a date to the end of the day by time...
+ * @returns 
+ */
+export function setToEndOfDay(date: Date) {
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}

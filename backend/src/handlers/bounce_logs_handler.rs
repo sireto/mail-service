@@ -17,7 +17,7 @@ enum MailStatus {
     Draft,
     Pending,
     Sent,
-    Failed,
+    Bounced,
 }
 
 impl MailStatus {
@@ -26,7 +26,7 @@ impl MailStatus {
             MailStatus::Draft => "draft",
             MailStatus::Pending => "pending",
             MailStatus::Sent => "sent",
-            MailStatus::Failed => "failed",
+            MailStatus::Bounced => "bounced",
         }
     }
 
@@ -35,7 +35,7 @@ impl MailStatus {
             "draft" => Some(MailStatus::Draft),
             "pending" => Some(MailStatus::Pending),
             "sent" => Some(MailStatus::Sent),
-            "failed" => Some(MailStatus::Failed),
+            "bounced" => Some(MailStatus::Bounced),
             _ => None,
         }
     }
@@ -80,7 +80,7 @@ pub async fn handle_sns_notification (
                 if let Some(bounce) = sns_event.bounce {
                     let recipients = bounce.bounced_recipients;
 
-                    let status = MailStatus::Failed;
+                    let status = MailStatus::Bounced;
                     let mail_id = sns_event.mail.mail_id.clone();
                     let _ = mail_service.update_mail_status(mail_id, status.as_str()).await;
 
