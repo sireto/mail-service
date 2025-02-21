@@ -164,14 +164,7 @@ export const CreateCampaignRequestDTO = z.object({
     template_id: z.string(),
     status: z.string(),
     scheduled_at: z.string(),
-<<<<<<< HEAD
-<<<<<<< HEAD
     list_id: z.string(),
-=======
->>>>>>> 9a97571 (WIP campaign)
-=======
-    list_id: z.string(),
->>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
 });
 
 export const CreateCampaignResponseDTO = z.object({
@@ -186,10 +179,6 @@ export const CreateCampaignResponseDTO = z.object({
     scheduled_at: z.string(),
 });
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
 export const UpdateCampaignRequestDTO = z.object({
   campaign_name: z.string(),
   campaign_senders: z.string(),
@@ -209,11 +198,6 @@ export const UpdateCampaignResponseDTO = z.object({
   updated_at: z.string(),
 });
 
-<<<<<<< HEAD
-=======
->>>>>>> 9a97571 (WIP campaign)
-=======
->>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
 
 // mails DTOs...
 export const MailDTO = z.object({
@@ -224,8 +208,6 @@ export const MailDTO = z.object({
     sent_at: z.string(),
     template_id: z.string(),
     status: z.string(),
-<<<<<<< HEAD
-<<<<<<< HEAD
     status_reason: z.string().nullable(),
 });
 
@@ -239,10 +221,3 @@ export const SendTransactionalMailRequestDTO = z.object({
     subject: z.string(),
     template_data: z.string(),
 })
-=======
-});
->>>>>>> 9a97571 (WIP campaign)
-=======
-    status_reason: z.string().nullable(),
-});
->>>>>>> f3ca610 (fix: add status reasons on the status tags tooltip and backend fixes)
