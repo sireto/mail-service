@@ -20,7 +20,7 @@ pub mod models {
 pub mod handlers { 
     pub mod template; 
     pub mod contact;
-        pub mod mail;
+    pub mod mail_handler;
     pub mod list;
     pub mod campaign;
     pub mod campaign_sender;
@@ -34,7 +34,7 @@ pub mod services {
     pub mod list_service;
     pub mod campaign_service;
     pub mod campaign_sender_service;
-    pub mod mail;
+    pub mod mail_service;
     pub mod bounce_logs_service;
 }
 pub mod repositories { 
@@ -44,7 +44,7 @@ pub mod repositories {
     pub mod contact;
     pub mod campaign;
     pub mod campaign_sender;
-    pub mod mail;
+    pub mod mail_repository;
     pub mod bounce_logs_repo;
 }
 pub mod routes { 

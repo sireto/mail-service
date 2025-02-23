@@ -8,7 +8,7 @@ use axum::{
 };
 
 use crate::services::template_service;
-use crate::handlers::mail as mail_handler;
+use crate::handlers::mail_handler as mail_handler;
 use crate::utils::template_utils;
 
 
@@ -158,6 +158,7 @@ pub async fn send_templated_email(
     match send_templated_email_response {
         Ok(response) => {
             let payload = CreateMailRequest {
+                id: response.id.to_string(),
                 mail_message: response.message.clone(),
                 email: emails,
                 template_id: Some(response.id),
@@ -167,7 +168,6 @@ pub async fn send_templated_email(
             };
 
             let mail_added_response = mail_handler::add_mail(Json(payload)).await;
-
             let _ = match mail_added_response {
                 Ok(mail_response) => Ok(Json(mail_response)),
                 Err((status, message)) => Err((status, message)),

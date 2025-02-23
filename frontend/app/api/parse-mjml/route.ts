@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import mjml2html from "mjml";
+// import mjml2html from "mjml";
 
 /**
  * @description A POST function to parse MJML to HTML
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
         // console.log("Received MJML content:", mjml_content);
 
         console.warn("BEFORE THE PARSING");
-        const { html } = mjml2html(mjml_content);
+        // const { html } = mjml2html(mjml_content);
         console.warn("AFTER THE PARSING");
 
 
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
         //     html
         // });
 
-        return NextResponse.json({ data: html }, { status: 200 });
+        return NextResponse.json({ data: mjml_content }, { status: 200 });
     } catch (err) {
         console.error("Server Error:", err);
         return NextResponse.json({ error: "Internal Server Error", details: (err as Error).message }, { status: 500 });

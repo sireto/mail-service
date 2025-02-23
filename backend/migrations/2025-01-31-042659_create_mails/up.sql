@@ -2,7 +2,7 @@
 -- CREATE TYPE "mail_status_enum" AS ENUM ('draft', 'pending', 'sent', 'failed');
 
 CREATE TABLE "mails" (
-    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+    "id" TEXT PRIMARY KEY NOT NULL,
     "mail_message" TEXT NOT NULL,
     "contact_id" UUID REFERENCES contacts(id) ON DELETE CASCADE NOT NULL,
     "template_id" UUID REFERENCES templates(id) ON DELETE SET NULL,

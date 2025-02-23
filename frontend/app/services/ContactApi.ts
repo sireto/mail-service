@@ -6,8 +6,8 @@ interface Contact {
   first_name?: string;
   last_name?: string;
   attribute: string;
-  created: string;
-  updated: string;
+  created_at: string;
+  updated_at: string;
   list_names: string[];
 }
 

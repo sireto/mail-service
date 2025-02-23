@@ -211,6 +211,7 @@ pub async fn send_templated_email(
     match result {
         Ok(_) => Ok(SendMailResponse {
             id: template_uuid_id,
+            message_id: result.unwrap().message_id().unwrap_or_default().to_string(),
             name: template.name,
             to: receiver_list,
             from: payload.from,

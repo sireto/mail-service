@@ -2,7 +2,7 @@
 
 import DataTable from "@/components/DataTable";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   useGetContactsQuery,
   useDeleteContactMutation,
@@ -12,6 +12,8 @@ import { createColumns } from "@/app/dashboard/contacts/_columns";
 import { Download, Trash2 } from "lucide-react";
 import NoContactsFound from "./NotFound";
 import { AddContact } from "./_components/ContactForms/AddContact";
+import { Contact } from "@/lib/type/contact";
+import { ColumnDef } from "@tanstack/react-table";
 
 const NAMESPACE_ID = "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
 
@@ -35,6 +37,7 @@ const ContactsPage = () => {
   const [selectedContacts, setSelectedContacts] = useState<
     Record<string, boolean>
   >({});
+  const [searchTerm, setSearchTerm] = useState("");
 
   const selectedCount = Object.values(selectedContacts).filter(Boolean).length;
 
@@ -74,6 +77,25 @@ const ContactsPage = () => {
     URL.revokeObjectURL(url);
   };
 
+  const filteredContacts: Contact[] = useMemo(() => {
+    if (!contacts) return [];
+    const lowerSearch = searchTerm.toLowerCase();
+    return contacts.filter((contact) => {
+      const emailMatch = contact.email.toLowerCase().includes(lowerSearch);
+      const fullName = `${contact.first_name || ""} ${
+        contact.last_name || ""
+      }`.toLowerCase();
+      return emailMatch || fullName.includes(lowerSearch);
+    });
+  }, [contacts, searchTerm]);
+
+  const tableColumns = createColumns(
+    handleDeleteContact,
+    lists,
+    selectedContacts,
+    setSelectedContacts
+  ) as unknown as ColumnDef<Contact, unknown>[];
+
   if (isError) {
     return <NoContactsFound lists={lists} />;
   }
@@ -84,29 +106,12 @@ const ContactsPage = () => {
 
   return (
     <div>
-      <div className="p-6 flex justify-between items-center">
-        <div className="flex items-center gap-4">
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-semibold">
             Contacts{" "}
             <span className="text-gray-500">({contacts?.length || 0})</span>
           </h1>
-          {selectedCount > 0 && (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              {selectedCount} subscriber(s) selected —{" "}
-              <button
-                className="text-blue-600 hover:underline"
-                onClick={() =>
-                  setSelectedContacts(
-                    Object.fromEntries(contacts?.map((c) => [c.id, true]) ?? [])
-                  )
-                }
-              >
-                Select all {contacts?.length}
-              </button>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
           <Button
             variant="default"
             className="bg-blue-600 hover:bg-blue-700"
@@ -114,6 +119,15 @@ const ContactsPage = () => {
           >
             + New
           </Button>
+        </div>
+        <div className="flex justify-between items-center">
+          <input
+            type="text"
+            placeholder="Search by name or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full max-w-md px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:blue-500"
+          />
         </div>
       </div>
 
@@ -147,13 +161,8 @@ const ContactsPage = () => {
 
       <div className="p-6">
         <DataTable
-          data={contacts || []}
-          columns={createColumns(
-            handleDeleteContact,
-            lists,
-            selectedContacts,
-            setSelectedContacts
-          )}
+          data={filteredContacts || []}
+          columns={tableColumns}
           fallback="No Contacts Found"
         />
       </div>

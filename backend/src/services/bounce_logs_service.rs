@@ -32,6 +32,10 @@ impl BounceLogsService {
     pub async fn get_bounces_by_contact_id(&self, bounce_contact_id: Uuid) -> Result<Vec<BounceLog>, diesel::result::Error> {
         self.repository.get_bounces_of_contact_id(bounce_contact_id).await
     }
+
+    pub async fn get_bounce_by_mail_id(&self, bounce_mail_id: String) -> Result<BounceLog, diesel::result::Error> {
+        self.repository.get_bounce_by_mail_id(bounce_mail_id).await
+    }
 }
 
 /// a function to add a new bounce into the record...
@@ -65,6 +69,7 @@ pub async fn get_all_bounces() -> Result<Vec<BounceLog>, (StatusCode, String)> {
         Ok(bounces) => bounces.into_iter().map(|bounce| BounceLog {
             id: bounce.id,
             contact_id: bounce.contact_id,
+            mail_id: bounce.mail_id,
             campaign_id: bounce.campaign_id,
             at: bounce.at,
             kind: bounce.kind,
@@ -85,6 +90,20 @@ pub async fn get_bounces_by_contact_id(bounce_contact_id: Uuid) -> Result<Vec<Bo
     let response = match bounces {
         Ok(bounces) => bounces,
         Err(err) => return Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
+    };
+
+    Ok(response)
+}
+
+/// a function to get a bounce by mail id...
+pub async fn get_bounce_by_mail_id(bounce_mail_id: String) -> Result<BounceLog, (StatusCode, String)> {
+    let bounce_logs_repository = Arc::new(BounceLogsRepositoryImpl);
+    let bounce_logs_service = BounceLogsService::new(bounce_logs_repository);
+    let bounce = bounce_logs_service.get_bounce_by_mail_id(bounce_mail_id).await;
+
+    let response = match bounce {
+        Ok(bounce) => bounce,
+        Err(err) => return Err((StatusCode::NOT_FOUND, err.to_string()))
     };
 
     Ok(response)

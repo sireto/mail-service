@@ -163,7 +163,7 @@ pub struct SendMailRequest {
 pub struct SendMailResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub id: Uuid,
-
+    pub message_id: String,
     pub name: String,
     pub to: Vec<String>,
     pub cc: Vec<String>,

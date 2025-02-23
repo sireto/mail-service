@@ -2,16 +2,44 @@
 
 use std::sync::Arc;
 
-use crate::{models::bounce_logs::
+use crate::{models::{bounce_logs::
     { 
         BounceNotification, CreateBounceLogRequest, CreateBounceLogResponse, GetBounceLogResponse, SnsNotification
-    }, repositories::contact::ContactRepositoryImpl, services::{bounce_logs_service, contact::ContactService}
+    }, mail::UpdateMailRequest}, repositories::{contact::ContactRepositoryImpl, mail_repository::MailRepositoryImpl}, services::{bounce_logs_service, contact::ContactService, mail_service::{self, MailService}}
 };
 
 use axum::{
     extract:: Path, Json, http::StatusCode
 };
 use uuid::Uuid;
+
+enum MailStatus {
+    Draft,
+    Pending,
+    Sent,
+    Bounced,
+}
+
+impl MailStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            MailStatus::Draft => "draft",
+            MailStatus::Pending => "pending",
+            MailStatus::Sent => "sent",
+            MailStatus::Bounced => "bounced",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "draft" => Some(MailStatus::Draft),
+            "pending" => Some(MailStatus::Pending),
+            "sent" => Some(MailStatus::Sent),
+            "bounced" => Some(MailStatus::Bounced),
+            _ => None,
+        }
+    }
+}
 
 #[utoipa::path(
     post,
@@ -25,6 +53,9 @@ pub async fn handle_sns_notification (
     payload: Json<SnsNotification>,
 ) -> Result<(), (StatusCode, String)> {
      println!("THe payload ====> {payload:?}");
+
+    let mail_repository = Arc::new(MailRepositoryImpl);
+    let mail_service = MailService::new(mail_repository);
 
      // automate the subscription confirmation...
      if payload.notification_type == "SubscriptionConfirmation" {
@@ -41,34 +72,50 @@ pub async fn handle_sns_notification (
     }
 
     if payload.notification_type == "Notification" {
-        let bounced_notification: BounceNotification = serde_json::from_str(&payload.message)
+        let sns_event: BounceNotification = serde_json::from_str(&payload.message)
             .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
-        if bounced_notification.notification_type == "Bounce" {
-            let receipent = bounced_notification.clone().bounce.bounced_recipients;
+        match sns_event.notification_type.as_str() {
+            "Bounce" => {
+                if let Some(bounce) = sns_event.bounce {
+                    let recipients = bounce.bounced_recipients;
 
-                for recp in receipent {
-                    println!("The bounced email is: {recp:?}");
-                    println!("THe bounced notification is::::::> {bounced_notification:?}");
+                    let status = MailStatus::Bounced;
+                    let mail_id = sns_event.mail.mail_id.clone();
+                    let _ = mail_service.update_mail_status(mail_id, status.as_str()).await;
 
-                    let contact_repository = Arc::new(ContactRepositoryImpl);
-                    let contact_service = ContactService::new(contact_repository);
-                    let contact = contact_service.get_contact_by_email(recp.email_address).await;
+                    for recp in recipients {
+                        let contact_repository = Arc::new(ContactRepositoryImpl);
+                        let contact_service = ContactService::new(contact_repository);
+                        let contact = contact_service.get_contact_by_email(recp.email_address).await;
 
-                    let new_bounce = CreateBounceLogRequest {
-                    contact_id: contact.unwrap().id,
-                    at: bounced_notification.bounce.timestamp.parse::<chrono::DateTime<chrono::Utc>>().map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?,
-                    kind: bounced_notification.bounce.bounce_type.clone(),
-                    campaign_id: None,
-                    reason: bounced_notification.bounce.bounce_sub_type.clone(),
-                };
+                        let new_bounce = CreateBounceLogRequest {
+                            contact_id: contact.unwrap().id,
+                            at: bounce.timestamp.parse::<chrono::DateTime<chrono::Utc>>()
+                                .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?,
+                            kind: bounce.bounce_type.clone(),
+                            campaign_id: None,
+                            reason: bounce.bounce_sub_type.clone(),
+                            mail_id: sns_event.mail.mail_id.clone(),
+                        };
 
-                // add the bounce to the db after the parsed notification is of type bounce...
-                bounce_logs_service::add_bounce(new_bounce).await?;
+                        // Add the bounce to the DB
+                        bounce_logs_service::add_bounce(new_bounce).await?;
+                    }
+                }
+            }
+            "Delivery" => {
+                if let Some(delivery) = sns_event.delivery {
+                    let status = MailStatus::Sent;
+
+                    let _ = mail_service.update_mail_status(sns_event.mail.mail_id, status.as_str()).await;
+                }
+            }
+            _ => {
+                println!("Unknown notification type: {}", sns_event.notification_type);
             }
         }
     }
-
 
     Ok(())
 }

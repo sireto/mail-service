@@ -24,6 +24,7 @@ pub trait BounceLogsRepository {
     async fn get_all_bounces(&self) -> Result<Vec<BounceLog>, diesel::result::Error>;
     async fn delete_bounce(&self, bounce_id: Uuid) -> Result<BounceLog, diesel::result::Error>;
     async fn get_bounces_of_contact_id(&self, bounce_contact_id: Uuid) -> Result<Vec<BounceLog>, diesel::result::Error>;
+    async fn get_bounce_by_mail_id(&self, bounce_mail_id: String) -> Result<BounceLog, diesel::result::Error>;
 }
 
 pub struct BounceLogsRepositoryImpl;
@@ -46,6 +47,7 @@ impl BounceLogsRepository for BounceLogsRepositoryImpl {
             .select((
                 id,
                 contact_id,
+                mail_id,
                 campaign_id,
                 at,
                 kind,
@@ -62,6 +64,7 @@ impl BounceLogsRepository for BounceLogsRepositoryImpl {
             .select((
                 id,
                 contact_id,
+                mail_id,
                 campaign_id,
                 at,
                 kind,
@@ -69,6 +72,14 @@ impl BounceLogsRepository for BounceLogsRepositoryImpl {
             ))
             .filter(contact_id.eq(bounce_contact_id))
             .load::<BounceLog>(&mut conn)
+    }
+
+    async fn get_bounce_by_mail_id(&self, bounce_mail_id: String) -> Result<BounceLog, diesel::result::Error> {
+        let mut conn = get_connection_pool().await;
+
+        bounce_logs
+            .filter(mail_id.eq(bounce_mail_id))
+            .get_result::<BounceLog>(&mut conn)
     }
 
     async fn delete_bounce(&self, bounce_id: Uuid) -> Result<BounceLog, diesel::result::Error> {
