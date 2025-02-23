@@ -3,6 +3,9 @@
 import React from 'react'
 import { ColumnDef } from '@tanstack/react-table';
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
 import { formatDate, formatDateWithoutDay } from '@/lib/utils';
 import Link from 'next/link';
 import ActionsColumn from './_components/ActionsColumn';
@@ -80,6 +83,9 @@ export const columns = (
         accessorKey: "sent_at",
         header: "Sent",
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
         cell: ({ row }) => {
             const { localDate, localTime } = formatDateWithoutDay(row.getValue("sent_at"));
             return <ToolTip
@@ -87,9 +93,12 @@ export const columns = (
             tooltipTrigger={<span className='text-xs'>{localDate}</span>}
         />
         }
+<<<<<<< HEAD
 =======
         cell: ({ row }) => <span>{formatDate(row.getValue("sent_at"))}</span>,
 >>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
+=======
+>>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
     },
     {
         accessorKey: "actions",

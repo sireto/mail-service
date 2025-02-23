@@ -1,6 +1,7 @@
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Form } from '@/components/ui/form';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { Select, SelectTrigger, SelectValue, SelectContent } from '@/components/ui/select';
 import { AddCampaignFormSchemaDTO, ListDTO, TemplateDTO } from '@/lib/type';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,12 @@ import { AddCampaignFormSchemaDTO } from '@/lib/type';
 import { Input } from '@/components/ui/input';
 import React, { useState } from 'react'
 >>>>>>> b2241a9 (fix: resolve the issue with the date picker Time Format while filtering the mails)
+=======
+import { Select, SelectTrigger, SelectValue, SelectContent } from '@/components/ui/select';
+import { AddCampaignFormSchemaDTO, ListDTO, TemplateDTO } from '@/lib/type';
+import { Input } from '@/components/ui/input';
+import React from 'react'
+>>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
 import { UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
 import { useGetTemplatesQuery } from '@/app/services/TemplateApi';
@@ -18,9 +25,13 @@ import { ClipboardX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useGetListsQuery } from '@/app/services/ListApi';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import DropdownItemList from './DropdownItemList';
 =======
 >>>>>>> b2241a9 (fix: resolve the issue with the date picker Time Format while filtering the mails)
+=======
+import DropdownItemList from './DropdownItemList';
+>>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
 
 interface CampaignFormProps {
     form: UseFormReturn<z.infer<typeof AddCampaignFormSchemaDTO>>;
@@ -29,17 +40,24 @@ interface CampaignFormProps {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
 type Template = z.infer<typeof TemplateDTO>;
 type List = z.infer<typeof ListDTO>;
 
 const namespaceId : string | undefined = process.env.NEXT_PUBLIC_NAMESPACE_ID;
+<<<<<<< HEAD
 =======
 const namespaceId = "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
 >>>>>>> b2241a9 (fix: resolve the issue with the date picker Time Format while filtering the mails)
+=======
+>>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
 
 
 const CampaignForm = (props: CampaignFormProps) => {
     const { form, submitHandler, triggerButton } = props;
+<<<<<<< HEAD
 <<<<<<< HEAD
 
     const { data: templates, error, isLoading } = useGetTemplatesQuery();
@@ -50,12 +68,18 @@ const CampaignForm = (props: CampaignFormProps) => {
     const { data: templates, error, isLoading } = useGetTemplatesQuery();
     const { data: lists } = useGetListsQuery(namespaceId);
 >>>>>>> b2241a9 (fix: resolve the issue with the date picker Time Format while filtering the mails)
+=======
+
+    const { data: templates, error, isLoading } = useGetTemplatesQuery();
+    const { data: lists } = useGetListsQuery(namespaceId || '');
+>>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
     
   
     if (error) {
         return <div>There was an error fetching templates...</div>
     }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
   
 =======
@@ -73,6 +97,9 @@ const CampaignForm = (props: CampaignFormProps) => {
 
 
 >>>>>>> b2241a9 (fix: resolve the issue with the date picker Time Format while filtering the mails)
+=======
+  
+>>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
     return (
       <Form {...form}>
         <form onSubmit={form.handleSubmit(submitHandler)} className="flex flex-col space-y-4 flex-1">
@@ -148,10 +175,14 @@ const CampaignForm = (props: CampaignFormProps) => {
                     </SelectTrigger>
                     <SelectContent>
 <<<<<<< HEAD
+<<<<<<< HEAD
                       <DropdownItemList<Template> items={templates} />
 =======
                       { templatesComponent }
 >>>>>>> b2241a9 (fix: resolve the issue with the date picker Time Format while filtering the mails)
+=======
+                      <DropdownItemList<Template> items={templates} />
+>>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
                     </SelectContent>
                 </Select>
                 </FormControl>
@@ -173,10 +204,14 @@ const CampaignForm = (props: CampaignFormProps) => {
                     </SelectTrigger>
                     <SelectContent>
 <<<<<<< HEAD
+<<<<<<< HEAD
                       <DropdownItemList<List> items={lists} />
 =======
                       { listComponent }
 >>>>>>> b2241a9 (fix: resolve the issue with the date picker Time Format while filtering the mails)
+=======
+                      <DropdownItemList<List> items={lists} />
+>>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
                     </SelectContent>
                 </Select>
                 </FormControl>

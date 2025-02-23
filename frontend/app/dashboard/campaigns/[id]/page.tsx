@@ -16,6 +16,7 @@ import SendTestMailForm from './_components/SendTestMailForm';
 
 
 const Page = () => {
+<<<<<<< HEAD
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
     const isEditing = id !== "new";  // if not new this Page is opened in the editing mode...
@@ -46,6 +47,11 @@ const page = () => {
   const router = useRouter();
     const isEditing = id !== "new";  // if not new this page is opened in the editing mode...
 >>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
+=======
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+    const isEditing = id !== "new";  // if not new this Page is opened in the editing mode...
+>>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
     const form = useForm<z.infer<typeof AddCampaignFormSchemaDTO>>({
         resolver: zodResolver(AddCampaignFormSchemaDTO),
         defaultValues: {
@@ -58,9 +64,12 @@ const page = () => {
     });
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     const { refetch } = useGetCampaignsQuery();
 >>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
+=======
+>>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
     const { data: campaignData, error, isLoading } = useGetCampaignByIdQuery(id, { skip: !isEditing }); 
     const [ createCampaign, { isLoading: isCreating, error: creationError }] = useCreateCampaignMutation();
     const [ updateCampaign, { isLoading: isUpdating, error: updateError }] = useUpdateCampaignMutation();
@@ -73,11 +82,14 @@ const page = () => {
 
     const saveCampaignChanges = async (value: z.infer<typeof AddCampaignFormSchemaDTO>) => {
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
         console.warn("THE FORM VALUES:", value);
 
 
 >>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
+=======
+>>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
         if (isEditing) {
           const updatedCampaign = {
             campaign_name: value.campaign_name.trim(),
@@ -111,9 +123,12 @@ const page = () => {
         }
         router.push('/dashboard/campaigns');
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
         refetch();
 >>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
+=======
+>>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
     }
     
 
@@ -145,6 +160,7 @@ const page = () => {
   )
 }
 
+<<<<<<< HEAD
 export default Page
 =======
     </>
@@ -158,3 +174,6 @@ export default Page
 
 export default page
 >>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
+=======
+export default Page
+>>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
