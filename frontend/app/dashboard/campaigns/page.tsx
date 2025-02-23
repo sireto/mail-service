@@ -9,7 +9,7 @@ import Link from 'next/link';
 import AddButton from '@/components/common/AddButton';
 
 
-const CampaignsPage = () => {
+export default function CampaignPage() {
     const { data: campaigns, error, isLoading } = useGetCampaignsQuery();
     const [ deleteCampaign, { isLoading: isDeleting, error: deletionError }] = useDeleteCampaignMutation();
     const [ startCampaign, { isLoading: isStarting, error: startingError }] = useStartCampaignMutation();
@@ -78,5 +78,3 @@ const CampaignsPage = () => {
         </div>
       )
 }
-
-export default CampaignsPage

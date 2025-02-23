@@ -4,6 +4,10 @@ FROM rust:latest as builder
 # Set the working directory inside the container
 WORKDIR /app
 
+# Accept DATABASE_URL as a build argument
+ARG DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
+
 # Copy the backend's Cargo.toml and Cargo.lock files
 COPY Cargo.toml Cargo.lock ./
 

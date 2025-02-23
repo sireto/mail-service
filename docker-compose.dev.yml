@@ -16,6 +16,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        DATABASE_URL: ${DATABASE_URL} # pass the DATABASE_URL as a build arg...
     container_name: mailservice_api
     ports:
       - "8000:8000"
@@ -23,7 +25,7 @@ services:
       - postgres
     environment:
       # Use the service name 'postgres' instead of localhost
-      DATABASE_URL: postgresql://postgres:Kanak%40posts@localhost:5432/mail_service
+      DATABASE_URL: ${DATABASE_URL}
 
     env_file:
       - ./.env
@@ -46,7 +48,7 @@ services:
       - app_network
 
     ports:
-      - "8021:8021"
+      - "3000:3000"
 
 volumes:
   mailservice_1:
