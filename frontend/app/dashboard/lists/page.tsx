@@ -9,7 +9,7 @@ import DataTable from '@/components/DataTable';
 import columns from './_columns';
 import AddButton from '@/components/common/AddButton';
 
-const page = () => {
+const Page = () => {
     const namespaceId = "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
 
     const { data: lists, error, isLoading } = useGetListsQuery(namespaceId);
@@ -24,7 +24,7 @@ const page = () => {
 
     return (
         <div className=''>
-            {/* Template page heading... */}
+            {/* Template Page heading... */}
             <div className='w-full flex justify-between items-center'>
                 <h1 className='text-xl font-bold'>
                     Lists
@@ -48,4 +48,4 @@ const page = () => {
       )
 }
 
-export default page
+export default Page

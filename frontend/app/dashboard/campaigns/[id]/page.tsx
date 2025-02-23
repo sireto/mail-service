@@ -13,10 +13,10 @@ import CampaignForm from './_components/CampaignForm';
 import SendTestMailForm from './_components/SendTestMailForm';
 
 
-const page = () => {
+const Page = () => {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-    const isEditing = id !== "new";  // if not new this page is opened in the editing mode...
+    const isEditing = id !== "new";  // if not new this Page is opened in the editing mode...
     const form = useForm<z.infer<typeof AddCampaignFormSchemaDTO>>({
         resolver: zodResolver(AddCampaignFormSchemaDTO),
         defaultValues: {
@@ -28,7 +28,6 @@ const page = () => {
         }
     });
 
-    const { refetch } = useGetCampaignsQuery();
     const { data: campaignData, error, isLoading } = useGetCampaignByIdQuery(id, { skip: !isEditing }); 
     const [ createCampaign, { isLoading: isCreating, error: creationError }] = useCreateCampaignMutation();
     const [ updateCampaign, { isLoading: isUpdating, error: updateError }] = useUpdateCampaignMutation();
@@ -40,9 +39,6 @@ const page = () => {
     }, [campaignData, form, isEditing]);
 
     const saveCampaignChanges = async (value: z.infer<typeof AddCampaignFormSchemaDTO>) => {
-        console.warn("THE FORM VALUES:", value);
-
-
         if (isEditing) {
           const updatedCampaign = {
             campaign_name: value.campaign_name.trim(),
@@ -75,7 +71,6 @@ const page = () => {
           form.reset();
         }
         router.push('/dashboard/campaigns');
-        refetch();
     }
     
 
@@ -97,4 +92,4 @@ const page = () => {
   )
 }
 
-export default page
+export default Page

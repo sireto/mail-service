@@ -1,15 +1,16 @@
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Form } from '@/components/ui/form';
-import { Select, SelectTrigger, SelectItem, SelectValue, SelectContent } from '@/components/ui/select';
-import { AddCampaignFormSchemaDTO } from '@/lib/type';
+import { Select, SelectTrigger, SelectValue, SelectContent } from '@/components/ui/select';
+import { AddCampaignFormSchemaDTO, ListDTO, TemplateDTO } from '@/lib/type';
 import { Input } from '@/components/ui/input';
-import React, { useState } from 'react'
+import React from 'react'
 import { UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
 import { useGetTemplatesQuery } from '@/app/services/TemplateApi';
 import { ClipboardX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useGetListsQuery } from '@/app/services/ListApi';
+import DropdownItemList from './DropdownItemList';
 
 interface CampaignFormProps {
     form: UseFormReturn<z.infer<typeof AddCampaignFormSchemaDTO>>;
@@ -17,34 +18,24 @@ interface CampaignFormProps {
     triggerButton: React.ReactNode;
 }
 
-const namespaceId = "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
+type Template = z.infer<typeof TemplateDTO>;
+type List = z.infer<typeof ListDTO>;
+
+const namespaceId : string | undefined = process.env.NEXT_PUBLIC_NAMESPACE_ID;
 
 
 const CampaignForm = (props: CampaignFormProps) => {
     const { form, submitHandler, triggerButton } = props;
-    const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
     const { data: templates, error, isLoading } = useGetTemplatesQuery();
-    const { data: lists } = useGetListsQuery(namespaceId);
+    const { data: lists } = useGetListsQuery(namespaceId || '');
     
   
     if (error) {
         return <div>There was an error fetching templates...</div>
     }
 
-    const templatesComponent = templates?.map((template) => (
-        <SelectItem key={template.id} value={template.id}>
-          {template.name}
-        </SelectItem>
-    ));
-
-    const listComponent = lists?.map((list) => (
-        <SelectItem key={list.id} value={list.id}>
-          {list.name}
-        </SelectItem>
-    ));
-
-
+  
     return (
       <Form {...form}>
         <form onSubmit={form.handleSubmit(submitHandler)} className="flex flex-col space-y-4 flex-1">
@@ -119,7 +110,7 @@ const CampaignForm = (props: CampaignFormProps) => {
                       <SelectValue placeholder="Select your Template" />
                     </SelectTrigger>
                     <SelectContent>
-                      { templatesComponent }
+                      <DropdownItemList<Template> items={templates} />
                     </SelectContent>
                 </Select>
                 </FormControl>
@@ -140,7 +131,7 @@ const CampaignForm = (props: CampaignFormProps) => {
                       <SelectValue placeholder="Select your Lists" />
                     </SelectTrigger>
                     <SelectContent>
-                      { listComponent }
+                      <DropdownItemList<List> items={lists} />
                     </SelectContent>
                 </Select>
                 </FormControl>

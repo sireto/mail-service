@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { ColumnDef } from '@tanstack/react-table';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatDateWithoutDay } from '@/lib/utils';
 import Link from 'next/link';
 import ActionsColumn from './_components/ActionsColumn';
 import ToolTip from '@/components/common/ToolTip';
@@ -40,7 +40,13 @@ export const columns = (
     {
         accessorKey: "sent_at",
         header: "Sent",
-        cell: ({ row }) => <span>{formatDate(row.getValue("sent_at"))}</span>,
+        cell: ({ row }) => {
+            const { localDate, localTime } = formatDateWithoutDay(row.getValue("sent_at"));
+            return <ToolTip
+            message={localTime}
+            tooltipTrigger={<span className='text-xs'>{localDate}</span>}
+        />
+        }
     },
     {
         accessorKey: "actions",

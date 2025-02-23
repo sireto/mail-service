@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::{models::{bounce_logs::
     { 
         BounceNotification, CreateBounceLogRequest, CreateBounceLogResponse, GetBounceLogResponse, SnsNotification
-    }, mail::UpdateMailRequest}, repositories::{contact::ContactRepositoryImpl, mail::MailRepositoryImpl}, services::{bounce_logs_service, contact::ContactService, mail::{self, MailService}}
+    }, mail::UpdateMailRequest}, repositories::{contact::ContactRepositoryImpl, mail_repository::MailRepositoryImpl}, services::{bounce_logs_service, contact::ContactService, mail_service::{self, MailService}}
 };
 
 use axum::{

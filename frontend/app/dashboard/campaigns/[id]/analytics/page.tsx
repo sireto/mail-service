@@ -28,7 +28,7 @@ interface ICampaignData {
     label: string;
 };
 
-const page = () => {
+const Page = () => {
     const { id } = useParams(); // Get campaign ID from URL parameters
     
     // const { data: campaigns, error: fetchError, isLoading: isFetching } = useGetCampaignsQuery();
@@ -108,7 +108,7 @@ const page = () => {
 
     return (
         <div>
-            {/* Template page heading... */}
+            {/* Template Page heading... */}
             <div className='w-full'>
                 <h1 className='text-xl font-bold'>
                     Analytics
@@ -187,4 +187,4 @@ const page = () => {
     );
 };
 
-export default page;
+export default Page;

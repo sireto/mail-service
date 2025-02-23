@@ -1,4 +1,4 @@
-use crate::{models::{campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse}, mail::CreateMailRequest}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, list_contact_repo::ListContactRepositoryImpl, mail::MailRepositoryImpl}, utils::contact_lists_functions::populate_contact_template};
+use crate::{models::{campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse}, mail::CreateMailRequest}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, list_contact_repo::ListContactRepositoryImpl, mail_repository::MailRepositoryImpl}, utils::contact_lists_functions::populate_contact_template};
 use uuid::Uuid;
 use std::sync::Arc;
 use axum::http::StatusCode;
@@ -11,8 +11,8 @@ use aws_sdk_sesv2::types::{Body, Content, Destination, Message, EmailContent};
 use crate::services::{aws_service, list_service::ListContactService, template_service::get_template_by_id};
 use anyhow::{anyhow, Result};
 
-use super::{campaign_sender_service::get_campaign_sender_by_id, mail::MailService };
-use crate::services::mail as mail_service;
+use super::{campaign_sender_service::get_campaign_sender_by_id, mail_service::MailService };
+use crate::services::mail_service as mail_service;
 
 
 pub struct CampaignService {

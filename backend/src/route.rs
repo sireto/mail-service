@@ -5,7 +5,7 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::handlers::{
     template,
     contact,
-    mail,
+    mail_handler,
     campaign as campaign,
     campaign_sender as campaign_sender,
     bounce_logs_handler
@@ -65,10 +65,10 @@ use crate::servers::servers_routes::servers_routes;
         servers::get_server_by_id, 
         servers::update_server, 
         servers::delete_server,
-        mail::add_mail,
-        mail::get_all_mails,
-        mail::update_mail,
-        mail::delete_mail,
+        mail_handler::add_mail,
+        mail_handler::get_all_mails,
+        mail_handler::update_mail,
+        mail_handler::delete_mail,
         bounce_logs_handler::handle_sns_notification,
         bounce_logs_handler::get_all_bounces,
         bounce_logs_handler::get_bounces_by_contact_id,

@@ -14,7 +14,7 @@ services:
 
   mail_service_api:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: mailservice_api
     ports:
@@ -31,6 +31,22 @@ services:
       - .backend/api/src:/app/src:ro
     networks:
       - app_network
+
+  app:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    
+    container_name: mailservice_frontend
+    depends_on:
+      - postgres
+      - mail_service_api
+    
+    networks:
+      - app_network
+
+    ports:
+      - "8021:8021"
 
 volumes:
   mailservice_1:

@@ -2,8 +2,6 @@
 
 import React from 'react'
 
-import { Plus } from "lucide-react";
-import { Button } from '@/components/ui/button';
 import DataTable from '@/components/DataTable';
 import columns from './_columns';
 import { useDeleteCampaignMutation, useGetCampaignsQuery, useStartCampaignMutation } from '@/app/services/CampaignApi';
@@ -11,7 +9,7 @@ import Link from 'next/link';
 import AddButton from '@/components/common/AddButton';
 
 
-const Page = () => {
+const CampaignsPage = () => {
     const { data: campaigns, error, isLoading } = useGetCampaignsQuery();
     const [ deleteCampaign, { isLoading: isDeleting, error: deletionError }] = useDeleteCampaignMutation();
     const [ startCampaign, { isLoading: isStarting, error: startingError }] = useStartCampaignMutation();
@@ -26,30 +24,41 @@ const Page = () => {
     }
     
     const deleteCampaignHandler = async (id: string) => {
-        if (deletionError) {
-            return <div>Error deleting the campaign</div>
-        }
+        try {
+            if (deletionError) {    // if there is an error already why bother sending request...
+                console.error("Error deleting the campaign");
+                return;
+            }
     
-        await deleteCampaign(id);
+            await deleteCampaign(id);
+        } catch (error) {
+            console.error("Failed to delete campaign:", error);
+        }
     }
 
     const startCampaignHandler = async (id: string) => {
-        if (startingError) {
-            return <div>Error starting the campaign</div>
+        try {
+            if (startingError) {
+                console.error("Error starting the campaign: ", deletionError);
+                return;
+            }
+
+            const campaignData = {
+                campaignId: id,
+                listId: "0a48a82f-ec04-4c19-904c-48dcebc80e49"
+            };
+
+            await startCampaign(campaignData);
+            window.alert("Campaign started successfully");
+        } catch (error) {
+            console.error("Failed to start the campaign: ", error);
+            window.alert("Failed to start the campaign. Please try again.");
         }
-
-        const campaignData = {
-            campaignId: id,
-            listId: "0a48a82f-ec04-4c19-904c-48dcebc80e49"
-        };
-
-        await startCampaign(campaignData);
-        window.alert("Campaign started successfully");
     }
 
     return (
         <div className=''>
-            {/* Template page heading... */}
+            {/* Template CampaignsPage heading... */}
             <div className='w-full flex justify-between items-center'>
                 <h1 className='text-xl font-bold'>
                     Campaigns
@@ -70,4 +79,4 @@ const Page = () => {
       )
 }
 
-export default Page
+export default CampaignsPage

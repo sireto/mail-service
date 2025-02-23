@@ -6,7 +6,7 @@ use axum::{
         delete
     }, Router };
 
-use crate::handlers::mail::{
+use crate::handlers::mail_handler::{
     add_mail,
     get_all_mails,
     update_mail,

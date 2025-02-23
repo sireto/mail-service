@@ -1,7 +1,7 @@
 use crate::models::mail::{
-    CreateMailRequest, CreateMailResponse, DeleteMailResponse, GetMailResponse, MailQuery, UpdateMailRequest, UpdateMailResponse
+    CreateMailRequest, CreateMailResponse, DeleteMailResponse, GetMailResponse, MailQuery, MailWithDetails, UpdateMailRequest, UpdateMailResponse
 };
-use crate::services::mail as mail_service;
+use crate::services::mail_service as mail_service;
 use crate::services::contact as contact_service;
 
 use axum::{
@@ -42,7 +42,22 @@ pub async fn get_all_mails(
         query.to
     ).await?;
 
-    Ok(Json(all_mails))
+    let mut responses = Vec::new();
+
+    all_mails.iter().for_each(|mail| {
+        responses.push(GetMailResponse {
+            id: mail.id.clone(),
+            mail_message: mail.mail_message.clone(),
+            email: mail.email.clone(),
+            template_id: mail.template_id.clone(),
+            campaign_id: mail.campaign_id,
+            sent_at: mail.sent_at,
+            status: mail.status.clone(),
+            status_reason: mail.reason.clone(),
+        });
+    });
+
+    Ok(Json(responses))
 }
 
 #[utoipa::path(

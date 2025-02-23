@@ -1,4 +1,4 @@
-use crate::{handlers::campaign, models::mail::{DeleteMailResponse, GetMailResponse, NewMail}, repositories::mail::{self, MailRepository, MailRepositoryImpl}};
+use crate::{handlers::campaign, models::mail::{DeleteMailResponse, GetMailResponse, MailWithDetails, NewMail}, repositories::mail_repository::{self, MailRepository, MailRepositoryImpl}};
 use crate::services::contact as contact_service;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
@@ -27,7 +27,7 @@ impl MailService {
         self.repository.create_mail(payload).await
     }
 
-    pub async fn get_all_mails(&self, campaign_ids: Option<Uuid>, from: Option<DateTime<Utc>>, to: Option<DateTime<Utc>>) -> Result<Vec<Mail>, diesel::result::Error> {
+    pub async fn get_all_mails(&self, campaign_ids: Option<Uuid>, from: Option<DateTime<Utc>>, to: Option<DateTime<Utc>>) -> Result<Vec<MailWithDetails>, diesel::result::Error> {
         self.repository.get_all_mails(campaign_ids, from, to).await
     }
 
@@ -48,7 +48,7 @@ impl MailService {
 pub async fn create_mail(payload: CreateMailRequest) -> Result<Vec<CreateMailResponse>, (StatusCode, String)> {
     let mail_repository = Arc::new(MailRepositoryImpl);
     let mail_service = MailService::new(mail_repository);
-    println!("PAYLOAD EMAIL: {:?}", payload.email);
+    
     // let contact_uuid = Uuid::parse_str(&payload.contact_id).unwrap();
     let mut responses = Vec::new(); // Vec<CreateMailResponse>;
     for email in payload.email {
@@ -63,11 +63,8 @@ pub async fn create_mail(payload: CreateMailRequest) -> Result<Vec<CreateMailRes
             sent_at: payload.sent_at,
             status: payload.status.clone(),
         };
-        println!("BEFORE ADDING TO THE MAIL");
 
         let response = mail_service.create_mail(new_mail).await;
-
-        println!("AFTER AFTER ADDING TO THE MAIL");
 
         match response {
             Ok(mail) => responses.push(CreateMailResponse {
@@ -85,8 +82,6 @@ pub async fn create_mail(payload: CreateMailRequest) -> Result<Vec<CreateMailRes
         };
     }
 
-    println!("ADDED TO THE MAIL");
-
     Ok(responses)
 }
 
@@ -95,44 +90,13 @@ pub async fn get_all_mails(
     campaign_ids: Option<Uuid>,
     from: Option<DateTime<Utc>>,
     to: Option<DateTime<Utc>>
-) -> Result<Vec<GetMailResponse>, (StatusCode, String)> {
+) -> Result<Vec<MailWithDetails>, (StatusCode, String)> {
     let mail_repository = Arc::new(MailRepositoryImpl);
     let mail_service = MailService::new(mail_repository);
     let response = mail_service.get_all_mails(campaign_ids, from, to).await;
 
     match response {
-        Ok(mails) => {
-            let mut responses = Vec::new();
-            for mail in mails {
-                let contact = match contact_service::get_contact_by_id(mail.contact_id.to_string()).await {
-                    Ok(contact) => contact,
-                    Err(e) => return Err((StatusCode::NOT_FOUND, format!("{:?}", e))),
-                };
-
-                let bounce = match bounce_logs_service::get_bounce_by_mail_id(mail.id.clone()).await {
-                    Ok(bounce) => Some(bounce),
-                    Err(_) => None,  // No bounce log, set to None
-                };
-
-                let status_reason = match bounce {
-                    Some(bounce) => Some(bounce.reason),
-                    None => None,  // No bounce reason if there is no bounce log
-                };
-
-                responses.push(GetMailResponse {
-                    id: mail.id,
-                    mail_message: mail.mail_message,
-                    email: contact.email,
-                    template_id: mail.template_id,
-                    campaign_id: mail.campaign_id,
-                    sent_at: mail.sent_at,
-                    status: mail.status,
-                    status_reason,
-                });
-            }
-
-            Ok(responses)
-        },
+        Ok(mails) => Ok(mails),
         Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
     }
 }

@@ -10,7 +10,7 @@ import columns from './_columns';
 import AddButton from '@/components/common/AddButton';
 
 
-const page = () => {
+const Page = () => {
     const { data: templates, error, isLoading } = useGetTemplatesQuery();
 
     if (error) {
@@ -23,7 +23,7 @@ const page = () => {
     
     return (
     <div className=''>
-        {/* Template page heading... */}
+        {/* Template Page heading... */}
         <div className='w-full flex justify-between items-center'>
             <h1 className='text-xl font-bold'>
                 Templates
@@ -47,4 +47,4 @@ const page = () => {
   )
 }
 
-export default page
+export default Page
