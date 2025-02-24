@@ -1,7 +1,5 @@
 'use client';
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 import { AddCampaignFormSchemaDTO } from '@/lib/type';
 import React, { useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation';
@@ -16,42 +14,9 @@ import SendTestMailForm from './_components/SendTestMailForm';
 
 
 const Page = () => {
-<<<<<<< HEAD
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
     const isEditing = id !== "new";  // if not new this Page is opened in the editing mode...
-=======
-import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { Form } from '@/components/ui/form';
-import { Select, SelectTrigger, SelectItem, SelectValue, SelectContent } from '@/components/ui/select';
-import { AddCampaignFormSchemaDTO, AddTemplateFormSchemaDTO } from '@/lib/type';
-import { Input } from '@/components/ui/input';
-import React, { useState, useEffect } from 'react'
-=======
-import { AddCampaignFormSchemaDTO } from '@/lib/type';
-import React, { useEffect } from 'react'
->>>>>>> b2241a9 (fix: resolve the issue with the date picker Time Format while filtering the mails)
-import { useParams, useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useCreateCampaignMutation, useGetCampaignByIdQuery, useGetCampaignsQuery, useUpdateCampaignMutation } from '@/app/services/CampaignApi';
-import { Save } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import CampaignForm from './_components/CampaignForm';
-import SendTestMailForm from './_components/SendTestMailForm';
-
-
-const page = () => {
-  const { id } = useParams<{ id: string }>();
-  const router = useRouter();
-    const isEditing = id !== "new";  // if not new this page is opened in the editing mode...
->>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
-=======
-  const { id } = useParams<{ id: string }>();
-  const router = useRouter();
-    const isEditing = id !== "new";  // if not new this Page is opened in the editing mode...
->>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
     const form = useForm<z.infer<typeof AddCampaignFormSchemaDTO>>({
         resolver: zodResolver(AddCampaignFormSchemaDTO),
         defaultValues: {
@@ -63,13 +28,6 @@ const page = () => {
         }
     });
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    const { refetch } = useGetCampaignsQuery();
->>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
-=======
->>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
     const { data: campaignData, error, isLoading } = useGetCampaignByIdQuery(id, { skip: !isEditing }); 
     const [ createCampaign, { isLoading: isCreating, error: creationError }] = useCreateCampaignMutation();
     const [ updateCampaign, { isLoading: isUpdating, error: updateError }] = useUpdateCampaignMutation();
@@ -81,15 +39,6 @@ const page = () => {
     }, [campaignData, form, isEditing]);
 
     const saveCampaignChanges = async (value: z.infer<typeof AddCampaignFormSchemaDTO>) => {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-        console.warn("THE FORM VALUES:", value);
-
-
->>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
-=======
->>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
         if (isEditing) {
           const updatedCampaign = {
             campaign_name: value.campaign_name.trim(),
@@ -122,26 +71,11 @@ const page = () => {
           form.reset();
         }
         router.push('/dashboard/campaigns');
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-        refetch();
->>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
-=======
->>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
     }
     
 
   return (
-<<<<<<< HEAD
-<<<<<<< HEAD
     <div className='flex flex-col space-y-8 lg:space-y-0 lg:flex-row lg:justify-between lg:gap-x-64'>
-=======
-    <>
->>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
-=======
-    <div className='flex flex-col space-y-8 lg:space-y-0 lg:flex-row lg:justify-between lg:gap-x-64'>
->>>>>>> b2241a9 (fix: resolve the issue with the date picker Time Format while filtering the mails)
         <CampaignForm 
             form={form}
             submitHandler={saveCampaignChanges}
@@ -152,28 +86,10 @@ const page = () => {
                 </Button>
             }
         />
-<<<<<<< HEAD
-<<<<<<< HEAD
         <hr className='lg:hidden'/>
         <SendTestMailForm templateId={form.getValues("template_id")}/>
     </div>
   )
 }
 
-<<<<<<< HEAD
 export default Page
-=======
-    </>
-=======
-        <hr className='lg:hidden'/>
-        <SendTestMailForm templateId={form.getValues("template_id")}/>
-    </div>
->>>>>>> b2241a9 (fix: resolve the issue with the date picker Time Format while filtering the mails)
-  )
-}
-
-export default page
->>>>>>> 0b443a3 (feat: add update and analytics to the campaigns page)
-=======
-export default Page
->>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)

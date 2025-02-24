@@ -185,10 +185,6 @@ const Page = () => {
             </div>
         </div>
     );
-<<<<<<< HEAD
-};
-=======
 };
 
 export default Page;
->>>>>>> ea0d9d8 (fix: resolve comments from the PR review and add dockerFile for frontend)
