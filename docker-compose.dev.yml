@@ -17,7 +17,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       args:
-        DATABASE_URL: ${DATABASE_URL} # pass the DATABASE_URL as a build arg...
+        DATABASE_URL: postgresql://postgres:Kanak%40posts@postgres_mailservice:5432/mail_service # pass the DATABASE_URL as a build arg...
     container_name: mailservice_api
     ports:
       - "8000:8000"
@@ -29,8 +29,8 @@ services:
 
     env_file:
       - ./.env
-    volumes:
-      - .backend/api/src:/app/src:ro
+    # volumes:
+    #   - .backend/api/src:/app/src:ro
     networks:
       - app_network
 
@@ -38,17 +38,25 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_BASE_URL: http://172.31.0.6:8000/api
     
     container_name: mailservice_frontend
     depends_on:
       - postgres
       - mail_service_api
+    environment:
+      NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL}
+      NEXT_PUBLIC_NAMESPACE_ID: e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82
+    
+    env_file:
+      - ./.env
     
     networks:
       - app_network
 
     ports:
-      - "3000:3000"
+      - "3232:3000"
 
 volumes:
   mailservice_1:

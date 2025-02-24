@@ -18,6 +18,8 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ARG NEXT_PUBLIC_BASE_URL
+ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
 RUN yarn build
 
 # Stage 4: Production image, copy all the files and run next
@@ -34,5 +36,5 @@ ENV NODE_ENV=${ENVIRONMENT}
 
 EXPOSE 3000
 
-# server.js is created by next build from the standalone output...
+# server.js is created by next build from the standalone output default (port 3000)...
 CMD ["node", "server.js"]

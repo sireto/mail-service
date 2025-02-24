@@ -27,7 +27,7 @@ async fn main() {
     // CORS configuration
     let cors = CorsLayer::new()
         .allow_origin(
-            ["http://localhost:3000", "http://localhost:8000"]
+            ["http://localhost:3000", "http://localhost:8000", "http://172.31.0.6:3232"]
                 .iter()
                 .map(|s| s.parse::<HeaderValue>().unwrap())
                 .collect::<Vec<_>>(),
