@@ -24,10 +24,13 @@ async fn main() {
     // Run migrations
     run_migrations(&mut connection);
 
+    let binding = env::var("ORIGINS").expect("ORIGINS must be set in .env file in the comma separated strings format");
+    let origins = binding.split(',').collect::<Vec<&str>>();
+
     // CORS configuration
     let cors = CorsLayer::new()
         .allow_origin(
-            ["http://localhost:3000", "http://localhost:8000", "http://172.31.0.6:3232"]
+            origins
                 .iter()
                 .map(|s| s.parse::<HeaderValue>().unwrap())
                 .collect::<Vec<_>>(),
