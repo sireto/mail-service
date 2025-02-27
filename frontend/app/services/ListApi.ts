@@ -99,6 +99,23 @@ export const listApi = createApi({
         dispatch(contactApi.util.invalidateTags(["Contact"]));
       },
     }),
+    removeContactFromList: builder.mutation<
+      void,
+      {
+        listId: string;
+        contacts: { id: string }[];
+      }
+    >({
+      query: ({ listId, contacts }) => ({
+        url: `/removeContacts/${listId}`,
+        method: "DELETE",
+        body: { contact_ids: contacts.map((contact) => contact.id) },
+      }),
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        await queryFulfilled;
+        dispatch(contactApi.util.invalidateTags(["Contact"]));
+      },
+    }),
   }),
 });
 
@@ -108,5 +125,6 @@ export const {
   useUpdateListMutation,
   useDeleteListMutation,
   useAddContactsToListMutation,
+  useRemoveContactFromListMutation,
   useGetContactsFromListsQuery,
 } = listApi;
