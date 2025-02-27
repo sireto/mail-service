@@ -1,5 +1,5 @@
 
-use crate::models::{list::{CreateListRequest, CreateListResponse, DeleteListResponse, ListResponse, UpdateListRequest, UpdatedListResponse}, list_contacts::{NewContactInList, AddContactRequest}};
+use crate::models::{contact::{GetContactResponse, GetContactResponsee}, list::{CreateListRequest, CreateListResponse, DeleteListResponse, ListResponse, UpdateListRequest, UpdatedListResponse}, list_contacts::{AddContactRequest,NewContactInList}};
 use axum::{
     extract:: Path, Json, http::StatusCode
 };
@@ -175,4 +175,28 @@ pub async fn remove_contacts_from_list(
         .await?;
 
     Ok(Json(num_deleted))
+}
+
+
+#[utoipa::path(
+    post,
+    path = "/api/list/getContactsFromLists",
+    request_body = Vec<String>,
+    responses(
+        (status = 200, description = "Contacts retrieved successfully", body = Vec<GetContactResponse>),
+        (status = 400, description = "Bad request"),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn get_contacts_from_lists(
+    Json(payload): Json<Vec<Uuid>>,
+) -> Result<Json<Vec<GetContactResponsee>>, (StatusCode, String)> {
+    let list_ids = payload
+        .into_iter()
+        .collect();
+
+    let contacts = list_service::get_contacts_from_lists(list_ids)
+        .await?;
+
+    Ok(Json(contacts))
 }
