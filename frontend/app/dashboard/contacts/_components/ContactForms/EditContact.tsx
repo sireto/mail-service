@@ -10,15 +10,7 @@ import {
 } from "@/app/services/ListApi";
 import { ContactDialog } from "./ContactDialog";
 import { ContactFormFields } from "./ContactFormFields";
-
-interface List {
-  id: string;
-  name: string;
-  description: string;
-  namespace_id: string;
-  created_at: string;
-  updated_at: string;
-}
+import { List } from "@/lib/type";
 
 interface EditContactProps {
   open?: boolean;
