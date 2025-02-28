@@ -4,6 +4,7 @@ use serde::{ Serialize, Deserialize };
 use utoipa::{openapi::schema, ToSchema};
 use diesel::prelude::*;
 use uuid::Uuid;
+use crate::models::list::ListResponse;
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::schema::campaigns)]
@@ -42,6 +43,17 @@ pub struct CreateCampaignRequest {
     pub scheduled_at: Option<NaiveDateTime>,
 }
 
+/// ExtendedCreateCampaignRequest is a struct that extends the CreateCampaignRequest struct with the list_ids...
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq)]
+pub struct ExtendedCreateCampaignRequest {
+    #[serde(flatten)]
+    pub base: CreateCampaignRequest,
+
+    #[schema(value_type = String, example = "b2b3b4b5-c2c3-d4d5-e6e7f8f9g0h1, c3c4c5d6-d7e8f9g0-h1i2j3k4l5m6")]
+    pub list_ids: Vec<String>,
+}
+
+
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
 pub struct GetCampaignResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
@@ -60,6 +72,8 @@ pub struct GetCampaignResponse {
     pub created_at: DateTime<Utc>,
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>,
+    
+    pub lists: Vec<ListResponse>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
@@ -91,6 +105,8 @@ pub struct UpdateCampaignRequest {
     pub campaign_senders: Option<Uuid>,
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub scheduled_at: DateTime<Utc>,
+    #[schema(value_type = String, example = "b2b3b4b5-c2c3-d4d5-e6e7f8f9g0h1, c3c4c5d6-d7e8f9g0-h1i2j3k4l5m6")]
+    pub list_ids: Vec<Uuid>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq)]
@@ -109,6 +125,8 @@ pub struct UpdateCampaignResponse {
     pub scheduled_at: Option<DateTime<Utc>>,
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub updated_at: Option<DateTime<Utc>>,
+   
+    pub lists: Vec<ListResponse>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Queryable)]
@@ -125,10 +143,4 @@ pub struct CampaignSendResponse {
     pub campaign_id: String,
     pub total_recipients: usize,
     pub status: String,
-}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, PartialEq)]
-pub struct CampaignSendRequest {
-    #[schema(value_type = String, example = "0a48a82f-ec04-4c19-904c-48dcebc80e49")]
-    pub list_id: String,
 }

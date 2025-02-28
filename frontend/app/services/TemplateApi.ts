@@ -31,6 +31,10 @@ export const templateApi = createApi({
                 ? result.map((template) => ({ type: 'Template', id: template.id }))
                 : [{ type: 'Template' }]
         }),
+        getTemplateById: builder.query<Template, string>({
+            query: (templateId) => `/${templateId}`,
+            providesTags: (result, error, templateId) => [{ type: 'Template', id: templateId }]
+        }),
         createTemplate: builder.mutation<CreateTemplateResponse, CreateTemplateRequest>({
             query: (newTemplate) => ({
                 url: "",
@@ -66,6 +70,7 @@ export const templateApi = createApi({
 
 export const { 
     useGetTemplatesQuery, 
+    useGetTemplateByIdQuery,
     useCreateTemplateMutation, 
     useUpdateTemplateMutation, 
     useDeleteTemplateMutation,

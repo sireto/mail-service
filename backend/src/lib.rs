@@ -16,6 +16,7 @@ pub mod models {
     pub mod campaign;
     pub mod campaign_sender;
     pub mod bounce_logs;
+    pub mod campaign_lists;
 }
 pub mod handlers { 
     pub mod template; 
@@ -46,6 +47,7 @@ pub mod repositories {
     pub mod campaign_sender;
     pub mod mail_repository;
     pub mod bounce_logs_repo;
+    pub mod campaign_lists_repo;
 }
 pub mod routes { 
     pub mod template;

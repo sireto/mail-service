@@ -147,6 +147,7 @@ export const CampaignDTO = z.object({
     template_id: z.string(),
     status: z.string(),
     scheduled_at: z.string(),
+    lists: z.array(ListDTO),
 });
 
 export const AddCampaignFormSchemaDTO = z.object({
@@ -154,7 +155,7 @@ export const AddCampaignFormSchemaDTO = z.object({
     campaign_senders: z.string(),
     namespace_id: z.string(),
     template_id: z.string(),
-    list_id: z.string(),
+    list_ids: z.array(z.string()),
 });
 
 export const CreateCampaignRequestDTO = z.object({
@@ -164,7 +165,7 @@ export const CreateCampaignRequestDTO = z.object({
     template_id: z.string(),
     status: z.string(),
     scheduled_at: z.string(),
-    list_id: z.string(),
+    list_ids: z.array(z.string()),
 });
 
 export const CreateCampaignResponseDTO = z.object({
@@ -185,6 +186,7 @@ export const UpdateCampaignRequestDTO = z.object({
   template_id: z.string(),
   status: z.string(),
   scheduled_at: z.string(),
+  list_ids: z.array(z.string()),
 });
 
 export const UpdateCampaignResponseDTO = z.object({
@@ -196,6 +198,7 @@ export const UpdateCampaignResponseDTO = z.object({
   scheduled_at: z.string(),
   created_at: z.string(),
   updated_at: z.string(),
+  lists: z.array(ListDTO),
 });
 
 
@@ -221,3 +224,12 @@ export const SendTransactionalMailRequestDTO = z.object({
     subject: z.string(),
     template_data: z.string(),
 })
+
+export const CampaignSenderDTO = z.object({
+  id: z.string(),
+  server_id: z.string(),
+  from_name: z.string(),
+  from_email: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});

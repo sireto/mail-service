@@ -81,6 +81,9 @@ interface MultiSelectProps
   /** The default selected values when the component mounts. */
   defaultValue?: string[];
 
+  /** The values when the component changes. */
+  value?: string[];
+
   /**
    * Placeholder text to be displayed when no values are selected.
    * Optional, defaults to "Select options".
@@ -132,6 +135,7 @@ MultiSelectProps
       onValueChange,
       variant,
       defaultValue = [],
+      value = [],
       placeholder = "Select options",
       animation = 0,
       maxCount = 3,
@@ -164,6 +168,12 @@ MultiSelectProps
 
         return () => window.removeEventListener('resize', handleMultiSelectButtonWidth);
     }, [ref]);
+
+    // set the selected values when the value prop changes...
+    // useful when the values are received after the component is mounted...
+    React.useEffect(() => {
+      setSelectedValues(value);
+    }, [value]);
 
     const handleInputKeyDown = (
       event: React.KeyboardEvent<HTMLInputElement>

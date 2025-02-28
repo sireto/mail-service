@@ -19,6 +19,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    campaign_lists (campaign_id, list_id) {
+        campaign_id -> Uuid,
+        list_id -> Uuid,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     campaign_senders (id) {
         id -> Uuid,
         server_id -> Uuid,
@@ -130,6 +139,9 @@ diesel::table! {
 diesel::joinable!(bounce_logs -> campaigns (campaign_id));
 diesel::joinable!(bounce_logs -> contacts (contact_id));
 diesel::joinable!(bounce_logs -> mails (mail_id));
+diesel::joinable!(campaign_lists -> campaigns (campaign_id));
+diesel::joinable!(campaign_lists -> lists (list_id));
+diesel::joinable!(campaign_senders -> servers (server_id));
 diesel::joinable!(campaigns -> campaign_senders (campaign_senders));
 diesel::joinable!(campaigns -> namespaces (namespace_id));
 diesel::joinable!(campaigns -> templates (template_id));
@@ -144,6 +156,7 @@ diesel::joinable!(templates -> namespaces (namespace_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     bounce_logs,
+    campaign_lists,
     campaign_senders,
     campaigns,
     contacts,

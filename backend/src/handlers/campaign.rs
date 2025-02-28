@@ -1,6 +1,6 @@
 use crate::{models::{campaign::
     {
-    CampaignSendRequest, CampaignSendResponse, CreateCampaignRequest, CreateCampaignResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse 
+    CampaignSendResponse, CreateCampaignRequest, CreateCampaignResponse, DeleteCampaignResponse, ExtendedCreateCampaignRequest, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse 
     }, contact::{DeleteContactResponse, UpdateContactResponse}}, services::campaign_service, 
 };
 
@@ -18,7 +18,7 @@ use axum::{
     )
 )]
 pub async fn create_campaign(
-    Json(payload): Json<CreateCampaignRequest>
+    Json(payload): Json<ExtendedCreateCampaignRequest>
 )->Result<Json<CreateCampaignResponse>, (StatusCode, String)>{
 
     let created_campaign = campaign_service::create_campaign(payload).await?;
@@ -116,11 +116,10 @@ pub async fn delete_campaign(
     )
 )]
 pub async fn send_campaign_email(
-    Path(campaign_id): Path<String>,
-    payload: Json<CampaignSendRequest>,
+    Path(campaign_id): Path<String>
 ) -> Result<Json<CampaignSendResponse>, (StatusCode, String)> {
     
-    let result = campaign_service::send_campaign_email(campaign_id, payload.list_id.clone()).await;
+    let result = campaign_service::send_campaign_email(campaign_id).await;
 
     match result {
         Ok(response) => Ok(Json(response)),
