@@ -62,6 +62,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}
           tags: |
             type=raw,value=latest
+            type=raw,value=nightly
 
       - name: Build and push Backend image
         id: push-backend

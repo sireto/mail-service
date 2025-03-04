@@ -8,6 +8,7 @@ import {
     UpdateCampaignResponseDTO
 } from '@/lib/type';
 import environments from "@/config/environments";
+import { listApi } from "./ListApi";
 
 type Campaign = z.infer<typeof CampaignDTO>;
 type CreateCampaignRequest = z.infer<typeof CreateCampaignRequestDTO>; 
@@ -44,6 +45,15 @@ export const campaignApi = createApi({
                 method: "PATCH",
                 body: updatedCampaign
             }),
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+                try {
+                  await queryFulfilled;
+                //   dispatch(campaignApi.util.invalidateTags([{ type: "Campaign" }]));
+                  dispatch(listApi.util.invalidateTags(["List"])); // also invalidate the lists after updating a campaign...
+                } catch (err) {
+                  console.error("Error updating campaign:", err);
+                }
+            },
             invalidatesTags: [{ type: 'Campaign' }]
         }),
         deleteCampaign: builder.mutation<void, string>({

@@ -24,7 +24,7 @@ const Page = () => {
             campaign_senders: "",
             namespace_id: "",
             template_id: "",
-            list_id: "",
+            list_ids: [],
         }
     });
 
@@ -34,9 +34,18 @@ const Page = () => {
 
     useEffect(() => {
       if (isEditing && campaignData) {
-        form.reset(campaignData);
+        form.reset({
+          campaign_name: campaignData.campaign_name,
+          campaign_senders: campaignData.campaign_senders,
+          namespace_id: campaignData.namespace_id,
+          template_id: campaignData.template_id,
+          list_ids: campaignData.lists.map(list => list.id)
+        });
       }
-    }, [campaignData, form, isEditing]);
+
+      console.warn("THE FORM STATE ===> ", form.getValues());
+      
+    }, [campaignData, isEditing]);
 
     const saveCampaignChanges = async (value: z.infer<typeof AddCampaignFormSchemaDTO>) => {
         if (isEditing) {
@@ -45,8 +54,11 @@ const Page = () => {
             campaign_senders: value.campaign_senders.trim(),
             status: "draft",  // Update status if needed
             template_id: value.template_id.trim(),
-            scheduled_at: "2023-01-01T00:00:00Z" // Ensure this is in the correct format
+            scheduled_at: "2023-01-01T00:00:00Z", // Ensure this is in the correct format,
+            list_ids: value.list_ids,
           };
+
+          console.warn("IS EDITING WITH VALUE ===> ", updatedCampaign);
 
           const updatedCampaignData = {
             campaignId: id,
@@ -62,7 +74,7 @@ const Page = () => {
             namespace_id: "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82",
             template_id: value.template_id.trim(),
             status: "draft",
-            list_id: value.list_id.trim(),
+            list_ids: value.list_ids,
             // scheduled_at: (new Date()).toISOString(),
             scheduled_at: "2025-02-10T12:00:00"
           };
