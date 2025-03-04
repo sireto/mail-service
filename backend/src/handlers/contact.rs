@@ -52,7 +52,7 @@ pub async fn create_contacts(
 )]
 pub async fn get_contacts() -> Result<Json<Vec<GetContactResponsee>>, (StatusCode, String)> {
     println!("Handler called");
-    let contacts = contact_service::get_all_contactss().await?;
+    let contacts = contact_service::get_all_contacts().await?;
 
     if contacts.is_empty() {
         println!("No contacts found");

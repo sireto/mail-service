@@ -27,13 +27,8 @@ const EditContact: React.FC<EditContactProps> = ({
 }) => {
   // Get current list IDs from contact data
   const currentListIds = React.useMemo(() => {
-    return contactData?.list_names
-      .map((listName) => {
-        const list = lists?.find((list) => list.name === listName);
-        return list ? list.id : "";
-      })
-      .filter(Boolean);
-  }, [contactData?.list_names, lists]);
+    return contactData?.lists.map((list) => list.list_id) || [];
+  }, [contactData?.lists]);
 
   const form = useForm<z.infer<typeof ContactFormSchema>>({
     resolver: zodResolver(ContactFormSchema),

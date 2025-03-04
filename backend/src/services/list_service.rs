@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::{models::{contact::{Contact,GetContactResponsee}, list::{CreateListRequest, CreateListResponse, DeleteListResponse, ListResponse, UpdateListRequest, UpdatedListResponse}, list_contacts::NewContactInList}, repositories::{contact::ContactRepositoryImpl, list_repo::{ListRepository, ListRepositoryImpl}}};
+use crate::{models::{contact::{Contact, ContactList, GetContactResponsee}, list::{CreateListRequest, CreateListResponse, DeleteListResponse, ListResponse, UpdateListRequest, UpdatedListResponse}, list_contacts::NewContactInList}, repositories::{contact::ContactRepositoryImpl, list_repo::{ListRepository, ListRepositoryImpl}}};
 
 use axum::http::StatusCode;
 use uuid::Uuid;
@@ -319,11 +319,15 @@ pub async fn get_contacts_from_lists(
     // Construct the response with list names for each contact
     let mut response = Vec::new();
     for contact in contacts {
-        let list_names = list_contacts.iter()
-            .filter(|lc| lc.contact_id == contact.id)
-            .filter_map(|lc| list_map.get(&lc.list_id))
-            .cloned()
-            .collect::<Vec<_>>();
+        let contact_lists = list_contacts.iter()
+        .filter(|lc| lc.contact_id == contact.id)
+        .filter_map(|lc| {
+            list_map.get(&lc.list_id).map(|name| ContactList {
+                list_id: lc.list_id,
+                list_name: name.clone(),
+            })
+        })
+        .collect::<Vec<ContactList>>();
 
         response.push(GetContactResponsee {
             id: contact.id,
@@ -333,7 +337,7 @@ pub async fn get_contacts_from_lists(
             attribute: contact.attribute,
             created_at: contact.created_at,
             updated_at: contact.updated_at,
-            list_names,
+            lists: contact_lists,
         });
     }
 

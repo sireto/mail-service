@@ -105,6 +105,14 @@ pub struct EmailQuery {
     pub email: String
 }
 
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct ContactList {
+    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub list_id: Uuid,
+    #[schema(example = "List A")]
+    pub list_name: String,
+}
+
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
 pub struct GetContactResponsee {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
@@ -122,7 +130,8 @@ pub struct GetContactResponsee {
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>,
 
-    pub list_names: Vec<String>,
+    #[schema(value_type = Vec<ContactList>)]
+    pub lists: Vec<ContactList>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
