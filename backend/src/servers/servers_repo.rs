@@ -47,6 +47,8 @@ impl ServerRepo for ServerRepoImpl {
                 namespace_id,
                 tls_type,
                 port,
+                server_type, 
+                aws_credentials,
                 created_at,
                 updated_at,
             ))
@@ -68,6 +70,8 @@ impl ServerRepo for ServerRepoImpl {
                 smtp_password.eq(&payload.smtp_password),
                 namespace_id.eq(&payload.namespace_id),
                 tls_type.eq(&payload.tls_type),
+                server_type.eq(&payload.server_type), 
+                aws_credentials.eq(&payload.aws_credentials),
                 port.eq(&payload.port),
             ))
             .get_result(&mut conn)

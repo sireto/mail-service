@@ -21,6 +21,18 @@ pub enum TlsTypeEnum {
     SSLTLS,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, diesel_derive_enum::DbEnum, Serialize, Deserialize, ToSchema, Default)]
+#[ExistingTypePath = "crate::schema::sql_types::ServerType"]
+pub enum ServerTypeEnum {
+    #[serde(rename = "SMTP")]
+    #[db_rename = "SMTP"]
+    #[default]
+    SMTP,
+    #[serde(rename = "AWS")]
+    #[db_rename = "AWS"]
+    AWS,
+}
+
 // Model struct (equivalent to table schema)
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::schema::servers)]
@@ -34,6 +46,8 @@ pub struct Server {
     pub namespace_id: Uuid,
     pub tls_type: TlsTypeEnum,
     pub port: i16,
+    pub server_type: ServerTypeEnum,
+    pub aws_credentials: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -62,6 +76,11 @@ pub struct ServerRequest {
     
     #[schema(example = 587)]
     pub port: i16,
+
+    #[schema(value_type = ServerTypeEnum, example = "SMTP")]
+    pub server_type: ServerTypeEnum,
+
+    pub aws_credentials: Option<serde_json::Value>,
 }
 
 // Get DTO
@@ -78,6 +97,9 @@ pub struct ServerResponse {
     pub namespace_id: Uuid,
     pub tls_type: TlsTypeEnum,
     pub port: i16,
+    pub server_type: ServerTypeEnum,
+
+    pub aws_credentials: Option<serde_json::Value>,
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub created_at: DateTime<Utc>,
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]

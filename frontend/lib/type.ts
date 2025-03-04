@@ -58,14 +58,23 @@ export const UpdateTemplateResponseDTO = z.object({
 });
 
 export const ServerSchema = z.object({
-  id: z.string().optional(),
-  active: z.boolean(),
-  host: z.string().min(1, "Host is required"),
-  namespace_id: z.string().uuid("Invalid namespace ID"),
-  port: z.number().min(1).max(65535),
-  smtp_password: z.string().min(1, "Password is required"),
+  id: z.string().uuid().optional(),
+  active: z.boolean().default(true),
+  host: z.string(),
+  namespace_id: z.string().uuid(),
+  port: z.number().int().min(1).max(65535),
   smtp_username: z.string(),
-  tls_type: z.enum(["NONE", "SSL/TLS", "STARTTLS"]),
+  smtp_password: z.string(),
+  tls_type: z.enum(["STARTTLS", "SSL/TLS", "NONE"]),
+  server_type: z.enum(["SMTP", "AWS"]),
+  aws_credentials: z.object({
+    access_key_id: z.string(),
+    secret_access_key: z.string(),
+    region: z.string(),
+    session_token: z.string().nullable(),
+  }),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
 });
 
 export type Server = z.infer<typeof ServerSchema>;
@@ -138,46 +147,47 @@ export interface List {
 
 // campaigns DTOs...
 export const CampaignDTO = z.object({
-    id: z.string(),
-    campaign_name: z.string(),
-    campaign_senders: z.string(),
-    created_at: z.string(), // ISO string...
-    updated_at: z.string(),
-    namespace_id: z.string(),
-    template_id: z.string(),
-    status: z.string(),
-    scheduled_at: z.string(),
-    lists: z.array(ListDTO),
+  id: z.string(),
+  campaign_name: z.string(),
+  campaign_senders: z.string(),
+  created_at: z.string(), // ISO string...
+  updated_at: z.string(),
+  namespace_id: z.string(),
+  template_id: z.string(),
+  status: z.string(),
+  scheduled_at: z.string(),
+  lists: z.array(ListDTO),
 });
 
 export const AddCampaignFormSchemaDTO = z.object({
-    campaign_name: z.string(),
-    campaign_senders: z.string(),
-    namespace_id: z.string(),
-    template_id: z.string(),
-    list_ids: z.array(z.string()),
+  campaign_name: z.string(),
+  campaign_senders: z.string(),
+  namespace_id: z.string(),
+  template_id: z.string(),
+  list_id: z.string(),
+  list_ids: z.array(z.string()),
 });
 
 export const CreateCampaignRequestDTO = z.object({
-    campaign_name: z.string(),
-    campaign_senders: z.string(),
-    namespace_id: z.string(),
-    template_id: z.string(),
-    status: z.string(),
-    scheduled_at: z.string(),
-    list_ids: z.array(z.string()),
+  campaign_name: z.string(),
+  campaign_senders: z.string(),
+  namespace_id: z.string(),
+  template_id: z.string(),
+  status: z.string(),
+  scheduled_at: z.string(),
+  list_ids: z.array(z.string()),
 });
 
 export const CreateCampaignResponseDTO = z.object({
-    id: z.string(),
-    campaign_name: z.string(),
-    campaign_senders: z.string(),
-    created_at: z.string(), // ISO string...
-    updated_at: z.string(),
-    namespace_id: z.string(),
-    template_id: z.string(),
-    status: z.string(),
-    scheduled_at: z.string(),
+  id: z.string(),
+  campaign_name: z.string(),
+  campaign_senders: z.string(),
+  created_at: z.string(), // ISO string...
+  updated_at: z.string(),
+  namespace_id: z.string(),
+  template_id: z.string(),
+  status: z.string(),
+  scheduled_at: z.string(),
 });
 
 export const UpdateCampaignRequestDTO = z.object({
@@ -201,31 +211,29 @@ export const UpdateCampaignResponseDTO = z.object({
   lists: z.array(ListDTO),
 });
 
-
 // mails DTOs...
 export const MailDTO = z.object({
-    id: z.string(),
-    campaign_id: z.string(),
-    contact_id: z.string(),
-    mail_message: z.string(), // ISO string...
-    sent_at: z.string(),
-    template_id: z.string(),
-    open: z.boolean(),
-    clicks: z.number(),
-    status: z.string(),
-    status_reason: z.string().nullable(),
+  id: z.string(),
+  campaign_id: z.string(),
+  contact_id: z.string(),
+  mail_message: z.string(), // ISO string...
+  sent_at: z.string(),
+  template_id: z.string(),
+  open: z.boolean(),
+  clicks: z.number(),
+  status: z.string(),
+  status_reason: z.string().nullable(),
 });
-
 
 // send transactional mail request DTO...
 export const SendTransactionalMailRequestDTO = z.object({
-    bcc: z.string().nullable(),
-    cc: z.string().nullable(),
-    from: z.string(),
-    receiver: z.string(),
-    subject: z.string(),
-    template_data: z.string(),
-})
+  bcc: z.string().nullable(),
+  cc: z.string().nullable(),
+  from: z.string(),
+  receiver: z.string(),
+  subject: z.string(),
+  template_data: z.string(),
+});
 
 export const CampaignSenderDTO = z.object({
   id: z.string(),
