@@ -180,7 +180,7 @@ pub async fn remove_contacts_from_list(
 
 #[utoipa::path(
     post,
-    path = "/api/list/getContactsFromLists",
+    path = "/api/list/contacts",
     request_body = Vec<String>,
     responses(
         (status = 200, description = "Contacts retrieved successfully", body = Vec<GetContactResponse>),

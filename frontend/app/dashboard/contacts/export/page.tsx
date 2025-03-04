@@ -50,7 +50,7 @@ export default function ExportPage() {
       skip: selectedLists.length === 0,
     }
   );
-
+  console.log("Selected lists: ", selectedLists);
   console.log("contacts from Lists: ", contactsFromLists);
   const filterContacts = (): Contact[] => {
     if (!contacts) return [];

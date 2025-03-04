@@ -26,6 +26,6 @@ pub fn list_routes() -> Router {
         .route("/namespaces/{namespace_id}/list/{list_id}", delete(delete_list))
         .route("/addContacts/{list_id}", post(add_contacts_to_list))
         .route("/removeContacts/{list_id}", delete(remove_contacts_from_list))
-        .route("/getContactsFromLists", post(get_contacts_from_lists))
+        .route("/contacts", post(get_contacts_from_lists))
 
 }

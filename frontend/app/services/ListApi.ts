@@ -33,18 +33,10 @@ export const listApi = createApi({
     }),
     getContactsFromLists: builder.query<Contact[], string[]>({
       query: (listIds) => ({
-        url: `/getContactsFromLists`,
+        url: `/contacts`,
         method: "POST",
         body: listIds,
       }),
-      async onQueryStarted(_, { dispatch, queryFulfilled }) {
-        try {
-          await queryFulfilled;
-          dispatch(contactApi.util.invalidateTags(["Contact"]));
-        } catch (error) {
-          console.error("Failed to add contacts to list:", error);
-        }
-      },
     }),
     createList: builder.mutation<CreateListResponse, CreateListRequest>({
       query: (newList) => ({
