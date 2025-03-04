@@ -24,6 +24,8 @@ pub struct Mail {
     pub campaign_id: Option<Uuid>,
     pub sent_at: DateTime<Utc>,
     pub status: String,
+    pub open: bool,
+    pub clicks: i32,
 }
 
 #[derive(Queryable, QueryableByName, ToSchema )]
@@ -50,6 +52,12 @@ pub struct MailWithDetails {
     #[diesel(sql_type = diesel::sql_types::Text)]
     pub status: String,
 
+    #[diesel(sql_type = diesel::sql_types::Bool)]
+    pub open: bool,
+
+    #[diesel(sql_type = diesel::sql_types::Integer)]
+    pub clicks: i32,
+
     #[diesel(sql_type = diesel::sql_types::Text)]
     pub email: String,  // This comes from contacts.email
 
@@ -75,6 +83,8 @@ pub struct GetMailResponse {
 
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub sent_at: DateTime<Utc>,
+    pub open: bool,
+    pub clicks: i32,
     pub status: String,
     pub status_reason: Option<String>,
 }
@@ -107,8 +117,6 @@ pub struct CreateMailRequest {
 
     #[schema(value_type = Vec<String>, example = "someone@example.com")]
     pub email: Vec<String>,
-    // #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
-    // pub contact_id: Uuid,
 
     #[schema(value_type = String, example = "b1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub template_id: Option<Uuid>,
@@ -139,12 +147,13 @@ pub struct CreateMailResponse {
 
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub sent_at: DateTime<Utc>,
-    pub status: String,
+    pub status: String, 
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, AsChangeset)]
+#[diesel(table_name = crate::schema::mails)]
 pub struct UpdateMailRequest {
-    pub mail_message: String,
+    pub mail_message: Option<String>,
 
     #[schema(value_type = String, example = "c1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub template_id: Option<Uuid>,
@@ -152,6 +161,8 @@ pub struct UpdateMailRequest {
     #[schema(value_type = String, example = "d2a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub campaign_id: Option<Uuid>,
     pub status: Option<String>,
+    pub open: Option<bool>,
+    pub clicks: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -170,6 +181,8 @@ pub struct UpdateMailResponse {
 
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>,
+    pub open: bool,
+    pub clicks: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

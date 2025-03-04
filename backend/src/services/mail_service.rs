@@ -12,8 +12,6 @@ use crate::models::mail::{
     UpdateMailResponse
 };
 
-use super::bounce_logs_service;
-
 pub struct MailService {
     repository: Arc<dyn MailRepository + Send + Sync>
 }
@@ -42,6 +40,10 @@ impl MailService {
     pub async fn delete_mail(&self, mail_id: String) -> Result<Mail, diesel::result::Error> {
         self.repository.delete_mail(mail_id).await
     }
+
+    pub async fn increment_mail_clicks(&self, mail_id: String) -> Result<Mail, diesel::result::Error> {
+        self.repository.increment_mail_clicks(mail_id).await
+    }
 }
 
 /// a function to add new mail into the record when the mail_send is triggered...
@@ -49,7 +51,6 @@ pub async fn create_mail(payload: CreateMailRequest) -> Result<Vec<CreateMailRes
     let mail_repository = Arc::new(MailRepositoryImpl);
     let mail_service = MailService::new(mail_repository);
     
-    // let contact_uuid = Uuid::parse_str(&payload.contact_id).unwrap();
     let mut responses = Vec::new(); // Vec<CreateMailResponse>;
     for email in payload.email {
         let contact = contact_service::get_contact_by_email(email).await?;
@@ -116,6 +117,8 @@ pub async fn update_mail(mail_id: String, payload: UpdateMailRequest) -> Result<
             campaign_id: mail.campaign_id,
             status: Some(mail.status),
             updated_at: chrono::Utc::now(),
+            open: mail.open,
+            clicks: mail.clicks,
         }),
         Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
     }
@@ -136,6 +139,8 @@ pub async fn update_mail_status(mail_id: String, new_status: String) -> Result<U
             campaign_id: mail.campaign_id,
             status: Some(mail.status),
             updated_at: chrono::Utc::now(),
+            open: mail.open,
+            clicks: mail.clicks,
         }),
         Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
     }
@@ -155,4 +160,22 @@ pub async fn delete_mail(mail_id: String) -> Result<DeleteMailResponse, (StatusC
         }),
         Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
     }
+}
+
+pub async fn increment_mail_clicks(mail_id: String) -> Result<UpdateMailResponse, diesel::result::Error> {
+    let mail_repository = Arc::new(MailRepositoryImpl);
+    let mail_service = MailService::new(mail_repository);
+
+    let response = mail_service.increment_mail_clicks(mail_id).await?;
+
+    Ok(UpdateMailResponse {
+        id: response.id,
+        mail_message: response.mail_message,
+        template_id: response.template_id,
+        campaign_id: response.campaign_id,
+        status: Some(response.status),
+        updated_at: chrono::Utc::now(),
+        open: response.open,
+        clicks: response.clicks,
+    })
 }

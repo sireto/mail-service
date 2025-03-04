@@ -26,6 +26,7 @@ pub trait MailRepository {
     async fn update_mail(&self, mail_id: String, payload: UpdateMailRequest) -> Result<Mail, diesel::result::Error>;
     async fn update_mail_status(&self, mail_id: String, new_status: &str) -> Result<Mail, diesel::result::Error>;
     async fn delete_mail(&self, mail_id: String) -> Result<Mail, diesel::result::Error>;
+    async fn increment_mail_clicks(&self, mail_id: String) -> Result<Mail, diesel::result::Error>;
 }
 
 pub struct MailRepositoryImpl;
@@ -57,6 +58,8 @@ impl MailRepository for MailRepositoryImpl {
                 campaign_id,
                 sent_at,
                 status,
+                open,
+                clicks,
                 contacts_dsl::email,
                 bounce_logs_dsl::reason.nullable(),
             ))
@@ -88,13 +91,8 @@ impl MailRepository for MailRepositoryImpl {
         let mut conn = get_connection_pool().await;
 
         diesel::update(mails.find(mail_id))
-            .set((
-                mail_message.eq(&payload.mail_message),
-                template_id.eq(&payload.template_id),
-                campaign_id.eq(&payload.campaign_id),
-                status.eq(&payload.status.unwrap_or_default())
-            ))
-            .get_result(&mut conn)
+        .set(payload)
+        .get_result(&mut conn)
     }
 
     async fn update_mail_status(&self, mail_id: String, new_status: &str) -> Result<Mail, diesel::result::Error> {
@@ -111,4 +109,13 @@ impl MailRepository for MailRepositoryImpl {
         diesel::delete(mails.find(mail_id))
             .get_result(&mut conn)
     }
+
+    async fn increment_mail_clicks(&self, mail_id: String) -> Result<Mail, diesel::result::Error> {
+        let mut conn = get_connection_pool().await;
+
+        diesel::update(mails.find(mail_id))
+            .set(clicks.eq(clicks + 1))
+            .get_result(&mut conn)
+    }
+
 }

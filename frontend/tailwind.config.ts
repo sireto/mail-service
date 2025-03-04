@@ -70,6 +70,15 @@ export default {
   			},
 			error: {
 				DEFAULT: 'hsl(var(--error))',
+			},
+			success: {
+				DEFAULT: 'hsl(var(--success))',
+			},
+			warning: {
+				DEFAULT: 'hsl(var(--warning))',
+			},
+			failed: {
+				DEFAULT: 'hsl(var(--failed))',
 			}
   		},
   		borderRadius: {

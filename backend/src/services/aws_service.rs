@@ -128,6 +128,7 @@ pub async fn send_bulk_email(
     client.send_bulk_email()
         .from_email_address(from_email)
         .set_bulk_email_entries(Some(entries)) // Use setter for Option<Vec>
+        .set_configuration_set_name(Some("Mail-Service-SNS".to_string()))
         .send()
         .await
         .map_err(|e| anyhow::anyhow!("AWS SES error: {}", e))?;

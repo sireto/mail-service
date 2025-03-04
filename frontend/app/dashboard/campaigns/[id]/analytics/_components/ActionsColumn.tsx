@@ -1,7 +1,6 @@
 import React from 'react'
 import { Row } from '@tanstack/react-table';
-import { Edit3, Trash2 } from 'lucide-react';
-import Link from 'next/link';
+import { Trash2 } from 'lucide-react';
 import ConfirmationPopup from '@/components/common/ConfirmationPopup';
 import { Button } from '@/components/ui/button';
 
@@ -18,13 +17,6 @@ const ActionsColumn = ({
 
     return (
         <div className='flex space-x-4 text-primary items-center'>
-            {/* <Link href={`/dashboard/campaigns/new`}>
-                <Edit3 
-                    size={20} 
-                    strokeWidth={1.5} 
-                    className='text-lime-400 hover:text-lime-500 transition-all duration-300 ease-in-out hover:scale-105'
-                />
-            </Link> */}
             <ConfirmationPopup
                 title="Are you sure to delete this campaign?"
                 message="The campaign will be deleted permanently."

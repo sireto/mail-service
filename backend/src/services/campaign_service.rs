@@ -1,6 +1,6 @@
 use crate::{models::{campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse}, campaign_lists::NewListInCampaign, mail::CreateMailRequest}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, campaign_lists_repo::{CampaignListRepository, CampaignListRepositoryImpl}, list_contact_repo::ListContactRepositoryImpl, mail_repository::MailRepositoryImpl}, utils::contact_lists_functions::populate_contact_template};
 use uuid::Uuid;
-use std::{collections::HashSet, sync::Arc};
+use std::{collections::HashSet, sync::Arc, env};
 use axum::http::StatusCode;
 use crate::models::campaign::{
     Campaign, 
@@ -295,6 +295,8 @@ pub async fn send_campaign_email(
             anyhow!("Failed to fetch campaign ({}): {}", status_code, message)
         })?;
 
+    let configuration_name = env::var("AWS_SES_CONFIGURATION_SET_NAME").expect("AWS_SES_CONFIGURATION_SET_NAME must be set in .env file");
+
     let campaign_lists_repository = Arc::new(CampaignListRepositoryImpl);
     let campaign_list_service = CampaignListService::new(campaign_lists_repository);
     let list_ids: Vec<Uuid> = campaign_list_service.get_lists_from_campaign(campaign_uuid).await?
@@ -357,6 +359,7 @@ pub async fn send_campaign_email(
                 .simple(message)
                 .build()
             )
+            .configuration_set_name(&configuration_name)
             .send()
             .await;
 

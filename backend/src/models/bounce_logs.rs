@@ -84,11 +84,14 @@ pub struct SnsNotification {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
-pub struct BounceNotification {
+pub struct Message {
     #[serde(rename = "notificationType")]
-    pub notification_type: String,
+    pub notification_type: Option<String>,
+    #[serde(rename = "eventType")]
+    pub event_type: Option<String>,
     pub bounce: Option<BounceDetails>,
     pub delivery: Option<DeliveryDetails>,
+    pub open: Option<OpenDetails>,
     pub mail: MailDetails,
 }
 
@@ -129,4 +132,14 @@ pub struct DeliveryDetails {
 
     #[serde(rename = "smtpResponse")]
     pub smtp_response: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
+pub struct OpenDetails {
+    pub timestamp: String,
+
+    #[serde(rename = "userAgent")]
+    pub user_agent: String,
+    #[serde(rename = "ipAddress")]
+    pub ip_address: String,
 }
