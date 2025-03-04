@@ -18,7 +18,7 @@ import { Contact } from "@/lib/type/contact";
 import { List } from "@/lib/type";
 
 // Hardcoded for now will be replaced later
-const NAMESPACE_ID = "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
+const NAMESPACE_ID = process.env.NEXT_PUBLIC_NAMESPACE_ID || "";
 
 export default function ExportPage() {
   const [includeAttributes, setIncludeAttributes] = useState(true);
@@ -83,7 +83,7 @@ export default function ExportPage() {
         row.push(contact.attribute ? JSON.stringify(contact.attribute) : "");
       }
 
-      row.push(contact.list_names?.join(","));
+      row.push(contact.lists.map((list) => list.list_name)?.join(","));
 
       // Escape fields that contain the delimiter
       return row
@@ -115,7 +115,6 @@ export default function ExportPage() {
 
     try {
       setIsExporting(true);
-
       const filteredContacts = filterContacts();
 
       if (filteredContacts.length === 0) {
@@ -130,13 +129,19 @@ export default function ExportPage() {
 
       const fileContent = formatContactsAsCSV(filteredContacts);
       const mimeType = "text/csv";
-
       const blob = new Blob([fileContent], { type: mimeType });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
 
-      a.download = `contacts${filteredContacts[0].list_names}`;
+      // Generate file name based on list names
+      const fileName =
+        filteredContacts
+          .flatMap((contact) => contact.lists.map((list) => list.list_name))
+          .filter((name, index, self) => self.indexOf(name) === index) // Remove duplicates
+          .join("_") || "contacts"; // Fallback name
+
+      a.download = `${fileName}.csv`;
 
       document.body.appendChild(a);
       a.click();

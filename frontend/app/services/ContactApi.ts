@@ -1,15 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-
-interface Contact {
-  id: string;
-  email: string;
-  first_name?: string;
-  last_name?: string;
-  attribute: string;
-  created_at: string;
-  updated_at: string;
-  list_names: string[];
-}
+import { Contact } from "@/lib/type/contact";
 
 export const contactApi = createApi({
   reducerPath: "contactApi",
