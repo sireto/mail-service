@@ -9,6 +9,7 @@ import {
 } from "@/lib/type";
 import environments from "@/config/environments";
 import { contactApi } from "@/app/services/ContactApi";
+import { Contact } from "@/lib/type/contact";
 
 type List = z.infer<typeof ListDTO>;
 type CreateListRequest = z.infer<typeof CreateListRequestDTO>;
@@ -29,6 +30,13 @@ export const listApi = createApi({
         result
           ? result.map((list) => ({ type: "List", id: list.id }))
           : [{ type: "List" }],
+    }),
+    getContactsFromLists: builder.query<Contact[], string[]>({
+      query: (listIds) => ({
+        url: `/contacts`,
+        method: "POST",
+        body: listIds,
+      }),
     }),
     createList: builder.mutation<CreateListResponse, CreateListRequest>({
       query: (newList) => ({
@@ -83,6 +91,23 @@ export const listApi = createApi({
         dispatch(contactApi.util.invalidateTags(["Contact"]));
       },
     }),
+    removeContactFromList: builder.mutation<
+      void,
+      {
+        listId: string;
+        contacts: { id: string }[];
+      }
+    >({
+      query: ({ listId, contacts }) => ({
+        url: `/removeContacts/${listId}`,
+        method: "DELETE",
+        body: { contact_ids: contacts.map((contact) => contact.id) },
+      }),
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        await queryFulfilled;
+        dispatch(contactApi.util.invalidateTags(["Contact"]));
+      },
+    }),
   }),
 });
 
@@ -92,4 +117,6 @@ export const {
   useUpdateListMutation,
   useDeleteListMutation,
   useAddContactsToListMutation,
+  useRemoveContactFromListMutation,
+  useGetContactsFromListsQuery,
 } = listApi;

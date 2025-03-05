@@ -1,4 +1,4 @@
-use crate::{models::contact::GetContactResponsee, repositories::contact::{self, ContactRepository, ContactRepositoryImpl}};
+use crate::{models::contact::{ContactList, GetContactResponsee}, repositories::contact::{self, ContactRepository, ContactRepositoryImpl}};
 use uuid::Uuid;
 use std::{collections::HashMap, sync::Arc};
 use axum::{http::StatusCode, Json};
@@ -98,11 +98,15 @@ pub async fn get_all_contacts() -> Result<Vec<GetContactResponsee>, (StatusCode,
 
     let mut response = Vec::new();
     for contact in contacts {
-        let list_names = list_contacts.iter()
-            .filter(|lc| lc.contact_id == contact.id)
-            .filter_map(|lc| list_map.get(&lc.list_id))
-            .cloned()
-            .collect::<Vec<_>>();
+        let contact_lists = list_contacts.iter()
+        .filter(|lc| lc.contact_id == contact.id)
+        .filter_map(|lc| {
+            list_map.get(&lc.list_id).map(|name| ContactList {
+                list_id: lc.list_id,
+                list_name: name.clone(),
+            })
+        })
+        .collect::<Vec<ContactList>>();
 
         response.push(GetContactResponsee {
             id: contact.id,
@@ -112,7 +116,8 @@ pub async fn get_all_contacts() -> Result<Vec<GetContactResponsee>, (StatusCode,
             attribute: contact.attribute,
             created_at: contact.created_at,
             updated_at: contact.updated_at,
-            list_names,
+            lists: contact_lists,
+
         });
     }
 
@@ -224,55 +229,6 @@ pub async fn check_email_exists(email: String) -> Result<bool, (StatusCode, Stri
         Ok(contact) => Ok(true), 
         Err(_) => Ok(false),     
     }
-}
-
-
-pub async fn get_all_contactss() -> Result<Vec<GetContactResponsee>, (StatusCode, String)> {
-    let contact_repository = Arc::new(ContactRepositoryImpl);
-
-    println!("Getting all contacts"); 
-
-    let contacts = contact_repository.get_all_contacts().await
-    .map_err(|e| {
-        println!("Error getting contacts: {:?}", e); // Add this
-        (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
-    })?;
-
-        println!("Found {} base contacts", contacts.len()); // Add this
-    
-    let contact_ids = contacts.iter().map(|c| c.id).collect();
-    let list_contacts = contact_repository.get_list_contacts(contact_ids).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    
-    let list_ids = list_contacts.iter().map(|lc| lc.list_id).collect();
-    let lists = contact_repository.get_lists_by_ids(list_ids).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    
-    let list_map: HashMap<Uuid, String> = lists.into_iter()
-        .map(|list| (list.id, list.name))
-        .collect();
-
-    let mut response = Vec::new();
-    for contact in contacts {
-        let list_names = list_contacts.iter()
-            .filter(|lc| lc.contact_id == contact.id)
-            .filter_map(|lc| list_map.get(&lc.list_id))
-            .cloned()
-            .collect::<Vec<_>>();
-
-        response.push(GetContactResponsee {
-            id: contact.id,
-            first_name: contact.first_name,
-            last_name: contact.last_name,
-            email: contact.email,
-            attribute: contact.attribute,
-            created_at: contact.created_at,
-            updated_at: contact.updated_at,
-            list_names,
-        });
-    }
-
-    Ok(response)
 }
 
 pub async fn import_contacts(

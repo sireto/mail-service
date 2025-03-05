@@ -1,10 +1,11 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
-use crate::{models::{contact::Contact, list::{CreateListRequest, CreateListResponse, DeleteListResponse, ListResponse, UpdateListRequest, UpdatedListResponse}, list_contacts::NewContactInList}, repositories::list_repo::{ListRepository, ListRepositoryImpl}};
+use crate::{models::{contact::{Contact, ContactList, GetContactResponsee}, list::{CreateListRequest, CreateListResponse, DeleteListResponse, ListResponse, UpdateListRequest, UpdatedListResponse}, list_contacts::NewContactInList}, repositories::{contact::ContactRepositoryImpl, list_repo::{ListRepository, ListRepositoryImpl}}};
 
 use axum::http::StatusCode;
 use uuid::Uuid;
 use crate::repositories::list_contact_repo::{ListContactRepository, ListContactRepositoryImpl};
+use crate::repositories::contact::ContactRepository;
 
 
 // use anyhow::{anyhow, Result};
@@ -279,4 +280,66 @@ pub async fn delete_contacts_from_list(
     contact_service.delete_contacts_from_list(list_id, contact_ids)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+}
+
+pub async fn get_contacts_from_lists(
+    list_ids: Vec<Uuid>,
+) -> Result<Vec<GetContactResponsee>, (StatusCode, String)> {
+    
+    let list_contact_repository = Arc::new(ListContactRepositoryImpl);
+    let contact_service = ListContactService::new(list_contact_repository);
+    let contact_repository = Arc::new(ContactRepositoryImpl);
+
+    // Get all contacts from the specified lists
+    let contacts = contact_service.get_contacts_from_lists(list_ids.clone())
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    
+    if contacts.is_empty() {
+        return Ok(Vec::new());
+    }
+    
+    // Get all list_contacts for these contacts
+    let contact_ids: Vec<Uuid> = contacts.iter().map(|c| c.id).collect();
+    let list_contacts = contact_repository.get_list_contacts(contact_ids)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    
+    // Get all lists these contacts belong to
+    let all_list_ids: Vec<Uuid> = list_contacts.iter().map(|lc| lc.list_id).collect();
+    let lists = contact_repository.get_lists_by_ids(all_list_ids)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    
+    // Create a map of list_id to list_name
+    let list_map: HashMap<Uuid, String> = lists.into_iter()
+        .map(|list| (list.id, list.name))
+        .collect();
+
+    // Construct the response with list names for each contact
+    let mut response = Vec::new();
+    for contact in contacts {
+        let contact_lists = list_contacts.iter()
+        .filter(|lc| lc.contact_id == contact.id)
+        .filter_map(|lc| {
+            list_map.get(&lc.list_id).map(|name| ContactList {
+                list_id: lc.list_id,
+                list_name: name.clone(),
+            })
+        })
+        .collect::<Vec<ContactList>>();
+
+        response.push(GetContactResponsee {
+            id: contact.id,
+            first_name: contact.first_name,
+            last_name: contact.last_name,
+            email: contact.email,
+            attribute: contact.attribute,
+            created_at: contact.created_at,
+            updated_at: contact.updated_at,
+            lists: contact_lists,
+        });
+    }
+
+    Ok(response)
 }

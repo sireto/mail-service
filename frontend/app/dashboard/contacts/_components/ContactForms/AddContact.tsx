@@ -49,7 +49,7 @@ const AddContact: React.FC<AddContactProps> = ({ open, onClose, lists }) => {
         attribute: values.attribute || "{}",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        list_names: [],
+        lists: [],
       };
 
       const response = await addContact(payload).unwrap();

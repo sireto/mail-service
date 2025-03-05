@@ -26,6 +26,7 @@ const sidebarItems = [
     subItems: [
       { name: "All Contacts", href: "/dashboard/contacts" },
       { name: "Import", href: "/dashboard/contacts/import" },
+      { name: "Export", href: "/dashboard/contacts/export" },
       { name: "Bounces", href: "/dashboard/contacts/bounces" },
     ],
   },

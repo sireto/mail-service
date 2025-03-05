@@ -21,5 +21,5 @@ export interface Contact {
   preconfirm?: boolean;
   created_at: string;
   updated_at: string;
-  list_names: string[];
+  lists: { list_id: string; list_name: string }[];
 }

@@ -47,6 +47,7 @@ use crate::servers::servers_routes::servers_routes;
         list::delete_list, 
         list::add_contacts_to_list, 
         list::remove_contacts_from_list, 
+        list::get_contacts_from_lists,
         campaign::get_all_campaigns, 
         campaign::get_campaign_by_id, 
         campaign::create_campaign, 

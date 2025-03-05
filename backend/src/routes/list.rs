@@ -13,7 +13,8 @@ use crate::handlers::list::{
     delete_list, 
     get_list_by_id,
     add_contacts_to_list,
-    remove_contacts_from_list
+    remove_contacts_from_list, 
+    get_contacts_from_lists
 };
 
 pub fn list_routes() -> Router {
@@ -25,4 +26,6 @@ pub fn list_routes() -> Router {
         .route("/namespaces/{namespace_id}/list/{list_id}", delete(delete_list))
         .route("/addContacts/{list_id}", post(add_contacts_to_list))
         .route("/removeContacts/{list_id}", delete(remove_contacts_from_list))
+        .route("/contacts", post(get_contacts_from_lists))
+
 }

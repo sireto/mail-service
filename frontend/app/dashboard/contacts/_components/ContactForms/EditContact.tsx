@@ -4,18 +4,13 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Contact, ContactFormSchema } from "@/lib/type/contact";
 import { useUpdateContactMutation } from "@/app/services/ContactApi";
-import { useAddContactsToListMutation } from "@/app/services/ListApi";
+import {
+  useAddContactsToListMutation,
+  useRemoveContactFromListMutation,
+} from "@/app/services/ListApi";
 import { ContactDialog } from "./ContactDialog";
 import { ContactFormFields } from "./ContactFormFields";
-
-interface List {
-  id: string;
-  name: string;
-  description: string;
-  namespace_id: string;
-  created_at: string;
-  updated_at: string;
-}
+import { List } from "@/lib/type";
 
 interface EditContactProps {
   open?: boolean;
@@ -30,6 +25,11 @@ const EditContact: React.FC<EditContactProps> = ({
   contactData,
   lists,
 }) => {
+  // Get current list IDs from contact data
+  const currentListIds = React.useMemo(() => {
+    return contactData?.lists.map((list) => list.list_id) || [];
+  }, [contactData?.lists]);
+
   const form = useForm<z.infer<typeof ContactFormSchema>>({
     resolver: zodResolver(ContactFormSchema),
     mode: "onChange",
@@ -39,12 +39,7 @@ const EditContact: React.FC<EditContactProps> = ({
       name: `${contactData?.first_name || ""} ${
         contactData?.last_name || ""
       }`.trim(),
-      listIds: contactData?.list_names
-        .map((listName) => {
-          const list = lists?.find((list) => list.name === listName);
-          return list ? list.id : "";
-        })
-        .filter(Boolean),
+      listIds: currentListIds,
       attribute:
         typeof contactData?.attribute === "string"
           ? contactData.attribute
@@ -57,6 +52,7 @@ const EditContact: React.FC<EditContactProps> = ({
 
   const [updateContact, { isLoading: isUpdating }] = useUpdateContactMutation();
   const [addContactsToList] = useAddContactsToListMutation();
+  const [removeContactFromList] = useRemoveContactFromListMutation();
 
   const handleListChange = (selectedLists: string[]) => {
     form.setValue("listIds", selectedLists);
@@ -76,15 +72,13 @@ const EditContact: React.FC<EditContactProps> = ({
       await updateContact({ id: contactData.id, data: payload }).unwrap();
 
       const listIds = values.listIds ?? [];
-      const currentListIds = contactData.list_names
-        .map((listName) => {
-          const list = lists?.find((list) => list.name === listName);
-          return list ? list.id : "";
-        })
-        .filter(Boolean);
 
       const listsToAdd = listIds.filter(
         (listId) => !currentListIds.includes(listId)
+      );
+
+      const listsToRemove = currentListIds.filter(
+        (listId) => !listIds.includes(listId)
       );
 
       for (const listId of listsToAdd) {
@@ -95,6 +89,18 @@ const EditContact: React.FC<EditContactProps> = ({
           }).unwrap();
         } catch (listError) {
           console.error(`Error adding to list ${listId}:`, listError);
+        }
+      }
+
+      // Remove contact from unselected lists
+      for (const listId of listsToRemove) {
+        try {
+          await removeContactFromList({
+            listId,
+            contacts: [{ id: contactData.id }],
+          }).unwrap();
+        } catch (listError) {
+          console.error(`Error removing from list ${listId}:`, listError);
         }
       }
 
