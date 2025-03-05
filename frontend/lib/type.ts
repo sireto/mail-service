@@ -164,7 +164,6 @@ export const AddCampaignFormSchemaDTO = z.object({
   campaign_senders: z.string(),
   namespace_id: z.string(),
   template_id: z.string(),
-  list_id: z.string(),
   list_ids: z.array(z.string()),
 });
 
