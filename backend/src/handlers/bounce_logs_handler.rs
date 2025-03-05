@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::{models::{bounce_logs::
     { 
-        BounceNotification, CreateBounceLogRequest, CreateBounceLogResponse, GetBounceLogResponse, SnsNotification
+        Message, CreateBounceLogRequest, CreateBounceLogResponse, GetBounceLogResponse, SnsNotification
     }, mail::UpdateMailRequest}, repositories::{contact::ContactRepositoryImpl, mail_repository::MailRepositoryImpl}, services::{bounce_logs_service, contact::ContactService, mail_service::{self, MailService}}
 };
 
@@ -52,8 +52,6 @@ impl MailStatus {
 pub async fn handle_sns_notification (
     payload: Json<SnsNotification>,
 ) -> Result<(), (StatusCode, String)> {
-     println!("THe payload ====> {payload:?}");
-
     let mail_repository = Arc::new(MailRepositoryImpl);
     let mail_service = MailService::new(mail_repository);
 
@@ -72,10 +70,35 @@ pub async fn handle_sns_notification (
     }
 
     if payload.notification_type == "Notification" {
-        let sns_event: BounceNotification = serde_json::from_str(&payload.message)
+        let sns_event: Message = serde_json::from_str(&payload.message)
             .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
-        match sns_event.notification_type.as_str() {
+        if sns_event.notification_type.is_none() {
+            if let Some(event_type) = sns_event.event_type {
+                let mail_id = sns_event.mail.mail_id;
+
+                match event_type.as_str() {
+                    "Open" => {
+                        mail_service.update_mail(mail_id, UpdateMailRequest {
+                            open: Some(true),
+                            ..Default::default()
+                        }).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+                    },
+                    "Click" => {
+                        mail_service.increment_mail_clicks(mail_id).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+                    },
+                    _ => {
+                        println!("Unknown event type: {}", event_type);
+                    }
+                }
+            } else {
+                println!("Unknown event type: {}", sns_event.event_type.unwrap());
+            }
+
+            return Ok(());
+        }
+
+        match sns_event.notification_type.as_ref().unwrap().as_str() {
             "Bounce" => {
                 if let Some(bounce) = sns_event.bounce {
                     let recipients = bounce.bounced_recipients;
@@ -112,7 +135,7 @@ pub async fn handle_sns_notification (
                 }
             }
             _ => {
-                println!("Unknown notification type: {}", sns_event.notification_type);
+                println!("Unknown notification type: {}", sns_event.notification_type.unwrap());
             }
         }
     }

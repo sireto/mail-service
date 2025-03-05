@@ -210,6 +210,8 @@ export const MailDTO = z.object({
     mail_message: z.string(), // ISO string...
     sent_at: z.string(),
     template_id: z.string(),
+    open: z.boolean(),
+    clicks: z.number(),
     status: z.string(),
     status_reason: z.string().nullable(),
 });

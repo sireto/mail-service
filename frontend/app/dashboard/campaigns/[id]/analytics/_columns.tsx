@@ -38,6 +38,32 @@ export const columns = (
         },
     },
     {
+        accessorKey: "open",
+        header: "View",
+        cell: ({ row }) => {
+            const isOpened = row.getValue("open");
+            const reason: string | null = isOpened ? "Mail has been viewed" : "Mail hasn't been viewed";
+
+            return <ToolTip
+                message={reason}
+                tooltipTrigger={<div>
+                    <span className={`block w-2 h-2 rounded-full ${isOpened ? 'bg-success' : 'bg-warning'}`}></span>
+                </div>}
+            />
+        },
+    },
+    {
+        accessorKey: "clicks",
+        header: "Clicks",
+        cell: ({ row }) => {
+            const numberOfClicks: number = row.getValue('clicks');
+
+            return <span 
+                className={`px-2 py-1 rounded-full text-xs ${numberOfClicks > 0 ? 'opacity-100 font-bold' : 'opacity-60'}`}
+            >{numberOfClicks}</span>
+        },
+    },
+    {
         accessorKey: "sent_at",
         header: "Sent",
         cell: ({ row }) => {

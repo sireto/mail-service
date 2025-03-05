@@ -2,12 +2,10 @@ use crate::models::mail::{
     CreateMailRequest, CreateMailResponse, DeleteMailResponse, GetMailResponse, MailQuery, MailWithDetails, UpdateMailRequest, UpdateMailResponse
 };
 use crate::services::mail_service as mail_service;
-use crate::services::contact as contact_service;
 
 use axum::{
     extract:: { Path, Query }, Json, http::StatusCode
 };
-use uuid::Uuid;
 
 #[utoipa::path(
     post,
@@ -52,6 +50,8 @@ pub async fn get_all_mails(
             template_id: mail.template_id.clone(),
             campaign_id: mail.campaign_id,
             sent_at: mail.sent_at,
+            open: mail.open,
+            clicks: mail.clicks,
             status: mail.status.clone(),
             status_reason: mail.reason.clone(),
         });
@@ -88,8 +88,6 @@ pub async fn update_mail(
 pub async fn delete_mail(
     Path(mail_id): Path<String>,
 ) -> Result<Json<DeleteMailResponse>, (StatusCode, String)> {
-    // let uuid_id = Uuid::parse_str(&mail_id).map_err(|_| (StatusCode::BAD_REQUEST, "Invalid contact ID format".to_string()))?;
-
     let deleted_mail = mail_service::delete_mail(mail_id).await?;
 
     Ok(Json(deleted_mail))

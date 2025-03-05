@@ -93,6 +93,8 @@ diesel::table! {
         campaign_id -> Nullable<Uuid>,
         sent_at -> Timestamptz,
         status -> Text,
+        open -> Bool,
+        clicks -> Int4,
     }
 }
 

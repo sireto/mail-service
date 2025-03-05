@@ -23,7 +23,7 @@ services:
       - postgres
     environment:
       # Use the service name 'postgres' instead of localhost
-      DATABASE_URL: postgresql://postgres:Kanak%40posts@localhost:5432/mail_service
+      DATABASE_URL: postgresql://<username>:<password>@localhost:5432/mail_service
 
     env_file:
       - ./.env

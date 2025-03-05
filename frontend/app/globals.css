@@ -46,6 +46,9 @@ body {
     --danger-foreground: 0 0% 98%;
     --danger-background-on-hover: 12 91% 46%;
     --neutral: 0 0% 20%;
+    --success: 120 100% 75%;
+    --warning: 39 100% 75%;
+    --failed: 0 79% 72%;
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -83,6 +86,9 @@ body {
     --danger: 10 98% 59%;
     --danger-foreground: 0 0% 98%;
     --danger-background-on-hover: 12 91% 46%;
+    --success: 120 100% 50%;
+    --warning: 40 100% 50%;
+    --failed: 0 100% 50%;
   }
 }
 

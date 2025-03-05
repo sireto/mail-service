@@ -1,6 +1,5 @@
 use crate::{
     models::campaign_sender::{
-        CampaignSender,
         CreateCampaignSenderRequest,
         CreateCampaignSenderResponse,
         GetCampaignSenderResponse,

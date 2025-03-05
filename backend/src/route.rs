@@ -12,8 +12,6 @@ use crate::handlers::{
 };
 use crate::servers::servers_handler as servers;
 
-use crate::handlers::list::{create_list, get_lists, update_list, get_list_by_id, delete_list, add_contacts_to_list, remove_contacts_from_list};
-
 use crate::routes::list::list_routes;
 use crate::routes::{
     template as template_routes,
