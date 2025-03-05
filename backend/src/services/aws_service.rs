@@ -19,6 +19,8 @@ use aws_sdk_sesv2::config::Credentials;
 // }
 
 pub async fn create_aws_client() -> Client {
+
+    
     // Fetch IAM credentials from environment variables or any other source
     let access_key_id = env::var("AWS_ACCESS_KEY_ID").expect("AWS_ACCESS_KEY_ID not set");
     let secret_access_key = env::var("AWS_SECRET_ACCESS_KEY").expect("AWS_SECRET_ACCESS_KEY not set");

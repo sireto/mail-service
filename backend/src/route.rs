@@ -54,6 +54,7 @@ use crate::servers::servers_routes::servers_routes;
         campaign::update_campaign, 
         campaign::delete_campaign, 
         campaign::send_campaign_email,
+        campaign::send_campaign_email_smtp,
         campaign_sender::create_campaign_sender,
         campaign_sender::get_campaign_senders,
         campaign_sender::get_campaign_sender_by_id,

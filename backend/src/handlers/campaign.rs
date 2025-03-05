@@ -8,6 +8,7 @@ use crate::{models::{campaign::
 use axum::{
     extract:: Path, Json, http::StatusCode
 };
+use uuid::Uuid;
 
 #[utoipa::path(
     post, 
@@ -120,6 +121,36 @@ pub async fn send_campaign_email(
 ) -> Result<Json<CampaignSendResponse>, (StatusCode, String)> {
     
     let result = campaign_service::send_campaign_email(campaign_id).await;
+
+    match result {
+        Ok(response) => Ok(Json(response)),
+        Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string())),
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/campaigns/{campaign_id}/send/smtp",
+    params(
+        ("campaign_id" = String, Path, description = "ID of the campaign to send"),
+    ),
+    responses(
+        (status = 200, description = "Send campaign email via SMTP", body = CampaignSendResponse),
+        (status = 400, description = "Bad request"),
+        (status = 404, description = "Campaign not found"),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn send_campaign_email_smtp(
+    Path(campaign_id): Path<String>,
+) -> Result<Json<CampaignSendResponse>, (StatusCode, String)> {
+    use crate::services::campaign_service::send_campaign_email_smtp;
+    
+    let server_id = "ee1cc08b-fb4d-44e6-8a48-3a42e1b250a4";
+
+    let server_uuid = Uuid::parse_str(server_id).map_err(|_| (StatusCode::BAD_REQUEST, "Invalid server_id".to_string()))?;
+
+    let result = send_campaign_email_smtp(campaign_id, server_uuid).await;
 
     match result {
         Ok(response) => Ok(Json(response)),
