@@ -1,0 +1,30 @@
+networks:
+  frontend:
+    external: true
+    name: frontend
+  postgres:
+    external: true
+services:
+  api:
+    image: ghcr.io/sireto/mail-service-backend:${IMAGE_VERSION_TAG:-latest}
+    build:
+      context: ./backend
+    networks:
+      - postgres
+      - frontend
+    environment:
+      VIRTUAL_HOST: https://mail.sireto.dev/api -> /api ; client_max_body_size 100M;
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      ORIGINS: http://localhost:3000,http://172.31.0.6:3600,https://mail.sireto.dev
+
+  webapp:
+    image: ghcr.io/sireto/mail-service-frontend:${IMAGE_VERSION_TAG:-latest}
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_BASE_URL: /api
+    networks:
+      - frontend
+    environment:
+      VIRTUAL_HOST: https://mail.sireto.dev
+      NEXT_PUBLIC_NAMESPACE_ID: e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82
