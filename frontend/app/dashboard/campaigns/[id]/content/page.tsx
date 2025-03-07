@@ -10,8 +10,8 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Save, ClipboardX } from 'lucide-react';
-import { useGetTemplateByIdQuery, useGetTemplatesQuery } from '@/app/services/TemplateApi';
-import { useParams } from 'next/navigation';
+import { useGetTemplateByIdQuery, useGetTemplatesQuery, useUpdateTemplateMutation } from '@/app/services/TemplateApi';
+import { useParams, useRouter } from 'next/navigation';
 import { useGetCampaignByIdQuery } from '@/app/services/CampaignApi';
 
 
@@ -19,6 +19,10 @@ const Page = () => {
   const { id } = useParams<{ id: string }>();
   const { data: currentCampaign, error, isLoading } = useGetCampaignByIdQuery(id);
   const { data: currentTemplate, error: templateError, isLoading: templateLoading } = useGetTemplateByIdQuery(currentCampaign?.template_id ?? '');
+    const [updateTemplate, { isLoading: isUpdating, error: updateError }] = useUpdateTemplateMutation();
+    const router = useRouter();
+    
+  
 
   const form = useForm<z.infer<typeof AddTemplateFormSchemaDTO>>({
          resolver: zodResolver(AddTemplateFormSchemaDTO),
@@ -28,14 +32,29 @@ const Page = () => {
          }
      });
 
-  const submitHandler = () => {
-    
+  const editTemplate = async (value: z.infer<typeof AddTemplateFormSchemaDTO>) => {
+    const updatedTemplate = {
+        name: value.name.trim(),
+        content_html: value.raw_mjml_content.trim(),
+        namespace_id: "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82",
+        content_plaintext: "Hi, {{name}}",
+        template_data: JSON.stringify({
+            name: "John Doe"
+        })
+    };
+
+    await updateTemplate({
+        templateId: currentTemplate?.id ?? '',
+        updatedTemplate
+    });
+    form.reset();
+    router.push('/dashboard/campaigns');
   }
 
   return (
     <Form {...form}>    {/* pass on the all the form-related methods allowing child components to access the form's context... */}
                 <form 
-                    onSubmit={form.handleSubmit(submitHandler)}
+                    onSubmit={form.handleSubmit(editTemplate)}
                     className='flex flex-col space-y-4'
                 >
                     <FormField

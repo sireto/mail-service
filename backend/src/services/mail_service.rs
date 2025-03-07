@@ -52,12 +52,12 @@ pub async fn create_mail(payload: CreateMailRequest) -> Result<Vec<Mail>, AppErr
     
     let mut responses = Vec::new(); // Vec<CreateMailResponse>;
     for email in payload.email {
-        let contact = contact_service::get_contact_by_email(email).await;
+        let contact = contact_service::get_contact_by_email(email).await?;
 
         let new_mail = NewMail {
             id: payload.id.clone(),
             mail_message: payload.mail_message.clone(),
-            contact_id: contact.unwrap().id,
+            contact_id: contact.id,
             template_id: payload.template_id,
             campaign_id: payload.campaign_id,
             sent_at: payload.sent_at,

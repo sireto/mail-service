@@ -64,6 +64,7 @@ export const templateApi = createApi({
                 method: "POST",
                 body: payload
             }),
+            invalidatesTags: ['Template']
         })
     })
 });

@@ -29,8 +29,8 @@ const SendTestMailForm = ({
       console.log("Sending test email to:", data.email)
       // Here, you can call your API or perform any actions needed to send the test mail.
       const payload = {
-        "bcc": null,
-        "cc": null,
+        "bcc": "",
+        "cc": "",
         "from": "ses@id21.io",
         "receiver": data.email,
         "subject": "Test email from ID21",
