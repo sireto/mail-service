@@ -1,11 +1,6 @@
 use crate::{
     models::campaign_sender::{
-        CreateCampaignSenderRequest,
-        CreateCampaignSenderResponse,
-        GetCampaignSenderResponse,
-        UpdateCampaignSenderRequest,
-        UpdateCampaignSenderResponse,
-        DeleteCampaignSenderResponse
+        CampaignSenderRequest, CreateCampaignSenderRequest, CreateCampaignSenderResponse, DeleteCampaignSenderResponse, GetCampaignSenderResponse, UpdateCampaignSenderRequest, UpdateCampaignSenderResponse, ValidateEmailIdentityRequest, ValidateEmailIdentityResponse
     },
     services::campaign_sender_service
 };
@@ -24,7 +19,7 @@ use axum::{
     )
 )]
 pub async fn create_campaign_sender(
-    Json(payload): Json<CreateCampaignSenderRequest>,
+    Json(payload): Json<CampaignSenderRequest>,
 ) -> Result<Json<CreateCampaignSenderResponse>, (StatusCode, String)> {
     let created_sender = campaign_sender_service::create_campaign_sender(payload).await?;
     Ok(Json(created_sender))
@@ -107,4 +102,38 @@ pub async fn delete_campaign_sender(
 ) -> Result<Json<DeleteCampaignSenderResponse>, (StatusCode, String)> {
     let deleted_sender = campaign_sender_service::delete_campaign_sender(sender_id).await?;
     Ok(Json(deleted_sender))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/campaign-senders/email-identities/validate",
+    request_body = ValidateEmailIdentityRequest,
+    responses(
+        (status = 200, description = "Email identity validated", body = ValidateEmailIdentityResponse),
+        (status = 400, description = "Bad request"),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn validate_email_identity(
+    Json(payload): Json<ValidateEmailIdentityRequest>,
+) -> Result<Json<ValidateEmailIdentityResponse>, (StatusCode, String)> {
+    match campaign_sender_service::validate_email_identity(payload).await {
+        Ok(response) => Ok(Json(response)),
+        Err((status, message)) => Err((status, message)),
+    }
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/campaign-senders/email-identities",
+    responses(
+        (status = 200, description = "List of verified identities", body = [String]),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn get_verified_identities() -> Result<Json<Vec<String>>, (StatusCode, String)> {
+    match campaign_sender_service::get_verified_identities().await {
+        Ok(identities) => Ok(Json(identities)),
+        Err((status, message)) => Err((status, message)),
+    }
 }

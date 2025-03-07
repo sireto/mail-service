@@ -1,23 +1,10 @@
 use aws_sdk_sesv2::{error::SdkError, operation::send_email::SendEmailOutput, types::{Body, Content, Destination, EmailContent, Message, BulkEmailEntry, SuppressionListReason }, Client };
 use aws_config::{BehaviorVersion, Region};
 
-use std::{env, error::Error};
+use std::{env, error::Error, sync::Arc};
 use aws_sdk_sesv2::config::Credentials;
 
-
-
-// pub async fn create_aws_client() -> Client {
-//     let region = Region::new("ap-southeast-1"); // replace with your desired region, e.g., "us-west-2"
-
-//     // Load the AWS configuration with the specified region
-//     let config = aws_config::defaults(BehaviorVersion::latest())
-//         .region(region) // set the region here
-//         .load()
-//         .await;
-
-//     Client::new(&config)
-// }
-
+use crate::servers::{servers_repo, servers_services::{self, ServerServiceTrait}};
 pub async fn create_aws_client() -> Client {
 
     
@@ -157,4 +144,52 @@ pub async fn get_recent_bounces(client: &Client) -> Result<(), SdkError<aws_sdk_
     }
 
     Ok(())
+}
+
+pub async fn create_aws_client_db(server_id: &str) -> Client {
+    let server_repo = Arc::new(servers_repo::ServerRepoImpl);
+    let server_service = servers_services::ServerService::new(server_repo);
+
+    let server = server_service.get_server_by_id(&server_id).await.unwrap();
+
+    let mut access_key_id = String::new();
+    let mut secret_access_key = String::new();
+    let mut region_str = String::new();
+
+    if let Some(aws_creds) = server.aws_credentials {
+        // Parse the JSON credentials, handle potential missing keys
+        if let Some(key) = aws_creds.get("access_key_id") {
+            access_key_id = key.as_str().unwrap_or("").trim_matches('"').to_string();
+        }
+        
+        if let Some(secret) = aws_creds.get("secret_access_key") {
+            secret_access_key = secret.as_str().unwrap_or("").trim_matches('"').to_string();
+        }
+        if let Some(reg) = aws_creds.get("region") {
+            region_str = reg.as_str().unwrap_or("").trim_matches('"').to_string(); 
+        }
+    }
+    
+    let session_token = env::var("AWS_SESSION_TOKEN").ok(); // Optional for temporary credentials
+
+    // Create the credentials object
+    let credentials = Credentials::new(
+        &access_key_id,
+        &secret_access_key,
+        session_token,
+        None, 
+        "custom_credentials",
+    );
+
+    let region = Region::new(region_str.to_string());
+
+    // Create AWS configuration with the credentials and region
+    let config = aws_config::from_env()
+        .credentials_provider(credentials)
+        .region(region)
+        .load()
+        .await;
+
+    // Create and return the SES client
+    Client::new(&config)
 }

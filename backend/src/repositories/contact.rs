@@ -3,6 +3,7 @@ use crate::models::list_contacts::ListContact;
 use crate::{ appState::DbPooledConnection, GLOBAL_APP_STATE };
 use crate::schema::contacts::dsl::*;
 use diesel::prelude::*;
+use diesel::dsl::now;
 use crate::models::contact::{
     Contact,
     CreateContactRequest,
@@ -76,6 +77,7 @@ impl ContactRepository for ContactRepositoryImpl {
                 last_name.eq(&payload.last_name),
                 email.eq(&payload.email),
                 attribute.eq(&payload.attribute),
+                updated_at.eq(now)
             ))
             .get_result(&mut conn)
     }

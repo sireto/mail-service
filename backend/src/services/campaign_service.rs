@@ -287,7 +287,7 @@ pub async fn delete_campaign(campaign_id: String)->Result<DeleteCampaignResponse
 pub async fn send_campaign_email(
     campaign_id: String,
 ) -> Result<CampaignSendResponse, anyhow::Error> {
-    let client = aws_service::create_aws_client().await;
+
     let campaign_uuid = Uuid::parse_str(&campaign_id)?;
     let campaign = get_campaign_by_id(campaign_id.clone())
         .await
@@ -326,7 +326,26 @@ pub async fn send_campaign_email(
     })?;
 
     let sender_email = campaign_sender_response.from_email;
+    let sender_name = campaign_sender_response.from_name;
     //These variables are temporary
+
+    let server_id = campaign_sender_response.server_id.to_string();
+
+    let client = aws_service::create_aws_client_db(&server_id).await;
+    let request = client.list_email_identities();
+
+    // Send the request and await the response
+    let result = request.send().await?;
+
+    // Print the identities (email addresses or domains)
+    if let Some(identities) = result.email_identities {
+        println!("Verified Email Identities:");
+        for identity in identities {
+            println!("{:?}", identity.identity_name);
+        }
+    } else {
+        println!("No identities found.");
+    }
 
     //This current logic may need to be changed while implementing queue
     for contact in contacts.clone() {
@@ -350,7 +369,7 @@ pub async fn send_campaign_email(
             .build();
 
         let result = client.send_email()
-            .from_email_address(sender_email.clone())
+            .from_email_address(format!("{} <{}>", sender_name, sender_email.clone()))
             .destination(Destination::builder()
                 .to_addresses(contact.email.clone())
                 .build()

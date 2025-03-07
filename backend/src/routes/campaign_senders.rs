@@ -4,11 +4,7 @@ use axum::{
 };
 
 use crate::handlers::campaign_sender::{
-    create_campaign_sender,
-    get_campaign_senders,
-    update_campaign_sender,
-    delete_campaign_sender,
-    get_campaign_sender_by_id
+    create_campaign_sender, delete_campaign_sender, get_campaign_sender_by_id, get_campaign_senders, get_verified_identities, update_campaign_sender, validate_email_identity
 };
 
 pub fn campaign_sender_routes() -> Router {
@@ -18,4 +14,6 @@ pub fn campaign_sender_routes() -> Router {
         .route("/{senderId}", get(get_campaign_sender_by_id))
         .route("/{senderId}", patch(update_campaign_sender))
         .route("/{senderId}", delete(delete_campaign_sender))
+        .route("/email-identities/validate", post(validate_email_identity))
+        .route("/email-identities", get(get_verified_identities))
 }
