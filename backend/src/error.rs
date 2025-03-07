@@ -1,19 +1,54 @@
-use aws_sdk_sesv2::Error as SdkError;
-use aws_smithy_runtime_api::client::result::SdkError as GenericSdkError;
+use aws_sdk_sesv2::error::SdkError;
+use aws_sdk_sesv2::operation::send_email::SendEmailError;
+use axum::response::IntoResponse;
+use axum::http::status::StatusCode;
 use thiserror::Error;
 
+
 #[derive(Debug, Error)]
-pub enum EmailServiceError {
-    #[error("Receiver email address is required")]
-    MissingReceiverEmail,
+pub enum AppError {
+    #[error("Database error: {0}")]
+    DatabaseError(#[from] diesel::result::Error),
+    #[error("Internal server error: {0:?}")]
+    InternalServerError(Option<String>),
+    #[error("Not Found error: {0:?}")]
+    NotFoundError(Option<String>),
+    #[error("UUID parsing error: {0}")]
+    UuidError(#[from] uuid::Error),
+    #[error("Bad request: {0:?}")]
+    BadRequestError(Option<String>),
+    #[error("AWS SES error: {0}")]
+    AwsSesError(#[from] SdkError<SendEmailError>),
+}
 
-    #[error("Invalid email address format: {0}")]
-    InvalidEmailAddress(String),
-
-    // Wrap AWS SDK Errors
-    #[error("AWS SDK Error: {0}")]
-    SdkError(#[from] GenericSdkError<SdkError, aws_smithy_runtime_api::http::Response>),
-
-    #[error("Unexpected error: {0}")]
-    Unexpected(String),
+impl IntoResponse for AppError {
+    fn into_response(self) -> axum::response::Response {
+        let (status, message) = match self {
+            AppError::DatabaseError(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Database Error: {:?}", e)
+            ),
+            AppError::InternalServerError(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                e.unwrap_or("Internal server error".to_string())
+            ),
+            AppError::NotFoundError(e) => (
+                StatusCode::NOT_FOUND,
+                e.unwrap_or("Not found".to_string())
+            ),
+            AppError::UuidError(e) => (
+                StatusCode::BAD_REQUEST,
+                format!("UUID parsing error: {:?}", e)
+            ),
+            AppError::BadRequestError(e) => (
+                StatusCode::BAD_REQUEST,
+                format!("Bad request: {:?}", e)
+            ),
+            AppError::AwsSesError(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("AWS SES error: {:?}", e)
+            ),
+        };
+        (status, message).into_response()
+    }
 }

@@ -1,3 +1,5 @@
+use uuid::Uuid;
+use crate::error::AppError;
 use crate::{models::{campaign::
     {
     CampaignSendResponse, CreateCampaignRequest, CreateCampaignResponse, DeleteCampaignResponse, ExtendedCreateCampaignRequest, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse 
@@ -19,7 +21,7 @@ use axum::{
 )]
 pub async fn create_campaign(
     Json(payload): Json<ExtendedCreateCampaignRequest>
-)->Result<Json<CreateCampaignResponse>, (StatusCode, String)>{
+)->Result<Json<CreateCampaignResponse>, AppError>{
 
     let created_campaign = campaign_service::create_campaign(payload).await?;
     Ok(Json(created_campaign))
@@ -33,7 +35,7 @@ pub async fn create_campaign(
         (status = 404)
     )
 )]
-pub async fn get_all_campaigns() -> Result<Json<Vec<GetCampaignResponse>>, (StatusCode, String)> {
+pub async fn get_all_campaigns() -> Result<Json<Vec<GetCampaignResponse>>, AppError> {
     let campaigns = campaign_service::get_all_campaigns().await?;
 
     if campaigns.is_empty(){
@@ -50,8 +52,10 @@ pub async fn get_all_campaigns() -> Result<Json<Vec<GetCampaignResponse>>, (Stat
         (status = 404)
     )
 )]
-pub async fn get_campaign_by_id(Path(campaign_id): Path<String>) -> Result<Json<GetCampaignResponse>, (StatusCode, String)> {
-    let campaign = campaign_service::get_campaign_by_id(campaign_id).await?;
+pub async fn get_campaign_by_id(Path(campaign_id): Path<String>) -> Result<Json<GetCampaignResponse>, AppError> {
+    let uuid_id = Uuid::parse_str(&campaign_id)?;
+
+    let campaign = campaign_service::get_campaign_by_id(uuid_id).await?;
 
     Ok(Json(campaign))
 }
@@ -70,12 +74,13 @@ pub async fn get_campaign_by_id(Path(campaign_id): Path<String>) -> Result<Json<
     )
 )]
 pub async fn update_campaign(
-    
-    Path(contact_id): Path<String>,
-    Json(payload): Json<UpdateCampaignRequest>
-) -> Result<Json<UpdateCampaignResponse>, (StatusCode, String)> {
 
-    let update_contact_response = campaign_service::update_campaign(contact_id, payload).await?;
+    Path(campaign_id): Path<String>,
+    Json(payload): Json<UpdateCampaignRequest>
+) -> Result<Json<UpdateCampaignResponse>, AppError> {
+    let uuid_id = Uuid::parse_str(&campaign_id)?;
+
+    let update_contact_response = campaign_service::update_campaign(uuid_id, payload).await?;
 
     Ok(Json(update_contact_response))
 }
@@ -95,8 +100,9 @@ pub async fn update_campaign(
 )]
 pub async fn delete_campaign(
     Path(campaign_id): Path<String>
-) -> Result<Json<DeleteCampaignResponse>, (StatusCode, String)> {
-    let delete_campaign_response = campaign_service::delete_campaign(campaign_id).await?;
+) -> Result<Json<DeleteCampaignResponse>, AppError> {
+    let uuid_id = Uuid::parse_str(&campaign_id)?;
+    let delete_campaign_response = campaign_service::delete_campaign(uuid_id).await?;
 
     Ok(Json(delete_campaign_response))
 }
@@ -117,12 +123,9 @@ pub async fn delete_campaign(
 )]
 pub async fn send_campaign_email(
     Path(campaign_id): Path<String>
-) -> Result<Json<CampaignSendResponse>, (StatusCode, String)> {
-    
-    let result = campaign_service::send_campaign_email(campaign_id).await;
+) -> Result<Json<CampaignSendResponse>, AppError> {
+    let uuid_id = Uuid::parse_str(&campaign_id)?;
+    let result = campaign_service::send_campaign_email(uuid_id).await?;
 
-    match result {
-        Ok(response) => Ok(Json(response)),
-        Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string())),
-    }
+    Ok(Json(result))
 }

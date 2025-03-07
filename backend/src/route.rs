@@ -1,4 +1,5 @@
 use axum::Router;
+use axum::routing::get;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -8,8 +9,10 @@ use crate::handlers::{
     mail_handler,
     campaign as campaign,
     campaign_sender as campaign_sender,
-    bounce_logs_handler
+    bounce_logs_handler,
+    healthcheck_handler,
 };
+use crate::routes::healthcheck_route::healthcheck_routes;
 use crate::servers::servers_handler as servers;
 
 use crate::routes::list::list_routes;
@@ -70,7 +73,7 @@ use crate::servers::servers_routes::servers_routes;
         bounce_logs_handler::handle_sns_notification,
         bounce_logs_handler::get_all_bounces,
         bounce_logs_handler::get_bounces_by_contact_id,
-        bounce_logs_handler::delete_bounce
+        bounce_logs_handler::delete_bounce,
     ),
     servers(
         (url = "/", description = "Default server")
@@ -88,7 +91,8 @@ pub fn create_router() -> Router {
         .nest("/bounce-logs", bounce_logs_route::bounce_logs_routes())
         .nest("/campaigns", campaign_routes::campaign_routes())
         .nest("/campaign-senders", campaign_senders_routes::campaign_sender_routes())
-        .nest("/servers", servers_routes());
+        .nest("/servers", servers_routes())
+        .nest("/health", healthcheck_routes());
 
     Router::new()
         .nest("/api", api_routes)

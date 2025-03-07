@@ -5,13 +5,14 @@ use crate::repositories::template_repo::{self, TemplateRepository, TemplateRespo
 use crate::services::aws_service;
 use crate::utils::email_utils::enumerate_list;
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 
 use tera::{Context, Tera, Value};
 
 use axum::http::StatusCode;
 use email_address::*;
 use anyhow::{Error, Result};
+use crate::error::AppError;
 
 
 pub struct TemplateService {
@@ -44,59 +45,43 @@ impl TemplateService {
     }
 }
 
-pub async fn get_template_by_id(template_id: Uuid) -> Result<GetTemplateResponse, (StatusCode, String)> {
+pub async fn get_template_by_id(template_id: Uuid) -> Result<GetTemplateResponse, AppError> {
     // Call the repository function to get the template by ID...
     let template_repository = Arc::new(TemplateRespositoryImpl);
     let template_service = TemplateService::new(template_repository);
-    let template = template_service.get_template_by_id(template_id).await;
+    let template = template_service.get_template_by_id(template_id).await?;
 
-    match template {
-        Ok(template) => {
-            // Map the template to the response format
-            let response_template = GetTemplateResponse {
-                id: template.id.to_string(),
-                name: template.name,
-                namespace_id: template.namespace_id.to_string(),
-                template_data: template.template_data,
-                content_plaintext: template.content_plaintext,
-                content_html: template.content_html,
-                created_at: template.created_at,
-                updated_at: template.updated_at,
-            };
-
-            Ok(response_template)
-        },
-        Err(err) => {
-            // Return an error if the template was not found
-            Err((StatusCode::NOT_FOUND, err.to_string()))
-        }
-    }
+    Ok(GetTemplateResponse {
+        id: template.id.to_string(),
+        name: template.name,
+        namespace_id: template.namespace_id.to_string(),
+        template_data: template.template_data,
+        content_plaintext: template.content_plaintext,
+        content_html: template.content_html,
+        created_at: template.created_at,
+        updated_at: template.updated_at,
+    })
 }
 
-pub async fn get_all_templates () -> Result<Vec<GetTemplateResponse>, (StatusCode, String)> {
+pub async fn get_all_templates () -> Result<Vec<GetTemplateResponse>, AppError> {
     let template_repository = Arc::new(TemplateRespositoryImpl);
     let template_service = TemplateService::new(template_repository);
 
-    let all_templates = template_service.get_all_templates().await;
+    let all_templates = template_service.get_all_templates().await?;
 
-    let response_templates = match all_templates {
-        Ok(templates) => templates.into_iter().map(|template| GetTemplateResponse {
-            id: template.id.to_string(),
-            name: template.name,
-            namespace_id: template.namespace_id.to_string(),
-            template_data: template.template_data,
-            content_plaintext: template.content_plaintext,
-            content_html: template.content_html,
-            created_at: template.created_at,
-            updated_at: template.updated_at
-        }).collect(),
-        Err(err) => return Err((StatusCode::NOT_FOUND, err.to_string()))
-    };
-
-    Ok(response_templates)
+    Ok(all_templates.into_iter().map(|template| GetTemplateResponse {
+        id: template.id.to_string(),
+        name: template.name,
+        namespace_id: template.namespace_id.to_string(),
+        template_data: template.template_data,
+        content_plaintext: template.content_plaintext,
+        content_html: template.content_html,
+        created_at: template.created_at,
+        updated_at: template.updated_at
+    }).collect())
 }
 
-pub async fn create_template (payload: CreateTemplateRequest) -> Result<CreateTemplateResponse, (StatusCode, String)> {
+pub async fn create_template (payload: CreateTemplateRequest) -> Result<CreateTemplateResponse, AppError> {
     let template_repository = Arc::new(TemplateRespositoryImpl);
     let template_service = TemplateService::new(template_repository);
 
@@ -109,89 +94,63 @@ pub async fn create_template (payload: CreateTemplateRequest) -> Result<CreateTe
         content_html: payload.content_html
     };
 
-    let created_template = template_service.create_template(new_template).await;
+    let created_template = template_service.create_template(new_template).await?;
 
-    let response_template = match created_template {
-        Ok(template) => CreateTemplateResponse {
-            id: template.id.to_string(),
-            name: template.name,
-            created_at: template.created_at
-        },
-        Err(err) => return Err((StatusCode::NOT_FOUND, err.to_string()))
-    };
-
-    Ok(response_template)
+    Ok(CreateTemplateResponse {
+        id: created_template.id.to_string(),
+        name: created_template.name,
+        created_at: created_template.created_at
+    })
 }
 
 pub async fn update_template (
-    template_id: String,
+    template_id: Uuid,
     payload: UpdateTemplateRequest
-) -> Result<UpdateTemplateResponse, (StatusCode, String)> {
+) -> Result<UpdateTemplateResponse, AppError> {
     let template_repository = Arc::new(TemplateRespositoryImpl);
     let template_service = TemplateService::new(template_repository);
 
+    let updated_template = template_service.update_template( template_id, payload).await?;
 
-    // Convert 'template_id' (String) to 'Uuid'...
-    let uuid_id = Uuid::parse_str(&template_id)
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid UUID format".to_string()))?;
-
-    let updated_template = template_service.update_template( uuid_id, payload).await;
-
-    let response_template = match updated_template {
-        Ok(template) => UpdateTemplateResponse {
-            id: template.id,
-            name: template.name,
-            updated_at: template.updated_at,
-        },
-        Err(err) => return Err((StatusCode::NOT_FOUND, err.to_string()))
-    };
-
-    Ok(response_template)
+    Ok(UpdateTemplateResponse {
+        id: updated_template.id,
+        name: updated_template.name,
+        updated_at: updated_template.updated_at
+    })
 }
 
 pub async fn delete_template (
-    template_id: String,
-) -> Result<DeleteTemplateResponse, (StatusCode, String)> {
+    template_id: Uuid,
+) -> Result<DeleteTemplateResponse, AppError> {
     let template_repository = Arc::new(TemplateRespositoryImpl);
     let template_service = TemplateService::new(template_repository);
-    // Convert 'template_id' (String) to 'Uuid'...
-    let uuid_id = Uuid::parse_str(&template_id)
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid UUID format".to_string()))?;
 
-    let deleted_template = template_service.delete_template( uuid_id).await;
+    let deleted_template = template_service.delete_template( template_id).await?;
 
-    let response_template = match deleted_template {
-        Ok(template) => DeleteTemplateResponse {
-            id: template.id,
-            name: template.name,
-        },
-        Err(err) => return Err((StatusCode::NOT_FOUND, err.to_string()))
-    };
-
-    Ok(response_template)
+    Ok(DeleteTemplateResponse {
+        id: deleted_template.id,
+        name: deleted_template.name,
+    })
 }
 
 pub async fn send_templated_email(
-    template_id: String,
+    template_id: Uuid,
     payload: SendMailRequest,
-) -> Result<SendMailResponse, anyhow::Error> {
+) -> Result<SendMailResponse, AppError> {
     let client = aws_service::create_aws_client().await;
 
     // Validate receiver...
     if payload.receiver.clone().unwrap_or_default().trim().is_empty() && payload.cc.clone().unwrap_or_default().trim().is_empty() && payload.bcc.clone().unwrap_or_default().trim().is_empty() {
-        return Err(anyhow::anyhow!("Receiver email address is required"));
+        return Err(AppError::BadRequestError(Some("No valid receivers found".to_string())));
     }
 
     // Fetch the template by ID...
-    let template_uuid_id = Uuid::parse_str(&template_id)
-        .map_err(|_| anyhow::anyhow!("Invalid template ID".to_string()))?;
-    let template = get_template_by_id(template_uuid_id).await.map_err(|e| anyhow::anyhow!(e.1))?;
+    
+    let template = get_template_by_id(template_id).await?;
 
-    let parsed_html = populate_and_parse_template(&template, &payload).await?;
+    let parsed_html = populate_and_parse_template(&template, &payload).await.map_err(|e| AppError::InternalServerError(Some("Failed to parse mjml to html".to_string())))?;
 
-    let (receiver_list, cc_list, bcc_list) = handle_receivers(&client, &payload).await?;
-
-    println!("Before sending the email...");
+    let (receiver_list, cc_list, bcc_list) = handle_receivers(&client, &payload).await.map_err(|e| AppError::InternalServerError(Some("Failed to extract the receivers".to_string())))?;
 
     // Send email
     let result = aws_service::send_mail(
@@ -203,28 +162,19 @@ pub async fn send_templated_email(
         &payload.subject,
         &parsed_html,
     )
-    .await;
+    .await?;
 
-    println!("After sending the email...");
-
-
-    match result {
-        Ok(_) => Ok(SendMailResponse {
-            id: template_uuid_id,
-            message_id: result.unwrap().message_id().unwrap_or_default().to_string(),
-            name: template.name,
-            to: receiver_list,
-            from: payload.from,
-            cc: cc_list,
-            bcc: bcc_list,
-            message: parsed_html,
-            sent_at: Utc::now(),
-        }),
-        Err(err) => {
-            eprintln!("Failed to send templated email: {}", err);
-            Err(anyhow::anyhow!(format!("Failed to send email: {:?}", err)).into())
-        }
-    }
+    Ok(SendMailResponse {
+        id: template_id,
+        message_id: result.message_id().unwrap_or_default().to_string(),
+        name: template.name,
+        to: receiver_list,
+        from: payload.from,
+        cc: cc_list,
+        bcc: bcc_list,
+        message: parsed_html,
+        sent_at: Utc::now(),
+    })
 }
 
 /// a function to populate and parse the template...
@@ -246,8 +196,7 @@ async fn populate_and_parse_template(template: &GetTemplateResponse, payload: &S
         }
     }
 
-    let rendered = tera.render("demo_template", &context)
-        .map_err(|e| anyhow::anyhow!(format!("Failed to render template: {e}")))?;
+    let rendered = tera.render("demo_template", &context)?;
 
     let parsed_template_html = mrml::parse(&rendered)
         .map_err(|e| anyhow::anyhow!(format!("Failed to parse MJML template: {e}")))?;
@@ -321,5 +270,3 @@ async fn process_receivers(client: &aws_sdk_sesv2::Client, receiver: &str) -> Re
 
     Ok(email_addresses)
 }
-
-

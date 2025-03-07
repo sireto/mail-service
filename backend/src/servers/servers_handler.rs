@@ -1,4 +1,4 @@
-use crate::servers::servers_model::{ServerRequest, ServerResponse, DeleteServerResponse, Server};
+use crate::{error::AppError, servers::servers_model::{DeleteServerResponse, Server, ServerRequest, ServerResponse}};
 use axum::{
     extract::Extension, http::StatusCode, Json
 };
@@ -16,7 +16,7 @@ use crate::servers::servers_services::ServerService;
         (status=404)
     )
 )]
-pub async fn create_server(Extension(server_service): Extension<Arc<ServerService>>, Json(payload): Json<ServerRequest>)->Result<Json<ServerResponse>, (StatusCode, String)> {
+pub async fn create_server(Extension(server_service): Extension<Arc<ServerService>>, Json(payload): Json<ServerRequest>)->Result<Json<ServerResponse>, AppError> {
     let created_server = server_service.create_server(payload).await?;
     Ok(Json(ServerResponse {
         id: created_server.id,
@@ -42,9 +42,9 @@ pub async fn create_server(Extension(server_service): Extension<Arc<ServerServic
 )]
 pub async fn get_servers(
     Extension(server_service): Extension<Arc<ServerService>>
-) -> Result<Json<Vec<ServerResponse>>, (StatusCode, String)> {
+) -> Result<Json<Vec<ServerResponse>>, AppError> {
     
-    let servers = server_service.get_all_servers().await?;
+    let servers = server_service.get_all_servers().await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
     let response: Vec<ServerResponse> = servers.into_iter().map(|server| ServerResponse {
         id: server.id,
         active: server.active,
@@ -73,8 +73,9 @@ pub async fn get_servers(
 pub async fn get_server_by_id(
     Extension(server_service): Extension<Arc<ServerService>>,
     server_id: axum::extract::Path<String>, 
-) -> Result<Json<ServerResponse>, (StatusCode, String)> {
-    let server = server_service.get_server_by_id(&server_id).await?;
+) -> Result<Json<ServerResponse>, AppError> {
+    let server = server_service.get_server_by_id(&server_id).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+
     Ok(Json(ServerResponse {
         id: server.id,
         active: server.active,
@@ -104,7 +105,7 @@ pub async fn update_server(
     Extension(server_service): Extension<Arc<ServerService>>,
     server_id: axum::extract::Path<String>, 
     Json(payload): Json<ServerRequest>
-) -> Result<Json<ServerResponse>, (StatusCode, String)> {
+) -> Result<Json<ServerResponse>, AppError> {
     
     let updated_server = server_service.update_server(&server_id, payload).await?;
 
@@ -134,8 +135,8 @@ pub async fn update_server(
 pub async fn delete_server(
     Extension(server_service): Extension<Arc<ServerService>>,
     server_id: axum::extract::Path<String>, 
-) -> Result<Json<ServerResponse>, (StatusCode, String)> {
-    let deleted_server = server_service.delete_server(&server_id).await?;
+) -> Result<Json<ServerResponse>, AppError> {
+    let deleted_server = server_service.delete_server(&server_id).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
     Ok(Json(ServerResponse {
         id: deleted_server.id,
         active: deleted_server.active,

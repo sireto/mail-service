@@ -2,10 +2,10 @@
 
 use std::sync::Arc;
 
-use crate::{models::{bounce_logs::
+use crate::{error::AppError, models::{bounce_logs::
     { 
         Message, CreateBounceLogRequest, CreateBounceLogResponse, GetBounceLogResponse, SnsNotification
-    }, mail::UpdateMailRequest}, repositories::{contact::ContactRepositoryImpl, mail_repository::MailRepositoryImpl}, services::{bounce_logs_service, contact::ContactService, mail_service::{self, MailService}}
+    }, mail::UpdateMailRequest}, repositories::{contact::ContactRepositoryImpl, mail_repository::MailRepositoryImpl}, services::{bounce_logs_service, contact_service::ContactService, mail_service::{self, MailService}}
 };
 
 use axum::{
@@ -51,7 +51,7 @@ impl MailStatus {
 )]
 pub async fn handle_sns_notification (
     payload: Json<SnsNotification>,
-) -> Result<(), (StatusCode, String)> {
+) -> Result<(), AppError> {
     let mail_repository = Arc::new(MailRepositoryImpl);
     let mail_service = MailService::new(mail_repository);
 
@@ -64,14 +64,14 @@ pub async fn handle_sns_notification (
 
         if let Some(url) = subscribe_url {
             println!("Confirming SNS subscription...");
-            reqwest::get(&url).await.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+            reqwest::get(&url).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
         }
         return Ok(());
     }
 
     if payload.notification_type == "Notification" {
         let sns_event: Message = serde_json::from_str(&payload.message)
-            .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+            .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
         if sns_event.notification_type.is_none() {
             if let Some(event_type) = sns_event.event_type {
@@ -82,10 +82,10 @@ pub async fn handle_sns_notification (
                         mail_service.update_mail(mail_id, UpdateMailRequest {
                             open: Some(true),
                             ..Default::default()
-                        }).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+                        }).await?;
                     },
                     "Click" => {
-                        mail_service.increment_mail_clicks(mail_id).await.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+                        mail_service.increment_mail_clicks(mail_id).await?;
                     },
                     _ => {
                         println!("Unknown event type: {}", event_type);
@@ -115,7 +115,7 @@ pub async fn handle_sns_notification (
                         let new_bounce = CreateBounceLogRequest {
                             contact_id: contact.unwrap().id,
                             at: bounce.timestamp.parse::<chrono::DateTime<chrono::Utc>>()
-                                .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?,
+                                .map_err(|err| AppError::BadRequestError(Some(err.to_string())))?,
                             kind: bounce.bounce_type.clone(),
                             campaign_id: None,
                             reason: bounce.bounce_sub_type.clone(),
@@ -151,7 +151,7 @@ pub async fn handle_sns_notification (
         (status = 500)
     )
 )]
-pub async fn get_all_bounces() -> Result<Json<Vec<GetBounceLogResponse>>, (StatusCode, String)> {
+pub async fn get_all_bounces() -> Result<Json<Vec<GetBounceLogResponse>>, AppError> {
     let all_bounces_response = bounce_logs_service::get_all_bounces().await?;
 
     let response: Vec<GetBounceLogResponse> = all_bounces_response.into_iter().map(|bounce| GetBounceLogResponse {
@@ -176,9 +176,8 @@ pub async fn get_all_bounces() -> Result<Json<Vec<GetBounceLogResponse>>, (Statu
 )]
 pub async fn get_bounces_by_contact_id(
     Path(contact_id): Path<String>
-) -> Result<Json<Vec<GetBounceLogResponse>>, (StatusCode, String)> {
-    let uuid_id = Uuid::parse_str(&contact_id)
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid UUID format".to_string()))?;
+) -> Result<Json<Vec<GetBounceLogResponse>>, AppError> {
+    let uuid_id = Uuid::parse_str(&contact_id)?;
 
     let bounces_response = bounce_logs_service::get_bounces_by_contact_id(uuid_id).await?;
 
@@ -204,10 +203,9 @@ pub async fn get_bounces_by_contact_id(
 )]
 pub async fn delete_bounce(
     Path(bounce_id): Path<String>
-) -> Result<(), (StatusCode, String)> {
+) -> Result<(), AppError> {
     // Convert the bounce_id of type string to the Uuid...
-    let uuid_id = Uuid::parse_str(&bounce_id)
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid UUID format".to_string()))?;
+    let uuid_id = Uuid::parse_str(&bounce_id)?;
     
     bounce_logs_service::delete_bounce(uuid_id).await?;
 

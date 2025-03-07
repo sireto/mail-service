@@ -8,6 +8,7 @@ use crate::models::contact::{
     CreateContactResponse, GetContactResponse, UpdateContactRequest, UpdateContactResponse,
     DeleteContactResponse, ImportResult
 };
+use crate::error::AppError;
 
 use super::list_service;
 
@@ -53,12 +54,11 @@ impl ContactService {
 
 pub async fn create_contacts(
     payloads: Vec<CreateContactRequest> // Corrected syntax
-) -> Result<Json<Vec<CreateContactResponse>>, (StatusCode, String)> {
+) -> Result<Vec<CreateContactResponse>, AppError> {
     
     let contact_repository = Arc::new(ContactRepositoryImpl);
     let contact_service = ContactService::new(contact_repository);
-    let created_contacts = contact_service.create_contacts(payloads).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let created_contacts = contact_service.create_contacts(payloads).await?;
 
     let response = created_contacts.into_iter().map(|contact| CreateContactResponse {
         id: contact.id,
@@ -68,29 +68,21 @@ pub async fn create_contacts(
         attribute: contact.attribute,
     }).collect();
 
-    Ok(Json(response))
+    Ok(response)
 }
 
-pub async fn get_all_contacts() -> Result<Vec<GetContactResponsee>, (StatusCode, String)> {
+pub async fn get_all_contacts() -> Result<Vec<GetContactResponsee>, AppError> {
     let contact_repository = Arc::new(ContactRepositoryImpl);
 
-    println!("Getting all contacts"); 
-
-    let contacts = contact_repository.get_all_contacts().await
-    .map_err(|e| {
-        println!("Error getting contacts: {:?}", e); // Add this
-        (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
-    })?;
+    let contacts = contact_repository.get_all_contacts().await?;
 
         println!("Found {} base contacts", contacts.len()); // Add this
     
     let contact_ids = contacts.iter().map(|c| c.id).collect();
-    let list_contacts = contact_repository.get_list_contacts(contact_ids).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let list_contacts = contact_repository.get_list_contacts(contact_ids).await?;
     
     let list_ids = list_contacts.iter().map(|lc| lc.list_id).collect();
-    let lists = contact_repository.get_lists_by_ids(list_ids).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let lists = contact_repository.get_lists_by_ids(list_ids).await?;
     
     let list_map: HashMap<Uuid, String> = lists.into_iter()
         .map(|list| (list.id, list.name))
@@ -120,14 +112,12 @@ pub async fn get_all_contacts() -> Result<Vec<GetContactResponsee>, (StatusCode,
 }
 
 /// function to get the contact by email...
-pub async fn get_contact_by_id(contact_id: String) -> Result<GetContactResponse, (StatusCode, String)> {
-    let uuid_id = Uuid::parse_str(&contact_id).map_err(|_| (StatusCode::BAD_REQUEST, "Invalid contact ID format".to_string()))?;
-
+pub async fn get_contact_by_id(contact_id: Uuid) -> Result<GetContactResponse, AppError> {
     let contact_repository = Arc::new(ContactRepositoryImpl);
     let contact_service = ContactService::new(contact_repository);
-    let contact = contact_service.get_contact_by_id(uuid_id).await;
+    let contact = contact_service.get_contact_by_id(contact_id).await;
 
-    let contact = contact.map_err(|err| (StatusCode::NOT_FOUND, err.to_string()))?;
+    let contact = contact.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     let contact_response = GetContactResponse {
         id: contact.id,
@@ -143,12 +133,12 @@ pub async fn get_contact_by_id(contact_id: String) -> Result<GetContactResponse,
 }
 
 /// function to get the contact by email...
-pub async fn get_contact_by_email(email: String) -> Result<GetContactResponse, (StatusCode, String)> {
+pub async fn get_contact_by_email(email: String) -> Result<GetContactResponse, AppError> {
     let contact_repository = Arc::new(ContactRepositoryImpl);
     let contact_service = ContactService::new(contact_repository);
     let contact = contact_service.get_contact_by_email(email).await;
 
-    let contact = contact.map_err(|err| (StatusCode::NOT_FOUND, err.to_string()))?;
+    let contact = contact.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     let contact_response = GetContactResponse {
         id: contact.id,
@@ -164,57 +154,42 @@ pub async fn get_contact_by_email(email: String) -> Result<GetContactResponse, (
 }
 
 pub async fn update_contact (
-    contact_id: String,
+    contact_id: Uuid,
     payload: UpdateContactRequest
-) -> Result<UpdateContactResponse, (StatusCode, String)> {
-    let uuid_id = Uuid::parse_str(&contact_id).map_err(|_| (StatusCode::BAD_REQUEST, "Invalid contact ID format".to_string()))?;
-
+) -> Result<UpdateContactResponse, AppError> {
     let contact_repository = Arc::new(ContactRepositoryImpl);
     let contact_service = ContactService::new(contact_repository);
 
-    let updated_contact_response = contact_service.update_contact(uuid_id, payload).await;
+    let updated_contact_response = contact_service.update_contact(contact_id, payload).await?;
 
-    let response_contact = match updated_contact_response {
-        Ok(contact) => UpdateContactResponse {
-            id: contact.id,
-            first_name: contact.first_name,
-            last_name: contact.last_name,
-            email: contact.email,
-            attribute: contact.attribute,
-            updated_at: contact.updated_at,
-        },
-        Err(err) => return Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
-    };
-
-    Ok(response_contact)
+    Ok(UpdateContactResponse {
+        id: updated_contact_response.id,
+        first_name: updated_contact_response.first_name,
+        last_name: updated_contact_response.last_name,
+        email: updated_contact_response.email,
+        attribute: updated_contact_response.attribute,
+        updated_at: updated_contact_response.updated_at,
+    })
 }
 
 pub async fn delete_contact (
-    contact_id: String,
-) -> Result<DeleteContactResponse, (StatusCode, String)> {
+    contact_id: Uuid,
+) -> Result<DeleteContactResponse, AppError> {
     // Convert 'contact_id' (String) to 'Uuid'...
-    let uuid_id = Uuid::parse_str(&contact_id)
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid UUID format".to_string()))?;
-
     let contact_repository = Arc::new(ContactRepositoryImpl);
     let contact_service = ContactService::new(contact_repository);
 
-    let deleted_contact_response = contact_service.delete_contact(uuid_id).await;
+    let deleted_contact_response = contact_service.delete_contact(contact_id).await?;
 
-    let response_contact = match deleted_contact_response {
-        Ok(contact) => DeleteContactResponse {
-            id: contact.id,
-            first_name: contact.first_name,
-            last_name: contact.last_name,
-            email: contact.email,
-        },
-        Err(err) => return Err((StatusCode::NOT_FOUND, err.to_string()))
-    };
-
-    Ok(response_contact)
+    Ok(DeleteContactResponse {
+        id: deleted_contact_response.id,
+        first_name: deleted_contact_response.first_name,
+        last_name: deleted_contact_response.last_name,
+        email: deleted_contact_response.email,
+    })
 }
 
-pub async fn check_email_exists(email: String) -> Result<bool, (StatusCode, String)> {
+pub async fn check_email_exists(email: String) -> Result<bool, AppError> {
     let contact_repository = Arc::new(ContactRepositoryImpl);
     let contact_service = ContactService::new(contact_repository);
 
@@ -227,26 +202,18 @@ pub async fn check_email_exists(email: String) -> Result<bool, (StatusCode, Stri
 }
 
 
-pub async fn get_all_contactss() -> Result<Vec<GetContactResponsee>, (StatusCode, String)> {
+pub async fn get_all_contactss() -> Result<Vec<GetContactResponsee>, AppError> {
     let contact_repository = Arc::new(ContactRepositoryImpl);
 
-    println!("Getting all contacts"); 
-
-    let contacts = contact_repository.get_all_contacts().await
-    .map_err(|e| {
-        println!("Error getting contacts: {:?}", e); // Add this
-        (StatusCode::INTERNAL_SERVER_ERROR, e.to_string())
-    })?;
+    let contacts = contact_repository.get_all_contacts().await?;
 
         println!("Found {} base contacts", contacts.len()); // Add this
     
     let contact_ids = contacts.iter().map(|c| c.id).collect();
-    let list_contacts = contact_repository.get_list_contacts(contact_ids).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let list_contacts = contact_repository.get_list_contacts(contact_ids).await?;
     
     let list_ids = list_contacts.iter().map(|lc| lc.list_id).collect();
-    let lists = contact_repository.get_lists_by_ids(list_ids).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let lists = contact_repository.get_lists_by_ids(list_ids).await?;
     
     let list_map: HashMap<Uuid, String> = lists.into_iter()
         .map(|list| (list.id, list.name))
@@ -310,7 +277,7 @@ pub async fn import_contacts(
             match list_service::add_contacts_to_list(*list_id, contact_ids.clone()).await {
                 Ok(_) => { println!("Succesfully added to list") },
                 Err(e) => {
-                    result.errors.push(format!("Warning: Imported contacts but failed to associate with list {}: {}", list_id, e.1));
+                    result.errors.push(format!("Warning: Imported contacts but failed to associate with list {}: {}", list_id, e.to_string()));
                 }
             }
         }

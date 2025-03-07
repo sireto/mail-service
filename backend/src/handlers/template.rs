@@ -1,3 +1,4 @@
+use crate::error::AppError;
 use crate::models::mail::CreateMailRequest;
 use crate::models::template::{ CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, SendMailRequest, SendMailResponse, TemplateResponse, UpdateTemplateRequest, UpdateTemplateResponse };
 use serde_json::Value;
@@ -28,14 +29,8 @@ pub enum TemplateField {
         (status = 404)
     )
 )]
-pub async fn get_templates() -> Result<Json<Vec<GetTemplateResponse>>, (StatusCode, String)> {
-
-    // Use Diesel to fetch templates from the database
+pub async fn get_templates() -> Result<Json<Vec<GetTemplateResponse>>, AppError> {
     let templates_result = template_service::get_all_templates().await?;
-
-    if templates_result.is_empty() {
-        return Err((StatusCode::NOT_FOUND, "No templates found".to_string()));
-    }
 
     Ok(Json(templates_result))
 }
@@ -48,18 +43,14 @@ pub async fn get_templates() -> Result<Json<Vec<GetTemplateResponse>>, (StatusCo
         (status = 404)
     )
 )]
-pub async fn get_templates_by_id(Path(template_id): Path<String>) -> Result<Json<GetTemplateResponse>, (StatusCode, String)> {
+pub async fn get_templates_by_id(Path(template_id): Path<String>) -> Result<Json<GetTemplateResponse>, AppError> {
     // Try to parse the template_id from String to Uuid
-    let template_id = Uuid::parse_str(&template_id)
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid template ID format".to_string()))?;
+    let template_id = Uuid::parse_str(&template_id)?;
 
     // Fetch the template by ID from the service
-    let template_result = template_service::get_template_by_id(template_id).await;
+    let template_result = template_service::get_template_by_id(template_id).await?;
 
-    match template_result {
-        Ok(template) => Ok(Json(template)), // Return the template wrapped in Json
-        Err((status, message)) => Err((status, message)), // Propagate error if not found
-    }
+    Ok(Json(template_result))
 }
 
 #[utoipa::path(
@@ -72,7 +63,7 @@ pub async fn get_templates_by_id(Path(template_id): Path<String>) -> Result<Json
 )]
 pub async fn create_template(
     Json(payload): Json<CreateTemplateRequest>,
-) -> Result<Json<CreateTemplateResponse>, (StatusCode, String)> {
+) -> Result<Json<CreateTemplateResponse>, AppError> {
 
     let create_new_template = template_service::create_template(payload).await?;
 
@@ -102,9 +93,12 @@ pub async fn update_template(
     
     Path(template_id): Path<String>,
     Json(payload): Json<UpdateTemplateRequest>
-) -> Result<Json<UpdateTemplateResponse>, (StatusCode, String)> {
+) -> Result<Json<UpdateTemplateResponse>, AppError> {
 
-    let update_template_response = template_service::update_template(template_id, payload).await?;
+    // Convert 'template_id' (String) to 'Uuid'...
+    let uuid_id = Uuid::parse_str(&template_id)?;
+
+    let update_template_response = template_service::update_template(uuid_id, payload).await?;
 
     Ok(Json(update_template_response))
 }
@@ -124,8 +118,10 @@ pub async fn update_template(
 )]
 pub async fn delete_template(
     Path(template_id): Path<String>
-) -> Result<Json<DeleteTemplateResponse>, (StatusCode, String)> {
-    let delete_template_response = template_service::delete_template(template_id).await?;
+) -> Result<Json<DeleteTemplateResponse>, AppError> {
+    let uuid_id = Uuid::parse_str(&template_id)?;
+
+    let delete_template_response = template_service::delete_template(uuid_id).await?;
 
     Ok(Json(delete_template_response))
 }
@@ -146,8 +142,11 @@ pub async fn delete_template(
 pub async fn send_templated_email(
     Path(template_id): Path<String>,
     Json(payload): Json<SendMailRequest>
-) -> Result<Json<SendMailResponse>, (StatusCode, String)> {
-    let send_templated_email_response = template_service::send_templated_email(template_id, payload.clone()).await;
+) -> Result<Json<SendMailResponse>, AppError> {
+    let template_uuid_id = Uuid::parse_str(&template_id)?;
+
+    let send_templated_email_response = template_service::send_templated_email(template_uuid_id, payload.clone())
+        .await?;
 
     let emails = template_utils::merge_receipients(
         payload.receiver.unwrap_or("".to_string()), 
@@ -155,26 +154,17 @@ pub async fn send_templated_email(
         payload.bcc.unwrap_or("".to_string())
     );
 
-    match send_templated_email_response {
-        Ok(response) => {
-            let payload = CreateMailRequest {
-                id: response.id.to_string(),
-                mail_message: response.message.clone(),
-                email: emails,
-                template_id: Some(response.id),
-                campaign_id: None,
-                sent_at: response.sent_at,
-                status: "pending".to_string(),
-            };
+    let payload = CreateMailRequest {
+        id: send_templated_email_response.id.to_string(),
+        mail_message: send_templated_email_response.message.clone(),
+        email: emails,
+        template_id: Some(send_templated_email_response.id),
+        campaign_id: None,
+        sent_at: send_templated_email_response.sent_at,
+        status: "pending".to_string(),
+    };
+    
+    mail_handler::add_mail(Json(payload)).await;
 
-            let mail_added_response = mail_handler::add_mail(Json(payload)).await;
-            let _ = match mail_added_response {
-                Ok(mail_response) => Ok(Json(mail_response)),
-                Err((status, message)) => Err((status, message)),
-            };
-
-            Ok(Json(response))
-        },
-        Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string())),
-    }
+    Ok(Json(send_templated_email_response))
 }
