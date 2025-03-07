@@ -60,7 +60,6 @@ jobs:
 
       - name: Deploy stack
         run: docker-stack deploy --with-registry-auth mail_service_qa docker-compose-qa.yml
-        working-directory: deploy
         env:
           COMMIT_SHA: ${{ github.sha }}
           IMAGE_VERSION_TAG: ${{ github.sha }}
