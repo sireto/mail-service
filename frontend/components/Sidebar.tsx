@@ -31,7 +31,15 @@ const sidebarItems = [
     ],
   },
   { name: "Templates", href: "/dashboard/templates", icon: LayoutPanelTop },
-  { name: "Campaigns", href: "/dashboard/campaigns", icon: Rocket },
+  {
+    name: "Campaigns",
+    href: "/dashboard/campaigns",
+    icon: Rocket,
+    subItems: [
+      { name: "Campaigns", href: "/dashboard/campaigns" },
+      { name: "Senders", href: "/dashboard/campaigns/senders" },
+    ],
+  },
   { name: "Servers", href: "/dashboard/servers", icon: Server },
   { name: "Users", href: "/dashboard/users", icon: User },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },

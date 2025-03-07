@@ -242,3 +242,14 @@ export const CampaignSenderDTO = z.object({
   created_at: z.string(),
   updated_at: z.string(),
 });
+
+export const EditCampaignSenderFormSchemaDTO = z.object({
+  from_name: z.string().min(1, "Name is required"),
+  from_email: z.string().email("Invalid email format"),
+});
+
+export const AddCampaignSenderFormSchemaDTO = z.object({
+  from_name: z.string().min(1, "Name is required"),
+  from_email: z.string().email("Invalid email format"),
+  server_id: z.string(),
+});
