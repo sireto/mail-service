@@ -1,3 +1,9 @@
+use axum::error_handling::HandleErrorLayer;
+use axum::handler::HandlerService;
+use axum::middleware;
+use axum::response::Response;
+use axum::BoxError;
+use backend::error::AppError;
 use backend::route::create_router;
 use diesel::PgConnection;
 use diesel::Connection; // Import the Connection trait
@@ -6,17 +12,19 @@ use dotenv::dotenv;
 
 use axum::http::{
     header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
-    HeaderValue, Method,
+    HeaderValue, Method, status::StatusCode, Request
 };
 use tower_http::cors::CorsLayer;
+use std::convert::Infallible;
 use std::{env, net::SocketAddr};
+use backend::middleware::error_handling_middleware;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
 #[tokio::main]
 async fn main() {
     dotenv().ok();
-
+    env::set_var("RUST_BACKTRACE", "1");
     // Set up database connection
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file");
     let mut connection = establish_connection(&database_url);
@@ -40,7 +48,9 @@ async fn main() {
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE]);
 
     // Axum app
-    let app = create_router().layer(cors);
+    let app = create_router()
+        .layer(cors)
+        .layer(middleware::from_fn(error_handling_middleware));
 
     // Address configuration
     let addr = env::var("SERVER_ADDRESS").unwrap_or_else(|_| "0.0.0.0:8000".to_string());

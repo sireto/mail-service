@@ -25,13 +25,13 @@ pub mod handlers {
     pub mod list;
     pub mod campaign;
     pub mod campaign_sender;
-
     pub mod bounce_logs_handler;
+    pub mod healthcheck_handler;
 }
 pub mod services { 
     pub mod template_service; 
     pub mod aws_service;
-    pub mod contact;
+    pub mod contact_service;
     pub mod list_service;
     pub mod campaign_service;
     pub mod campaign_sender_service;
@@ -57,6 +57,7 @@ pub mod routes {
     pub mod campaign_senders;
     pub mod mail;
     pub mod bounce_logs_route;
+    pub mod healthcheck_route;
 }
 pub mod servers {
     pub mod servers_model;
@@ -76,6 +77,7 @@ pub mod utils {
     pub mod template_utils;
     pub mod email_utils;
 }
+pub mod middleware;
 
 use std::sync::Arc;
 use once_cell::sync::Lazy;

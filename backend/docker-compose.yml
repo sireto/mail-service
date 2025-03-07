@@ -3,6 +3,10 @@ services:
   postgres:
     image: postgres:latest
     container_name: postgres_mailservice
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mail_service
     ports:
       - "6500:5432"
     volumes:
@@ -23,7 +27,7 @@ services:
       - postgres
     environment:
       # Use the service name 'postgres' instead of localhost
-      DATABASE_URL: postgresql://<username>:<password>@localhost:5432/mail_service
+      DATABASE_URL: postgresql://postgres:postgres@postgres_mailservice:5432/mail_service
 
     env_file:
       - ./.env

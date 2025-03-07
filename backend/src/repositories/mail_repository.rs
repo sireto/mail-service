@@ -45,9 +45,6 @@ impl MailRepository for MailRepositoryImpl {
     async fn get_all_mails(&self, campaign_ids: Option<Uuid>, from: Option<DateTime<Utc>>, to: Option<DateTime<Utc>>) -> Result<Vec<MailWithDetails>, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
 
-        // Start the query...
-        // let mut query = mails.into_boxed();
-
         let mut query = mails
             .inner_join(contacts_dsl::contacts.on(contact_id.eq(contacts_dsl::id)))
             .left_outer_join(bounce_logs_dsl::bounce_logs.on(id.eq(bounce_logs_dsl::mail_id)))
@@ -84,7 +81,6 @@ impl MailRepository for MailRepositoryImpl {
 
         
         Ok(results)
-        
     }
 
     async fn update_mail(&self, mail_id: String, payload: UpdateMailRequest) -> Result<Mail, diesel::result::Error> {

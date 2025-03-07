@@ -1,4 +1,4 @@
-use crate::{models::{campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse}, campaign_lists::NewListInCampaign, mail::CreateMailRequest}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, campaign_lists_repo::{CampaignListRepository, CampaignListRepositoryImpl}, list_contact_repo::ListContactRepositoryImpl, mail_repository::MailRepositoryImpl},servers::{servers_repo::ServerRepoImpl, servers_services::{ServerService, ServerServiceTrait}}, utils::contact_lists_functions::populate_contact_template};
+use crate::{error::AppError, models::{campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse}, campaign_lists::NewListInCampaign, mail::CreateMailRequest}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, campaign_lists_repo::{CampaignListRepository, CampaignListRepositoryImpl}, list_contact_repo::ListContactRepositoryImpl, mail_repository::MailRepositoryImpl},servers::{servers_repo::ServerRepoImpl, servers_services::{ServerService, ServerServiceTrait}}, utils::contact_lists_functions::populate_contact_template};
 use uuid::Uuid;
 use std::{collections::HashSet, sync::Arc, env};
 use axum::http::StatusCode;
@@ -66,7 +66,7 @@ impl CampaignService {
 
 
 
-pub async fn create_campaign( payload: ExtendedCreateCampaignRequest) -> Result<CreateCampaignResponse, (StatusCode, String)> {
+pub async fn create_campaign( payload: ExtendedCreateCampaignRequest) -> Result<CreateCampaignResponse, AppError> {
     let campaign_repository = Arc::new(CampaginRepositoryImpl);
     let campaign_service = CampaignService::new(campaign_repository);
 
@@ -79,94 +79,70 @@ pub async fn create_campaign( payload: ExtendedCreateCampaignRequest) -> Result<
         scheduled_at: payload.base.scheduled_at,
     };
 
-    let response = campaign_service.create_campaign(new_campaign).await;
+    let response = campaign_service.create_campaign(new_campaign).await?;
 
     let campaign_lists_repository = Arc::new(CampaignListRepositoryImpl);
     let campaign_list_service = CampaignListService::new(campaign_lists_repository);
 
-    let response = match response {
-        Ok(campaign) => {
-            let list_ids: Vec<Uuid> = payload
-            .list_ids
-            .iter()
-            .map(|id| Uuid::parse_str(id).expect("Invalid UUID format"))
-            .collect();
+    let list_ids: Vec<Uuid> = payload
+        .list_ids
+        .iter()
+        .map(|id| Uuid::parse_str(id).expect("Invalid UUID format"))
+        .collect();
 
-            let response = campaign_list_service.add_lists_to_campaign(campaign.id, list_ids).await;
+    campaign_list_service.add_lists_to_campaign(response.id, list_ids).await?;
 
-            match response {
-                Ok(lists) => {
-                    println!("Lists successfully added to the campaign: {:?}", lists);
-                },
-                Err(err) => {
-                    println!("Failed to add lists to the campaign: {:?}", err);
-                }
-            }
-
-            CreateCampaignResponse {
-                id: campaign.id, 
-                campaign_name: campaign.campaign_name, 
-                template_id: campaign.template_id, 
-                namespace_id: campaign.namespace_id, 
-                status: campaign.status, 
-                campaign_senders: campaign.campaign_senders, 
-                scheduled_at: campaign.scheduled_at, 
-                created_at: campaign.created_at, 
-                updated_at: campaign.updated_at
-            }
-        }, 
-        Err(err) => return Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
-    };
-
-    Ok(response)
+    Ok(CreateCampaignResponse {
+        id: response.id, 
+        campaign_name: response.campaign_name, 
+        template_id: response.template_id, 
+        namespace_id: response.namespace_id, 
+        status: response.status, 
+        campaign_senders: response.campaign_senders, 
+        scheduled_at: response.scheduled_at, 
+        created_at: response.created_at, 
+        updated_at: response.updated_at
+    })
 }
 
-pub async fn get_all_campaigns() -> Result<Vec<GetCampaignResponse>, (StatusCode, String)> {
+pub async fn get_all_campaigns() -> Result<Vec<GetCampaignResponse>, AppError> {
     let campaign_repository = Arc::new(CampaginRepositoryImpl);
     let campaign_service = CampaignService::new(campaign_repository);
-    let all_campaigns = campaign_service.get_all_campaigns().await;
+    let all_campaigns = campaign_service.get_all_campaigns().await?;
 
     let campaign_lists_repository = Arc::new(CampaignListRepositoryImpl);
     let campaign_list_service = CampaignListService::new(campaign_lists_repository);
     
-    let response = match all_campaigns {
-        Ok(campaigns) => {
-            let mut responses = Vec::new();
-            for campaign in campaigns {
-                let lists = campaign_list_service.get_lists_from_campaign(campaign.id).await.map_err(|e| (StatusCode::NOT_FOUND, e.to_string()))?;
-                responses.push(GetCampaignResponse {
-                    id: campaign.id,
-                    campaign_name: campaign.campaign_name,
-                    template_id: campaign.template_id,
-                    namespace_id: campaign.namespace_id,
-                    status: campaign.status,
-                    campaign_senders: campaign.campaign_senders,
-                    scheduled_at: campaign.scheduled_at,
-                    created_at: campaign.created_at,
-                    updated_at: campaign.updated_at,
-                    lists
-                });
-            }
-            responses
-        },
-        Err(err) => return Err((StatusCode::NOT_FOUND, err.to_string())),
-    };
+    let mut responses = Vec::new();
+    for campaign in all_campaigns {
+        let lists = campaign_list_service.get_lists_from_campaign(campaign.id).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+        responses.push(GetCampaignResponse {
+            id: campaign.id,
+            campaign_name: campaign.campaign_name,
+            template_id: campaign.template_id,
+            namespace_id: campaign.namespace_id,
+            status: campaign.status,
+            campaign_senders: campaign.campaign_senders,
+            scheduled_at: campaign.scheduled_at,
+            created_at: campaign.created_at,
+            updated_at: campaign.updated_at,
+            lists
+        });
+    }
 
-    Ok(response)
+    Ok(responses)
 }
 
-pub async fn get_campaign_by_id(campaign_id: String) -> Result<GetCampaignResponse, (StatusCode, String)> {
-    let uuid_id = Uuid::parse_str(&campaign_id).map_err(|_| (StatusCode::BAD_REQUEST, "Invalid campaign ID format".to_string()))?;
-
+pub async fn get_campaign_by_id(campaign_id: Uuid) -> Result<GetCampaignResponse, AppError> {
     let campaign_repository = Arc::new(CampaginRepositoryImpl);
     let campaign_service = CampaignService::new(campaign_repository);
-    let campaign = campaign_service.get_campaign_by_id(uuid_id).await;
+    let campaign = campaign_service.get_campaign_by_id(campaign_id).await;
 
-    let campaign = campaign.map_err(|err|(StatusCode::NOT_FOUND, err.to_string()))?;
+    let campaign = campaign.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
     
     let campaign_lists_repository = Arc::new(CampaignListRepositoryImpl);
     let campaign_list_service = CampaignListService::new(campaign_lists_repository);
-    let lists = campaign_list_service.get_lists_from_campaign(campaign.id).await.map_err(|err|(StatusCode::NOT_FOUND, err.to_string()))?;
+    let lists = campaign_list_service.get_lists_from_campaign(campaign.id).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     let campaign_response = GetCampaignResponse{
         id: campaign.id, 
@@ -184,122 +160,100 @@ pub async fn get_campaign_by_id(campaign_id: String) -> Result<GetCampaignRespon
     Ok(campaign_response)
 }
 
-pub async fn update_campaign(campaign_id: String, payload: UpdateCampaignRequest) -> Result<UpdateCampaignResponse, (StatusCode, String)> {
+pub async fn update_campaign(campaign_id: Uuid, payload: UpdateCampaignRequest) -> Result<UpdateCampaignResponse, AppError> {
     
-    let uuid_id = Uuid::parse_str(&campaign_id).map_err(|_| (StatusCode::BAD_REQUEST, "Invalid campaign ID format".to_string()))?;
     let campaign_repository = Arc::new(CampaginRepositoryImpl);
     let campaign_service = CampaignService::new(campaign_repository);
 
     let campaign_lists_repository = Arc::new(CampaignListRepositoryImpl);
     let campaign_list_service = CampaignListService::new(campaign_lists_repository);
     
-    let updated_campaign_response = campaign_service.update_campaign(uuid_id, payload.clone()).await;
+    let updated_campaign_response = campaign_service.update_campaign(campaign_id, payload.clone()).await?;
 
-    let response_campaign = match updated_campaign_response {
-        Ok(campaign) => {
-            // get all the existing lists from the table...
-            let existing_lists = campaign_list_service.get_lists_from_campaign(campaign.id).await.map_err(|err|(StatusCode::NOT_FOUND, err.to_string()))?;
+    // get all the existing lists from the table...
+    let existing_lists = campaign_list_service.get_lists_from_campaign(updated_campaign_response.id).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
-            // convert existing list IDs from database to HashSet...
-            let existing_list_ids: HashSet<Uuid> = existing_lists.iter().map(|list| list.id).collect();
+    // convert existing list IDs from database to HashSet...
+    let existing_list_ids: HashSet<Uuid> = existing_lists.iter().map(|list| list.id).collect();
 
-            // Convert incoming list IDs from arguments to HashSet...
-            let new_list_ids: HashSet<Uuid> = payload.list_ids.clone()
-                .iter()
-                .map(|id| *id)
-                .collect();
+    // Convert incoming list IDs from arguments to HashSet...
+    let new_list_ids: HashSet<Uuid> = payload.list_ids.clone()
+        .iter()
+        .map(|id| *id)
+        .collect();
 
-            // lists to delete from the junction table...
-            let to_delete: Vec<Uuid> = existing_list_ids
-            .difference(&new_list_ids)
-            .cloned()
-            .collect();
+    // lists to delete from the junction table...
+    let to_delete: Vec<Uuid> = existing_list_ids
+    .difference(&new_list_ids)
+    .cloned()
+    .collect();
 
-            // lists to add to the junction table...
-            let to_add: Vec<Uuid> = new_list_ids
-            .difference(&existing_list_ids)
-            .cloned()
-            .collect();
+    // lists to add to the junction table...
+    let to_add: Vec<Uuid> = new_list_ids
+    .difference(&existing_list_ids)
+    .cloned()
+    .collect();
 
-            // Delete lists that are no longer linked to the campaign
-            if !to_delete.is_empty() {
-            campaign_list_service
-                .delete_lists_from_campaign(campaign.id, to_delete.clone())
-                .await
-                .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?;
-            }
+    // Delete lists that are no longer linked to the updated_campaign_response
+    if !to_delete.is_empty() {
+    campaign_list_service
+        .delete_lists_from_campaign(updated_campaign_response.id, to_delete.clone())
+        .await?;
+    }
 
-            // Add new lists to the campaign
-            if !to_add.is_empty() {
-                campaign_list_service
-                    .add_lists_to_campaign(campaign.id, to_add.clone())
-                    .await
-                    .map_err(|err| (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?;
-            }
+    // Add new lists to the updated_campaign_response
+    if !to_add.is_empty() {
+        campaign_list_service
+            .add_lists_to_campaign(updated_campaign_response.id, to_add.clone())
+            .await?;
+    }
 
-            let lists = campaign_list_service.get_lists_from_campaign(campaign.id).await.map_err(|err|(StatusCode::NOT_FOUND, err.to_string()))?;
+    let lists = campaign_list_service.get_lists_from_campaign(updated_campaign_response.id).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
 
-            // separate the above lists into two groups where the lists from the arguments are present in the list and the lists from the arguments are not present in the list...
+    // separate the above lists into two groups where the lists from the arguments are present in the list and the lists from the arguments are not present in the list...
 
-
-            let response = UpdateCampaignResponse {
-                id: campaign.id, 
-                campaign_name: campaign.campaign_name, 
-                template_id:  campaign.template_id, 
-                namespace_id: campaign.namespace_id, 
-                status: campaign.status, 
-                campaign_senders: campaign.campaign_senders, 
-                scheduled_at: Some(campaign.scheduled_at), 
-                updated_at: Some(campaign.updated_at),
-                lists
-            };
-
-            response
-        }, 
-        Err(err) => return Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
+    let response = UpdateCampaignResponse {
+        id: updated_campaign_response.id, 
+        campaign_name: updated_campaign_response.campaign_name, 
+        template_id:  updated_campaign_response.template_id, 
+        namespace_id: updated_campaign_response.namespace_id, 
+        status: updated_campaign_response.status, 
+        campaign_senders: updated_campaign_response.campaign_senders, 
+        scheduled_at: Some(updated_campaign_response.scheduled_at), 
+        updated_at: Some(updated_campaign_response.updated_at),
+        lists
     };
 
-    Ok(response_campaign)
+    Ok(response)
 }
 
-pub async fn delete_campaign(campaign_id: String)->Result<DeleteCampaignResponse, (StatusCode, String)> {
-    let uuid_id = Uuid::parse_str(&campaign_id)
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid UUID format".to_string()))?;
-
+pub async fn delete_campaign(campaign_id: Uuid)->Result<DeleteCampaignResponse, AppError> {
     let campaign_repository = Arc::new(CampaginRepositoryImpl);
     let campaign_service = CampaignService::new(campaign_repository);
 
-    let deleted_campaign_response = campaign_service.delete_campaign(uuid_id).await;
+    let deleted_campaign_response = campaign_service.delete_campaign(campaign_id).await?;
 
-    let deleted_campaign = match deleted_campaign_response {
-        Ok(campaign) => DeleteCampaignResponse {
-            id: campaign.id, 
-            campaign_name: campaign.campaign_name, 
-            status: campaign.status
-        }, 
-        Err(err)=> return Err((StatusCode::NOT_FOUND, err.to_string()))
-    };
-
-    Ok(deleted_campaign)
+    Ok(DeleteCampaignResponse {
+        id: deleted_campaign_response.id, 
+        campaign_name: deleted_campaign_response.campaign_name, 
+        status: deleted_campaign_response.status
+    })
 }
 
 pub async fn send_campaign_email(
-    campaign_id: String,
-) -> Result<CampaignSendResponse, anyhow::Error> {
+    campaign_id: Uuid,
+) -> Result<CampaignSendResponse, AppError> {
 
-    let campaign_uuid = Uuid::parse_str(&campaign_id)?;
     let campaign = get_campaign_by_id(campaign_id.clone())
         .await
-        .map_err(|(status_code, message)| {
-            anyhow!("Failed to fetch campaign ({}): {}", status_code, message)
-        })?;
+        .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     let configuration_name = env::var("AWS_SES_CONFIGURATION_SET_NAME").expect("AWS_SES_CONFIGURATION_SET_NAME must be set in .env file");
 
     let campaign_lists_repository = Arc::new(CampaignListRepositoryImpl);
     let campaign_list_service = CampaignListService::new(campaign_lists_repository);
-    let list_ids: Vec<Uuid> = campaign_list_service.get_lists_from_campaign(campaign_uuid).await?
+    let list_ids: Vec<Uuid> = campaign_list_service.get_lists_from_campaign(campaign_id).await?
     .into_iter()
     .map(|list| list.id)
     .collect();
@@ -310,20 +264,16 @@ pub async fn send_campaign_email(
 
 
     let template = get_template_by_id(campaign.template_id.clone()).await
-        .map_err(|(status_code, message)| {
-            anyhow!("Failed to fetch template ({}): {}", status_code, message)
-        })?;
+    .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     // Handle the Option
     let sender_id_string = match campaign.campaign_senders {
         Some(uuid) => uuid.to_string(), // Convert Uuid to String
-        None => return Err(anyhow!("Sender ID not found for campaign.")), // Handle None case
+        None => return Err(AppError::NotFoundError(Some("Sender ID not found for campaign.".to_string()))), // Handle None case
     };
 
     let campaign_sender_response = get_campaign_sender_by_id(sender_id_string).await
-    .map_err(|(status_code, message)| {
-        anyhow!("Failed to fetch sender ({}): {}", status_code, message)
-    })?;
+    .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     let sender_email = campaign_sender_response.from_email;
     let sender_name = campaign_sender_response.from_name;
@@ -349,13 +299,15 @@ pub async fn send_campaign_email(
 
     //This current logic may need to be changed while implementing queue
     for contact in contacts.clone() {
-        let parsed_html = populate_contact_template(&template, &contact).await?;
+        let parsed_html = populate_contact_template(&template, &contact)
+            .await
+            .map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;
 
         let body = Body::builder()
             .html(Content::builder()
                 .data(parsed_html.clone())
                 .charset("UTF-8")
-                .build()?
+                .build().map_err(|err| AppError::InternalServerError(Some(err.to_string())))?
             )
             .build();
 
@@ -363,7 +315,7 @@ pub async fn send_campaign_email(
             .subject(Content::builder()
                 .data(format!("Hello {}", contact.first_name))
                 .charset("UTF-8")
-                .build()?
+                .build().map_err(|err| AppError::InternalServerError(Some(err.to_string())))?
             )
             .body(body)
             .build();
@@ -380,47 +332,35 @@ pub async fn send_campaign_email(
             )
             .configuration_set_name(&configuration_name)
             .send()
-            .await;
+            .await?;
 
-        match result {
-            Ok(response) => {
-                // after successfull send mail, at it to the mail table with the pending status...
-                let new_mail = CreateMailRequest {
-                    id: response.message_id().unwrap().to_string(),
-                    mail_message: parsed_html,
-                    email: vec![contact.email.clone()],
-                    template_id: Some(Uuid::parse_str(&template.id)?),
-                    campaign_id: Some(campaign_uuid),
-                    sent_at: chrono::Utc::now(),
-                    status: "pending".to_string(),
-                };
+        let new_mail = CreateMailRequest {
+            id: result.message_id().unwrap().to_string(),
+            mail_message: parsed_html,
+            email: vec![contact.email.clone()],
+            template_id: Some(Uuid::parse_str(&template.id)?),
+            campaign_id: Some(campaign_id),
+            sent_at: chrono::Utc::now(),
+            status: "pending".to_string(),
+        };
 
-                mail_service::create_mail(new_mail).await.map_err(|(status_code, message)| {
-                    anyhow!("Failed to create mail ({}): {}", status_code, message)
-                })?;
-
-            },
-            Err(e) => {
-                //Handle the send mail Error from the SES side only ( not bounces )...
-                println!("SEND MAIL ERROR FROM SES: {:?}", e);
-            }
-        }
+        mail_service::create_mail(new_mail).await?;
     }
     Ok(CampaignSendResponse {
-        campaign_id,
+        campaign_id: campaign_id.to_string(),
         total_recipients: contacts.len(),
         status: "draft".to_string(),
     })
 }
 
-
-pub async fn add_lists_to_campaign(campaign_id: Uuid, list_ids: Vec<Uuid>) -> Result<Vec<NewListInCampaign>, (StatusCode, String)> {
+pub async fn add_lists_to_campaign(campaign_id: Uuid, list_ids: Vec<Uuid>) -> Result<Vec<NewListInCampaign>, AppError> {
     let campaign_list_repository = Arc::new(CampaignListRepositoryImpl);
     let campaign_list_service = CampaignListService::new(campaign_list_repository);
     
-    campaign_list_service.add_lists_to_campaign(campaign_id, list_ids)
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+    let result = campaign_list_service.add_lists_to_campaign(campaign_id, list_ids)
+        .await?;
+
+    Ok(result)
 }
 
 pub async fn send_campaign_email_smtp(

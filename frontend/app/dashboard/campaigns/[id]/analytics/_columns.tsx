@@ -39,7 +39,12 @@ export const columns = (
     },
     {
         accessorKey: "open",
-        header: "View",
+        header: ({ table }) => {
+            const rows = table.getRowModel().rows;
+
+            const viewCount = rows.filter(row => row.getValue("open")).length;
+            return `Views (${viewCount})`;
+        },
         cell: ({ row }) => {
             const isOpened = row.getValue("open");
             const reason: string | null = isOpened ? "Mail has been viewed" : "Mail hasn't been viewed";

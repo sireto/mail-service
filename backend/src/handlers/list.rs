@@ -1,10 +1,10 @@
 
 use crate::models::{contact::{GetContactResponse, GetContactResponsee}, list::{CreateListRequest, CreateListResponse, DeleteListResponse, ListResponse, UpdateListRequest, UpdatedListResponse}, list_contacts::{AddContactRequest,NewContactInList}};
 use axum::{
-    extract:: Path, Json, http::StatusCode
+    extract:: Path, Json
 };
 use uuid::Uuid;
-
+use crate::error::AppError;
 use crate::services::list_service;
 
 
@@ -19,7 +19,7 @@ use crate::services::list_service;
 )]
 pub async fn create_list(
     Json(payload): Json<CreateListRequest>,
-) ->Result<Json<CreateListResponse>, (StatusCode, String)> {
+) ->Result<Json<CreateListResponse>, AppError> {
     
     let create_new_list = list_service::create_list(payload).await?;
 
@@ -40,9 +40,8 @@ pub async fn create_list(
         (status= 404)
     )
 )]
-pub async fn get_lists(Path(namespace_id): Path<String>) -> Result<Json<Vec<ListResponse>>, (StatusCode, String)> {
-    let namespace_id = Uuid::parse_str(&namespace_id)
-    .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid namespace ID format".to_string()))?;
+pub async fn get_lists(Path(namespace_id): Path<String>) -> Result<Json<Vec<ListResponse>>, AppError> {
+    let namespace_id = Uuid::parse_str(&namespace_id)?;
     let lists_result = list_service::get_all_list(namespace_id).await?;
 
     if lists_result.is_empty() {
@@ -62,21 +61,16 @@ pub async fn get_lists(Path(namespace_id): Path<String>) -> Result<Json<Vec<List
 )]
 pub async fn get_list_by_id(
     Path((namespace_id, list_id)): Path<(String, String)>, // Extract both namespace_id and list_id as Strings
-) -> Result<Json<ListResponse>, (StatusCode, String)> {
+) -> Result<Json<ListResponse>, AppError> {
     // Parse namespace_id and list_id to Uuid
-    let namespace_id = Uuid::parse_str(&namespace_id)
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid namespace ID format".to_string()))?;
+    let namespace_id = Uuid::parse_str(&namespace_id)?;
     
-    let list_id = Uuid::parse_str(&list_id)
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid list ID format".to_string()))?;
+    let list_id = Uuid::parse_str(&list_id)?;
 
     // Call service layer with parsed Uuids
-    let list_result = list_service::get_list_by_id(namespace_id, list_id).await;
+    let list_result = list_service::get_list_by_id(namespace_id, list_id).await?;
 
-    match list_result {
-        Ok(list) => Ok(Json(list)),
-        Err((status, message)) => Err((status, message)),
-    }
+    Ok(Json(list_result))
 }
 
 #[utoipa::path(
@@ -95,10 +89,11 @@ pub async fn get_list_by_id(
 pub async fn update_list(
     Path((namespace_id, list_id)): Path<(String, String)>, // Extract both namespace_id and list_id as Strings
     Json(payload): Json<UpdateListRequest>,
-) -> Result<Json<UpdatedListResponse>, (StatusCode, String)> {
-
+) -> Result<Json<UpdatedListResponse>, AppError> {
+    let uuid_namespace_id = Uuid::parse_str(&namespace_id)?;
+    let uuid_list_id = Uuid::parse_str(&list_id)?;
     // Call the service function with the UUIDs
-    let update_list_response = list_service::update_list(namespace_id, list_id, payload).await?;
+    let update_list_response = list_service::update_list(uuid_namespace_id, uuid_list_id, payload).await?;
 
     // Return the updated list response
     Ok(Json(update_list_response))
@@ -117,8 +112,10 @@ pub async fn update_list(
         (status = 500, description = "Internal server error")
     )
 )]
-pub async fn delete_list(Path((namespace_id, list_id)): Path<(String, String)>) -> Result<Json<DeleteListResponse>, (StatusCode, String)> {
-    let delete_list_response = list_service::delete_list(namespace_id, list_id).await?;
+pub async fn delete_list(Path((namespace_id, list_id)): Path<(String, String)>) -> Result<Json<DeleteListResponse>, AppError> {
+    let uuid_namespace_id = Uuid::parse_str(&namespace_id)?;
+    let uuid_list_id = Uuid::parse_str(&list_id)?;
+    let delete_list_response = list_service::delete_list(uuid_namespace_id, uuid_list_id).await?;
 
     Ok(Json(delete_list_response))
 }
@@ -139,9 +136,8 @@ pub async fn delete_list(Path((namespace_id, list_id)): Path<(String, String)>) 
 pub async fn add_contacts_to_list(
     Path(list_id): Path<String>,
     Json(payload): Json<AddContactRequest>,
-) -> Result<Json<Vec<NewContactInList>>, (StatusCode, String)> {
-    let list_id = Uuid::parse_str(&list_id)
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid list ID format".to_string()))?;
+) -> Result<Json<Vec<NewContactInList>>, AppError> {
+    let list_id = Uuid::parse_str(&list_id)?;
 
     let added_contacts = list_service::add_contacts_to_list(list_id, payload.contact_ids)
         .await?;
@@ -167,9 +163,8 @@ pub async fn add_contacts_to_list(
 pub async fn remove_contacts_from_list(
     Path(list_id): Path<String>,
     Json(payload): Json<AddContactRequest>,
-) -> Result<Json<usize>, (StatusCode, String)> {
-    let list_id = Uuid::parse_str(&list_id)
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid list ID format".to_string()))?;
+) -> Result<Json<usize>, AppError> {
+    let list_id = Uuid::parse_str(&list_id)?;
 
     let num_deleted = list_service::delete_contacts_from_list(list_id, payload.contact_ids)
         .await?;
