@@ -23,11 +23,12 @@ interface ModalProps {
     dialogBody: React.ReactNode,
     dialogTitle: string,
     dialogDescription: string,
+    classname?: string,
 }
 
 const Modal = (props: ModalProps) => {
   /* eslint-disable @typescript-eslint/no-unused-vars */
-  const { triggerButton, dialogBody, dialogTitle, dialogDescription } = props;
+  const { triggerButton, dialogBody, dialogTitle, dialogDescription, classname = "" } = props;
   /* eslint-disable @typescript-eslint/no-unused-vars */
 
   return (
@@ -35,7 +36,7 @@ const Modal = (props: ModalProps) => {
       <DialogTrigger asChild>
         { triggerButton }
       </DialogTrigger>
-      <DialogContent className='[&>button]:hidden min-w-[80%] overflow-x-auto rounded lg:min-w-[444px] lg:max-w-[888px]'>
+      <DialogContent className={`[&>button]:hidden min-w-[80%] overflow-x-auto rounded lg:min-w-[444px] lg:max-w-[888px] ${classname}`}>
         {/* <DialogHeader className='flex flex-row justify-between items-center'>
           <div>
             <DialogTitle>

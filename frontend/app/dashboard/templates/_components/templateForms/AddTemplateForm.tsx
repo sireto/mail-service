@@ -85,10 +85,10 @@ const AddTemplateForm = () => {
         submitHandler={addNewTemplate}
         isUpdating={isCreating}
         triggerButton={<DialogFooter>
-            <DialogClose asChild>
+            <DialogClose className='mt-2' asChild>
                 <Button type="button" variant={"outline"}>Close</Button>
             </DialogClose>
-            <Button type="submit" disabled={isCreating}>Create</Button>
+            <Button type="submit" disabled={isCreating} >Create</Button>
         </DialogFooter>}
     />  
   )

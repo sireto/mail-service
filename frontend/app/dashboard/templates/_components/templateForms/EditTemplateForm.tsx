@@ -67,7 +67,7 @@ const EditTemplateForm = ({ templateId }: { templateId: string }) => {
             submitHandler={editTemplate}
             isUpdating={isUpdating}
             triggerButton={<DialogFooter>
-                <DialogClose asChild>
+                <DialogClose className='mt-2' asChild>
                     <Button type="button" variant={"outline"}>Close</Button>
                 </DialogClose>
                 <Button type="submit" disabled={isUpdating}>Save</Button>

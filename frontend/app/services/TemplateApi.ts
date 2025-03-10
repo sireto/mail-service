@@ -65,7 +65,15 @@ export const templateApi = createApi({
                 body: payload
             }),
             invalidatesTags: ['Template']
-        })
+        }),
+        previewTemplate: builder.mutation<{ html: string }, { mjml: string }>({
+            query: ({ mjml }) => ({
+                url: "/parse-mjml",
+                method: "POST",
+                body: { mjml }
+            }),
+            invalidatesTags: ['Template']
+        }),
     })
 });
 
@@ -75,5 +83,6 @@ export const {
     useCreateTemplateMutation, 
     useUpdateTemplateMutation, 
     useDeleteTemplateMutation,
-    useSendTemplatedEmailMutation
+    useSendTemplatedEmailMutation,
+    usePreviewTemplateMutation
 } = templateApi;

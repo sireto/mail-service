@@ -76,6 +76,7 @@ pub mod utils {
     pub mod contact_lists_functions; 
     pub mod template_utils;
     pub mod email_utils;
+    pub mod mjml_parser;
 }
 pub mod middleware;
 

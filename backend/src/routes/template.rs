@@ -7,7 +7,7 @@ use axum::{
     }, Router };
 
 use crate::handlers::template::{
-    delete_template, get_templates, get_templates_by_id, create_template, update_template, send_templated_email
+    delete_template, get_templates, get_templates_by_id, create_template, update_template, send_templated_email, parse_mjml_to_html
 };
 
 
@@ -19,4 +19,5 @@ pub fn template_routes() -> Router {
         .route("/{templateId}", patch(update_template))
         .route("/{templateId}", delete(delete_template))
         .route("/{templateId}/send", post(send_templated_email))
+        .route("/parse-mjml", post(parse_mjml_to_html))
 }
