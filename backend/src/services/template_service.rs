@@ -1,15 +1,15 @@
 use std::sync::Arc;
-use crate::models::template::{ Template, CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, SendMailRequest, SendMailResponse, UpdateTemplateRequest, UpdateTemplateResponse };
+use crate::models::template::{ CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, ParseMjml2HtmlRequest, ParseMjml2HtmlResponse, SendMailRequest, SendMailResponse, Template, UpdateTemplateRequest, UpdateTemplateResponse };
 
 use crate::repositories::template_repo::{self, TemplateRepository, TemplateRespositoryImpl};
 use crate::services::aws_service;
 use crate::utils::email_utils::enumerate_list;
+use crate::utils::mjml_parser::mjml_to_html;
 use uuid::Uuid;
 use chrono::Utc;
 
 use tera::{Context, Tera, Value};
 
-use axum::http::StatusCode;
 use email_address::*;
 use anyhow::{Error, Result};
 use crate::error::AppError;
@@ -198,14 +198,10 @@ async fn populate_and_parse_template(template: &GetTemplateResponse, payload: &S
 
     let rendered = tera.render("demo_template", &context)?;
 
-    let parsed_template_html = mrml::parse(&rendered)
-        .map_err(|e| anyhow::anyhow!(format!("Failed to parse MJML template: {e}")))?;
+    println!("THE POPULATED HTML ====> {}", &rendered);
 
-    let opts = mrml::prelude::render::Options::default();
-    let parsed_html = parsed_template_html
-        .render(&opts)
-        .map_err(|e| anyhow::anyhow!(format!("Failed to render MJML to HTML: {e}")))?;
-
+    let parsed_html = mjml_to_html(rendered)?;
+    println!("----------THE RENDERED MJML PART ===> {}", &parsed_html);
     Ok(parsed_html)
 }
 
@@ -269,4 +265,12 @@ async fn process_receivers(client: &aws_sdk_sesv2::Client, receiver: &str) -> Re
     }
 
     Ok(email_addresses)
+}
+
+pub async fn parse_mjml_to_html(payload: ParseMjml2HtmlRequest) -> Result<ParseMjml2HtmlResponse, AppError> {
+    let parsed_html = mjml_to_html(payload.mjml).map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;
+
+    Ok(ParseMjml2HtmlResponse {
+        html: parsed_html
+    })
 }

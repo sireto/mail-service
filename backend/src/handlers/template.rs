@@ -1,6 +1,6 @@
 use crate::error::AppError;
 use crate::models::mail::CreateMailRequest;
-use crate::models::template::{ CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, SendMailRequest, SendMailResponse, TemplateResponse, UpdateTemplateRequest, UpdateTemplateResponse };
+use crate::models::template::{ CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, ParseMjml2HtmlRequest, ParseMjml2HtmlResponse, SendMailRequest, SendMailResponse, TemplateResponse, UpdateTemplateRequest, UpdateTemplateResponse };
 use serde_json::Value;
 use uuid::Uuid;
 
@@ -163,8 +163,26 @@ pub async fn send_templated_email(
         sent_at: send_templated_email_response.sent_at,
         status: "pending".to_string(),
     };
-    
+
     mail_handler::add_mail(Json(payload)).await;
 
     Ok(Json(send_templated_email_response))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/templates/parse-mjml",
+    responses(
+        (status = 200, description = "Template sent successfully", body = String),
+        (status = 400, description = "Bad request"),
+        (status = 404, description = "Template not found"),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn parse_mjml_to_html(
+    Json(payload): Json<ParseMjml2HtmlRequest>
+) -> Result<Json<ParseMjml2HtmlResponse>, AppError> {
+    let parsed_html = template_service::parse_mjml_to_html(payload).await?;
+    
+    Ok(Json(parsed_html))
 }

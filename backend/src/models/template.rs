@@ -174,3 +174,13 @@ pub struct SendMailResponse {
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub sent_at: DateTime<Utc>,
 }
+
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
+pub struct ParseMjml2HtmlRequest {
+    pub mjml: String,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
+pub struct ParseMjml2HtmlResponse {
+    pub html: String,
+}
