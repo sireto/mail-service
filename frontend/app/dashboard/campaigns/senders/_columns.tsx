@@ -8,6 +8,7 @@ import { useDeleteCampaignSenderMutation } from "@/app/services/CampaignSenderAp
 interface CampaignSenderActionsProps {
   senderData: {
     id: string;
+    server_id: string;
     from_name: string;
     from_email: string;
     updated_at: string;
