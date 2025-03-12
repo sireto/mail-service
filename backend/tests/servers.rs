@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use axum::http::StatusCode;
-use backend::servers::servers_model::{Server, ServerRequest, TlsTypeEnum};
+use backend::schema::sql_types::ServerType;
+use backend::servers::servers_model::{Server, ServerRequest, TlsTypeEnum, ServerTypeEnum};
 use backend::servers::servers_repo::MockServerRepo;
 use backend::servers::servers_services::{ServerService, ServerServiceTrait};
 use chrono::Utc;
@@ -17,6 +18,8 @@ async fn test_create_server() {
         smtp_password: "securePassword123!".to_string(),
         namespace_id: Uuid::new_v4(),
         tls_type: TlsTypeEnum::STARTTLS,
+        server_type: ServerTypeEnum::SMTP, 
+        aws_credentials: None,
         port: 587,
     };
     let expected_server = Server {
@@ -27,6 +30,8 @@ async fn test_create_server() {
         smtp_password: test_payload.smtp_password.clone(),
         namespace_id: test_payload.namespace_id,
         tls_type: test_payload.tls_type.clone(),
+        server_type: ServerTypeEnum::SMTP, 
+        aws_credentials: None,
         port: test_payload.port,
         created_at: Utc::now(),
         updated_at: Utc::now(),
@@ -56,6 +61,8 @@ async fn test_get_all_servers() {
             namespace_id: Uuid::new_v4(),
             tls_type: TlsTypeEnum::STARTTLS,
             port: 587,
+            server_type: ServerTypeEnum::SMTP, 
+            aws_credentials: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }
@@ -83,6 +90,8 @@ async fn test_get_server_by_id() {
         namespace_id: Uuid::new_v4(),
         tls_type: TlsTypeEnum::STARTTLS,
         port: 587,
+        server_type: ServerTypeEnum::SMTP, 
+        aws_credentials: None,
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
@@ -123,6 +132,8 @@ async fn test_update_server() {
         smtp_password: "newSecurePassword!".to_string(),
         namespace_id: Uuid::new_v4(),
         tls_type: TlsTypeEnum::NONE,
+        server_type: ServerTypeEnum::SMTP, 
+        aws_credentials: None,
         port: 465,
     };
     let updated_server = Server {
@@ -134,6 +145,8 @@ async fn test_update_server() {
         namespace_id: update_payload.namespace_id,
         tls_type: update_payload.tls_type.clone(),
         port: update_payload.port,
+        server_type: ServerTypeEnum::SMTP, 
+        aws_credentials: None,
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
@@ -157,6 +170,8 @@ async fn test_delete_server() {
         namespace_id: Uuid::new_v4(),
         tls_type: TlsTypeEnum::STARTTLS,
         port: 587,
+        server_type: ServerTypeEnum::SMTP, 
+        aws_credentials: None,
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };

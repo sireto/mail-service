@@ -1,6 +1,6 @@
 "use client";
 import { useGetServersQuery } from "@/app/services/ServerApi";
-import ServerCard from "@/components/ServerCard";
+import ServerCard from "@/app/dashboard/servers/_components/ServerCard";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import NoServersFound from "@/app/dashboard/servers/NotFound";

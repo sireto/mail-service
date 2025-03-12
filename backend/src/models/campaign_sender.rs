@@ -30,6 +30,18 @@ pub struct CreateCampaignSenderRequest {
     pub from_email: String,
 }
 
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq)]
+pub struct CampaignSenderRequest {
+    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub server_id: String,
+
+    #[schema(value_type = String, example = "Marketing Team")]
+    pub from_name: String,
+
+    #[schema(value_type = String, example = "newsletter@example.com")]
+    pub from_email: String,
+}
+
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
 pub struct CreateCampaignSenderResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
@@ -83,4 +95,16 @@ pub struct DeleteCampaignSenderResponse {
     pub server_id: Uuid,
     pub from_name: String,
     pub from_email: String,
+}
+
+#[derive(Serialize, Debug, Default, Deserialize, ToSchema, Queryable)]
+pub struct ValidateEmailIdentityRequest {
+    pub email: String,
+    pub serverId: String, // Optional if you need to use different SES configurations
+}
+
+#[derive(Serialize, Debug, Default, Deserialize, ToSchema, Queryable)]
+pub struct ValidateEmailIdentityResponse {
+    pub is_valid: bool,
+    pub message: Option<String>,
 }

@@ -1,13 +1,14 @@
 use crate::{models::{campaign::
     {
     CampaignSendResponse, CreateCampaignRequest, CreateCampaignResponse, DeleteCampaignResponse, ExtendedCreateCampaignRequest, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse 
-    }, contact::{DeleteContactResponse, UpdateContactResponse}}, services::campaign_service, 
+    }, contact::{DeleteContactResponse, UpdateContactResponse}}, repositories::campaign_sender::CampaignSenderRepositoryImpl, services::{campaign_sender_service, campaign_service} 
 };
 
 
 use axum::{
     extract:: Path, Json, http::StatusCode
 };
+use uuid::Uuid;
 
 #[utoipa::path(
     post, 
@@ -120,6 +121,39 @@ pub async fn send_campaign_email(
 ) -> Result<Json<CampaignSendResponse>, (StatusCode, String)> {
     
     let result = campaign_service::send_campaign_email(campaign_id).await;
+
+    match result {
+        Ok(response) => Ok(Json(response)),
+        Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string())),
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/campaigns/{campaign_id}/send/smtp",
+    params(
+        ("campaign_id" = String, Path, description = "ID of the campaign to send"),
+    ),
+    responses(
+        (status = 200, description = "Send campaign email via SMTP", body = CampaignSendResponse),
+        (status = 400, description = "Bad request"),
+        (status = 404, description = "Campaign not found"),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn send_campaign_email_smtp(
+    Path(campaign_id): Path<String>,
+) -> Result<Json<CampaignSendResponse>, (StatusCode, String)> {
+    use crate::services::campaign_service::send_campaign_email_smtp;
+    
+    let server_id = "ee1cc08b-fb4d-44e6-8a48-3a42e1b250a4";
+    let campaign_sender_id = campaign_service::get_campaign_by_id(campaign_id.clone()).await.unwrap().campaign_senders.unwrap().to_string();
+    let campaign_sender = campaign_sender_service::get_campaign_sender_by_id(campaign_sender_id).await?;
+
+    let server_uuid = Uuid::parse_str(server_id).map_err(|_| (StatusCode::BAD_REQUEST, "Invalid server_id".to_string()))?;
+    let server_uuid = campaign_sender.server_id;
+
+    let result = send_campaign_email_smtp(campaign_id, server_uuid).await;
 
     match result {
         Ok(response) => Ok(Json(response)),

@@ -2,6 +2,10 @@
 
 pub mod sql_types {
     #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "server_type"))]
+    pub struct ServerType;
+
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "tls_type"))]
     pub struct TlsType;
 }
@@ -110,6 +114,7 @@ diesel::table! {
 diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::TlsType;
+    use super::sql_types::ServerType;
 
     servers (id) {
         id -> Uuid,
@@ -120,6 +125,8 @@ diesel::table! {
         namespace_id -> Uuid,
         tls_type -> TlsType,
         port -> Int2,
+        server_type -> ServerType,
+        aws_credentials -> Nullable<Jsonb>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
     }

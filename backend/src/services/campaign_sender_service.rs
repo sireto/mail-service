@@ -1,4 +1,4 @@
-use crate::repositories::campaign_sender::{CampaignSenderRepository, CampaignSenderRepositoryImpl};
+use crate::{models::campaign_sender::{CampaignSenderRequest, ValidateEmailIdentityRequest, ValidateEmailIdentityResponse}, repositories::campaign_sender::{CampaignSenderRepository, CampaignSenderRepositoryImpl}};
 use uuid::Uuid;
 use std::sync::Arc;
 use axum::http::StatusCode;
@@ -11,6 +11,8 @@ use crate::models::campaign_sender::{
     UpdateCampaignSenderResponse,
     DeleteCampaignSenderResponse
 };
+use chrono::Utc;
+use super::aws_service;
 
 pub struct CampaignSenderService {
     repository: Arc<dyn CampaignSenderRepository + Send + Sync>
@@ -49,9 +51,18 @@ impl CampaignSenderService {
     }
 }
 
-pub async fn create_campaign_sender(payload: CreateCampaignSenderRequest) -> Result<CreateCampaignSenderResponse, (StatusCode, String)> {
+pub async fn create_campaign_sender(payload: CampaignSenderRequest) -> Result<CreateCampaignSenderResponse, (StatusCode, String)> {
     let sender_repository = Arc::new(CampaignSenderRepositoryImpl);
     let sender_service = CampaignSenderService::new(sender_repository);
+
+    let id = Uuid::parse_str(&payload.server_id).unwrap();
+
+    let payload = CreateCampaignSenderRequest {
+        server_id: id, 
+        from_email: payload.from_email, 
+        from_name: payload.from_name
+    };
+
     let response = sender_service.create_campaign_sender(payload).await;
 
     let response = match response {
@@ -155,4 +166,71 @@ pub async fn delete_campaign_sender(
     };
 
     Ok(response_sender)
+}
+
+pub async fn validate_email_identity(payload: ValidateEmailIdentityRequest) -> Result<ValidateEmailIdentityResponse, (StatusCode, String)> {
+    // Create AWS SES client
+    let client = aws_service::create_aws_client().await;
+    
+    // Extract domain from email (for domain identity validation)
+    let email = payload.email.clone();
+    let domain = email.split('@').last().unwrap_or("").to_string();
+    println!("{}", email);
+    println!("{}", domain);
+    
+    // Get list of verified identities
+    let request = client.list_email_identities();
+    let result = request.send().await.map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to fetch identities: {}", e))
+    })?;
+    
+    // Check if email or its domain is verified
+    let mut is_valid = false;
+    if let Some(identities) = result.email_identities {
+        for identity in identities {
+            if let Some(identity_name) = identity.identity_name.clone() {
+                println!("{:?}", identity.identity_name.clone());
+                // Check if the email is directly verified or if its domain is verified
+                if identity_name == email || identity_name == domain {
+                    is_valid = true;
+                    break;
+                }
+            }
+        }
+    }
+    
+    if is_valid {
+        println!("Email is validated");
+        Ok(ValidateEmailIdentityResponse {
+            is_valid: true,
+            message: None,
+        })
+    } else {
+        println!("Email is not validated");
+        Ok(ValidateEmailIdentityResponse {
+            is_valid: false,
+            message: Some(format!("Email '{}' is not verified in AWS SES. Please verify it in the AWS console first.", email)),
+        })
+    }
+}
+
+// Function to get all verified identities
+pub async fn get_verified_identities() -> Result<Vec<String>, (StatusCode, String)> {
+    let client = aws_service::create_aws_client().await;
+    let request = client.list_email_identities();
+    
+    let result = request.send().await.map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to fetch identities: {}", e))
+    })?;
+    
+    let mut identities = Vec::new();
+    if let Some(verified_identities) = result.email_identities {
+        for identity in verified_identities {
+            if let Some(name) = identity.identity_name {
+                identities.push(name);
+            }
+        }
+    }
+    
+    Ok(identities)
 }

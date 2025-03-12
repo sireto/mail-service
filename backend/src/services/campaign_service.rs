@@ -1,4 +1,4 @@
-use crate::{models::{campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse}, campaign_lists::NewListInCampaign, mail::CreateMailRequest}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, campaign_lists_repo::{CampaignListRepository, CampaignListRepositoryImpl}, list_contact_repo::ListContactRepositoryImpl, mail_repository::MailRepositoryImpl}, utils::contact_lists_functions::populate_contact_template};
+use crate::{models::{campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse}, campaign_lists::NewListInCampaign, mail::CreateMailRequest}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, campaign_lists_repo::{CampaignListRepository, CampaignListRepositoryImpl}, list_contact_repo::ListContactRepositoryImpl, mail_repository::MailRepositoryImpl},servers::{servers_repo::ServerRepoImpl, servers_services::{ServerService, ServerServiceTrait}}, utils::contact_lists_functions::populate_contact_template};
 use uuid::Uuid;
 use std::{collections::HashSet, sync::Arc, env};
 use axum::http::StatusCode;
@@ -287,7 +287,7 @@ pub async fn delete_campaign(campaign_id: String)->Result<DeleteCampaignResponse
 pub async fn send_campaign_email(
     campaign_id: String,
 ) -> Result<CampaignSendResponse, anyhow::Error> {
-    let client = aws_service::create_aws_client().await;
+
     let campaign_uuid = Uuid::parse_str(&campaign_id)?;
     let campaign = get_campaign_by_id(campaign_id.clone())
         .await
@@ -326,7 +326,26 @@ pub async fn send_campaign_email(
     })?;
 
     let sender_email = campaign_sender_response.from_email;
+    let sender_name = campaign_sender_response.from_name;
     //These variables are temporary
+
+    let server_id = campaign_sender_response.server_id.to_string();
+
+    let client = aws_service::create_aws_client_db(&server_id).await;
+    let request = client.list_email_identities();
+
+    // Send the request and await the response
+    let result = request.send().await?;
+
+    // Print the identities (email addresses or domains)
+    if let Some(identities) = result.email_identities {
+        println!("Verified Email Identities:");
+        for identity in identities {
+            println!("{:?}", identity.identity_name);
+        }
+    } else {
+        println!("No identities found.");
+    }
 
     //This current logic may need to be changed while implementing queue
     for contact in contacts.clone() {
@@ -350,7 +369,7 @@ pub async fn send_campaign_email(
             .build();
 
         let result = client.send_email()
-            .from_email_address(sender_email.clone())
+            .from_email_address(format!("{} <{}>", sender_name, sender_email.clone()))
             .destination(Destination::builder()
                 .to_addresses(contact.email.clone())
                 .build()
@@ -402,4 +421,85 @@ pub async fn add_lists_to_campaign(campaign_id: Uuid, list_ids: Vec<Uuid>) -> Re
     campaign_list_service.add_lists_to_campaign(campaign_id, list_ids)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+}
+
+pub async fn send_campaign_email_smtp(
+    campaign_id: String,
+    server_id: Uuid,
+) -> Result<CampaignSendResponse, anyhow::Error> {
+    let campaign = get_campaign_by_id(campaign_id.clone())
+        .await
+        .map_err(|(status_code, message)| {
+            anyhow!("Failed to fetch campaign ({}): {}", status_code, message)
+        })?;
+
+    let campaign_id = Uuid::parse_str(&campaign_id)?;
+    let campaign_lists_repository = Arc::new(CampaignListRepositoryImpl);
+    let campaign_list_service = CampaignListService::new(campaign_lists_repository);
+    let list_ids: Vec<Uuid> = campaign_list_service.get_lists_from_campaign(campaign_id).await?
+    .into_iter()
+    .map(|list| list.id)
+    .collect();
+
+    let list_contact_repository = Arc::new(ListContactRepositoryImpl);
+    let list_contact_service = ListContactService::new(list_contact_repository);
+    let contacts = list_contact_service.get_contacts_from_lists(list_ids).await?;
+
+    let template = get_template_by_id(campaign.template_id.clone()).await
+        .map_err(|(status_code, message)| {
+            anyhow!("Failed to fetch template ({}): {}", status_code, message)
+        })?;
+
+    let sender_id_string = match campaign.campaign_senders {
+        Some(uuid) => uuid.to_string(),
+        None => return Err(anyhow!("Sender ID not found for campaign.")),
+    };
+
+    let campaign_sender_response = get_campaign_sender_by_id(sender_id_string).await
+        .map_err(|(status_code, message)| {
+            anyhow!("Failed to fetch sender ({}): {}", status_code, message)
+        })?;
+
+    let sender_email = campaign_sender_response.from_email;
+    let server_service = ServerService::new(Arc::new(ServerRepoImpl));
+
+    for contact in contacts.clone() {
+        let parsed_html = populate_contact_template(&template, &contact).await?;
+
+        let result = server_service.send_mail_with_smtp(
+            server_id,
+            &sender_email,
+            vec![contact.email.clone()],
+            None,
+            None,
+            &format!("Hello {}", contact.first_name),
+            &parsed_html,
+        ).await;
+
+        match result {
+            Ok(_) => {
+                let new_mail = CreateMailRequest {
+                    id: Uuid::new_v4().to_string(),
+                    mail_message: parsed_html,
+                    email: vec![contact.email.clone()],
+                    template_id: Some(Uuid::parse_str(&template.id)?),
+                    campaign_id: Some((campaign_id)),
+                    sent_at: chrono::Utc::now(),
+                    status: "pending".to_string(),
+                };
+                mail_service::create_mail(new_mail).await.map_err(|(status_code, message)| {
+                    anyhow!("Failed to create mail ({}): {}", status_code, message)
+                })?;
+            },
+            Err(e) => {
+                println!("SEND MAIL ERROR VIA SMTP: {:?}", e);
+            }
+        }
+    }
+
+    Ok(CampaignSendResponse {
+        campaign_id: campaign_id.to_string(),
+        total_recipients: contacts.len(),
+        status: "draft".to_string(),
+    })
 }
