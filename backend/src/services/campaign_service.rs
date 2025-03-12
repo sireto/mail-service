@@ -285,7 +285,7 @@ pub async fn send_campaign_email(
     let request = client.list_email_identities();
 
     // Send the request and await the response
-    let result = request.send().await?;
+    let result = request.send().await.map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;
 
     // Print the identities (email addresses or domains)
     if let Some(identities) = result.email_identities {
@@ -364,16 +364,13 @@ pub async fn add_lists_to_campaign(campaign_id: Uuid, list_ids: Vec<Uuid>) -> Re
 }
 
 pub async fn send_campaign_email_smtp(
-    campaign_id: String,
+    campaign_id: Uuid,
     server_id: Uuid,
-) -> Result<CampaignSendResponse, anyhow::Error> {
+) -> Result<CampaignSendResponse, AppError> {
     let campaign = get_campaign_by_id(campaign_id.clone())
         .await
-        .map_err(|(status_code, message)| {
-            anyhow!("Failed to fetch campaign ({}): {}", status_code, message)
-        })?;
+        .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
-    let campaign_id = Uuid::parse_str(&campaign_id)?;
     let campaign_lists_repository = Arc::new(CampaignListRepositoryImpl);
     let campaign_list_service = CampaignListService::new(campaign_lists_repository);
     let list_ids: Vec<Uuid> = campaign_list_service.get_lists_from_campaign(campaign_id).await?
@@ -386,25 +383,21 @@ pub async fn send_campaign_email_smtp(
     let contacts = list_contact_service.get_contacts_from_lists(list_ids).await?;
 
     let template = get_template_by_id(campaign.template_id.clone()).await
-        .map_err(|(status_code, message)| {
-            anyhow!("Failed to fetch template ({}): {}", status_code, message)
-        })?;
+        .map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;
 
     let sender_id_string = match campaign.campaign_senders {
         Some(uuid) => uuid.to_string(),
-        None => return Err(anyhow!("Sender ID not found for campaign.")),
+        None => return Err(AppError::NotFoundError(Some("Sender ID not found for campaign.".to_string()))),
     };
 
     let campaign_sender_response = get_campaign_sender_by_id(sender_id_string).await
-        .map_err(|(status_code, message)| {
-            anyhow!("Failed to fetch sender ({}): {}", status_code, message)
-        })?;
+        .map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;
 
     let sender_email = campaign_sender_response.from_email;
     let server_service = ServerService::new(Arc::new(ServerRepoImpl));
 
     for contact in contacts.clone() {
-        let parsed_html = populate_contact_template(&template, &contact).await?;
+        let parsed_html = populate_contact_template(&template, &contact).await.map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;
 
         let result = server_service.send_mail_with_smtp(
             server_id,
@@ -427,12 +420,12 @@ pub async fn send_campaign_email_smtp(
                     sent_at: chrono::Utc::now(),
                     status: "pending".to_string(),
                 };
-                mail_service::create_mail(new_mail).await.map_err(|(status_code, message)| {
-                    anyhow!("Failed to create mail ({}): {}", status_code, message)
+                mail_service::create_mail(new_mail).await.map_err(|err| {
+                    AppError::InternalServerError(Some(format!("Failed to create mail: {}", err)))
                 })?;
             },
             Err(e) => {
-                println!("SEND MAIL ERROR VIA SMTP: {:?}", e);
+                return Err(AppError::InternalServerError(Some(format!("SEND MAIL ERROR VIA SMTP: {:?}", e))));
             }
         }
     }

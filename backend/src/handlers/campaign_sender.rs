@@ -6,7 +6,7 @@ use crate::{
     services::campaign_sender_service
 };
 use axum::{
-    extract::Path, Json
+    extract::Path, Json, http::status::StatusCode
 };
 use uuid::Uuid;
 
@@ -21,7 +21,7 @@ use uuid::Uuid;
     )
 )]
 pub async fn create_campaign_sender(
-    Json(payload): Json<CreateCampaignSenderRequest>,
+    Json(payload): Json<CampaignSenderRequest>,
 ) -> Result<Json<CreateCampaignSenderResponse>, AppError> {
     let created_sender = campaign_sender_service::create_campaign_sender(payload).await?;
     Ok(Json(created_sender))

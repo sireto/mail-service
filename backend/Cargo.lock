@@ -627,11 +627,8 @@ dependencies = [
  "diesel_migrations",
  "dotenv",
  "email_address",
-<<<<<<< HEAD
- "lettre",
-=======
  "hyper 1.6.0",
->>>>>>> 0c733e9 (refactor: add middleware for error handling and refactor the error handling code)
+ "lettre",
  "mockall",
  "mrml",
  "multipart",

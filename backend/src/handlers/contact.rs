@@ -48,7 +48,7 @@ pub async fn create_contacts(
 )]
 pub async fn get_contacts() -> Result<Json<Vec<GetContactResponsee>>, AppError> {
     println!("Handler called");
-    let contacts = contact_service::get_all_contactss().await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+    let contacts = contact_service::get_all_contacts().await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     println!("Found {} contacts", contacts.len()); 
     Ok(Json(contacts))

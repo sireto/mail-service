@@ -6,11 +6,9 @@ use crate::{models::{campaign::
     }, contact::{DeleteContactResponse, UpdateContactResponse}}, repositories::campaign_sender::CampaignSenderRepositoryImpl, services::{campaign_sender_service, campaign_service} 
 };
 
-
 use axum::{
     extract:: Path, Json, http::StatusCode
 };
-use uuid::Uuid;
 
 #[utoipa::path(
     post, 
@@ -146,20 +144,17 @@ pub async fn send_campaign_email(
 )]
 pub async fn send_campaign_email_smtp(
     Path(campaign_id): Path<String>,
-) -> Result<Json<CampaignSendResponse>, (StatusCode, String)> {
+) -> Result<Json<CampaignSendResponse>, AppError> {
     use crate::services::campaign_service::send_campaign_email_smtp;
     
+    let campaign_uuid = Uuid::parse_str(&campaign_id)?;
     let server_id = "ee1cc08b-fb4d-44e6-8a48-3a42e1b250a4";
-    let campaign_sender_id = campaign_service::get_campaign_by_id(campaign_id.clone()).await.unwrap().campaign_senders.unwrap().to_string();
+    let campaign_sender_id = campaign_service::get_campaign_by_id(campaign_uuid.clone()).await.unwrap().campaign_senders.unwrap().to_string();
     let campaign_sender = campaign_sender_service::get_campaign_sender_by_id(campaign_sender_id).await?;
-
-    let server_uuid = Uuid::parse_str(server_id).map_err(|_| (StatusCode::BAD_REQUEST, "Invalid server_id".to_string()))?;
+    let server_uuid = Uuid::parse_str(server_id).map_err(|_| AppError::BadRequestError(Some("Invalid server_id".to_string())))?;
     let server_uuid = campaign_sender.server_id;
 
-    let result = send_campaign_email_smtp(campaign_id, server_uuid).await;
+    let result = send_campaign_email_smtp(campaign_uuid, server_uuid).await.map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;
 
-    match result {
-        Ok(response) => Ok(Json(response)),
-        Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string())),
-    }
+    Ok(Json(result))
 }
