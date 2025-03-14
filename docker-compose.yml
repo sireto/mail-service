@@ -24,6 +24,7 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres_mailservice:5432/mail_service
       AWS_ACCESS_KEY_ID: <AWS_ACCESS_KEY_ID>
       AWS_SECRET_ACCESS_KEY: <AWS_SECRET_ACCESS_KEY>
+      AWS_SES_CONFIGURATION_SET_NAME: <AWS_SES_CONFIGURATION_SET_NAME>
       ORIGINS: http://localhost:3000,http://172.31.0.6:3600
 
   webapp:
