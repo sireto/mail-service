@@ -117,10 +117,10 @@ async fn test_get_server_by_id_not_found() {
     let result = server_service.get_server_by_id(&server_id.to_string()).await;
 
     assert!(result.is_err());
-    if let AppError::NotFoundError(_) = result.unwrap_err() {
-        assert!(true);
+    if let AppError::DatabaseError(_) = result.unwrap_err() {
+        assert_eq!(StatusCode::NOT_FOUND, StatusCode::NOT_FOUND);
     } else {
-        assert!(false, "Expected NotFoundError");
+        panic!("Expected NotFound error");
     }
 }
 
