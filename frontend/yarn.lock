@@ -1896,6 +1896,28 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@monaco-editor/loader@npm:^1.4.0":
+  version: 1.5.0
+  resolution: "@monaco-editor/loader@npm:1.5.0"
+  dependencies:
+    state-local: "npm:^1.0.6"
+  checksum: 10c0/d8e1fd75fea113b4d91405784ed4db757df450c6e57a85e87728281e819a73a3ef9fe0cbb1dc1509456f1e895ad9c11e4748f80b68900cb6cf600170e14ce6ed
+  languageName: node
+  linkType: hard
+
+"@monaco-editor/react@npm:4.7.0-rc.0":
+  version: 4.7.0-rc.0
+  resolution: "@monaco-editor/react@npm:4.7.0-rc.0"
+  dependencies:
+    "@monaco-editor/loader": "npm:^1.4.0"
+  peerDependencies:
+    monaco-editor: ">= 0.25.0 < 1"
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  checksum: 10c0/ec2c17a1d54cdaf84258c1964a32e465324a964bc56c272df93aadf6b1448983218dae88c8577161a9b8597b9bf52abd5a09259b76d0cff562b1e5a23e5081d6
+  languageName: node
+  linkType: hard
+
 "@next/env@npm:15.1.6":
   version: 15.1.6
   resolution: "@next/env@npm:15.1.6"
@@ -7022,6 +7044,7 @@ __metadata:
     "@chromatic-com/storybook": "npm:3.2.4"
     "@eslint/eslintrc": "npm:^3"
     "@hookform/resolvers": "npm:^4.0.0"
+    "@monaco-editor/react": "npm:4.7.0-rc.0"
     "@radix-ui/react-alert-dialog": "npm:^1.1.6"
     "@radix-ui/react-avatar": "npm:^1.1.3"
     "@radix-ui/react-checkbox": "npm:^1.1.4"
@@ -7069,6 +7092,7 @@ __metadata:
     filesize: "npm:^10.1.6"
     lucide-react: "npm:^0.474.0"
     mjml: "npm:^4.15.3"
+    monaco-editor: "npm:^0.52.2"
     next: "npm:15.1.6"
     postcss: "npm:^8"
     react: "npm:^19.0.0"
@@ -9137,6 +9161,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"monaco-editor@npm:^0.52.2":
+  version: 0.52.2
+  resolution: "monaco-editor@npm:0.52.2"
+  checksum: 10c0/5a92da64f1e2ab375c0ce99364137f794d057c97bed10ecc65a08d6e6846804b8ecbd377eacf01e498f7dfbe1b21e8be64f728256681448f0484df90e767b435
+  languageName: node
+  linkType: hard
+
 "ms@npm:^2.1.1, ms@npm:^2.1.3":
   version: 2.1.3
   resolution: "ms@npm:2.1.3"
@@ -11176,6 +11207,13 @@ __metadata:
   version: 1.3.4
   resolution: "stackframe@npm:1.3.4"
   checksum: 10c0/18410f7a1e0c5d211a4effa83bdbf24adbe8faa8c34db52e1cd3e89837518c592be60b60d8b7270ac53eeeb8b807cd11b399a41667f6c9abb41059c3ccc8a989
+  languageName: node
+  linkType: hard
+
+"state-local@npm:^1.0.6":
+  version: 1.0.7
+  resolution: "state-local@npm:1.0.7"
+  checksum: 10c0/8dc7daeac71844452fafb514a6d6b6f40d7e2b33df398309ea1c7b3948d6110c57f112b7196500a10c54fdde40291488c52c875575670fb5c819602deca48bd9
   languageName: node
   linkType: hard
 

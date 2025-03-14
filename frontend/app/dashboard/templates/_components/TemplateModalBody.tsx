@@ -1,6 +1,6 @@
+import { useRef } from "react";
 import { DialogTitle, DialogDescription, DialogHeader } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
 import { AddTemplateFormSchemaDTO } from "@/lib/type";
 import { Input } from "@/components/ui/input";
 import { UseFormReturn } from "react-hook-form";
@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { ScanEye } from "lucide-react";
 import Modal from "@/components/Modal";
 import PreviewFrame from "./PreviewFrame";
+import Editor from '@monaco-editor/react';
+import type { editor } from 'monaco-editor';
 
 interface TemplateModalBodyProps {
     modalTitle: string;
@@ -28,6 +30,8 @@ const TemplateModalBody = ({
 }: TemplateModalBodyProps) => {
     const value = form.getValues();
     const mjml = value.raw_mjml_content.trim();
+    
+    const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
     return (
         <>
@@ -81,14 +85,32 @@ const TemplateModalBody = ({
                         name="raw_mjml_content"
                         render={({ field, fieldState }) => (
                             <FormItem>
-                                <FormLabel className='font-bold text-black'>MJML Content</FormLabel>
-                                <FormControl>
-                                    <Textarea 
-                                        rows={16} 
-                                        placeholder="MJML content" 
-                                        {...field} 
+                                <FormLabel className='font-bold text-black w-full flex items-center justify-between'>
+                                    <span>MJML Content</span>
+                                    <Button 
+                                        variant={'outline'}
+                                        type="button"
+                                        onClick={() => editorRef.current?.getAction('editor.action.formatDocument')?.run() }
+                                    >
+                                        Format
+                                    </Button>
+                                </FormLabel>
+                                <FormControl className="relative">
+                                    <Editor
+                                        height={400}
+                                        defaultLanguage="html"
+                                        value={field.value}
+                                        options={{
+                                            wordWrap: 'on',
+                                            lineNumbers: 'off',
+                                            minimap: { enabled: false },
+                                        }}
+                                        onMount={(editor) => {
+                                            editorRef.current = editor;
+                                        }}
+                                        onChange={(value) => field.onChange(value)}
                                         className={fieldState.invalid ? "border-red-400 focus-visible:ring-red-500" : ""}
-                                    />
+                                        />
                                 </FormControl>
                                 <FormMessage>{form.formState.errors.raw_mjml_content?.message}</FormMessage>
                             </FormItem>
