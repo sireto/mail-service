@@ -41,8 +41,8 @@ const sidebarItems = [
     ],
   },
   { name: "Servers", href: "/dashboard/servers", icon: Server },
-  { name: "Users", href: "/dashboard/users", icon: User },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+  // { name: "Users", href: "/dashboard/users", icon: User },
+  // { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 interface SidebarProps {
@@ -94,7 +94,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                   </div>
                 </button>
                 {expandedItems.includes(item.name) && (
-                  <div className="ml-6 space-y-1 mt-1">
+                  <div className="ml-6 space-y-1 mt-1 border-l border-grey-700">
                     {item.subItems.map((subItem, subIndex) => (
                       <Link
                         key={subIndex}

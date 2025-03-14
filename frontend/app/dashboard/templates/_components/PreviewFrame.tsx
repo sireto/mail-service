@@ -1,8 +1,24 @@
+import { usePreviewTemplateMutation } from '@/app/services/TemplateApi';
 import { Button } from '@/components/ui/button'
 import { DialogClose, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import React from 'react'
+import React, { useEffect } from 'react'
 
-const PreviewFrame = ({ html, modalTitle, modalDescription }: { html: string, modalTitle: string, modalDescription: string }) => {
+
+const PreviewFrame =  ({ mjml, modalTitle, modalDescription }: { mjml: string, modalTitle: string, modalDescription: string }) => {
+  const [previewTemplate, {data, error, isLoading}] = usePreviewTemplateMutation();
+  useEffect(() => {
+    previewTemplate({mjml});
+  }, [mjml]);
+
+  const resultHtml = data;
+
+  if(error) {
+    return <div>There was an error previewing the template...</div>
+  }
+  if(isLoading) {
+    return <div className='w-full h-full flex items-center justify-center'>Parsing the template...</div>
+  } 
+
   return (
     <div className='flex flex-col h-full gap-y-4'>
       <DialogHeader className='flex flex-row justify-between items-center'>
@@ -18,7 +34,7 @@ const PreviewFrame = ({ html, modalTitle, modalDescription }: { html: string, mo
       <div className='p-1 w-full h-full'>
         <iframe
             className='w-full h-full bg-gray-50 shadow-lg rounded-md'
-            srcDoc={html}
+            srcDoc={resultHtml?.html ?? 'Loading...'}
         />
       </div>
       <DialogClose asChild>

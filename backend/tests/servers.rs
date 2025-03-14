@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use axum::http::StatusCode;
+use backend::error::AppError;
 use backend::schema::sql_types::ServerType;
 use backend::servers::servers_model::{Server, ServerRequest, TlsTypeEnum, ServerTypeEnum};
 use backend::servers::servers_repo::MockServerRepo;
@@ -71,9 +72,9 @@ async fn test_get_all_servers() {
     let server_service = ServerService::new(Arc::new(mock_repo));
     let result = server_service.get_all_servers().await;
 
-    let result_values = result.clone().unwrap();
+    let result_values = result.as_ref().unwrap();
     assert!(result.is_ok());
-    assert_eq!(result.unwrap().len(), 1);
+    assert_eq!(result_values.len(), 1);
     assert_eq!(result_values[0].host, "smtp.example.com");
 }
 
@@ -116,7 +117,11 @@ async fn test_get_server_by_id_not_found() {
     let result = server_service.get_server_by_id(&server_id.to_string()).await;
 
     assert!(result.is_err());
-    assert_eq!(result.unwrap_err().0, StatusCode::NOT_FOUND);
+    if let AppError::NotFoundError(_) = result.unwrap_err() {
+        assert!(true);
+    } else {
+        assert!(false, "Expected NotFoundError");
+    }
 }
 
 
