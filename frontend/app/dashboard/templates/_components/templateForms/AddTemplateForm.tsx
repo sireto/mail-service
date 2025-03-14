@@ -14,7 +14,6 @@ import TemplateModalBody from '@/app/dashboard/templates/_components/TemplateMod
 import { Button } from '@/components/ui/button';
 
 const AddTemplateForm = () => {
-    // const [parsedHtml, setParsedHtml] = useState("");
     const form = useForm<z.infer<typeof AddTemplateFormSchemaDTO>>({
         resolver: zodResolver(AddTemplateFormSchemaDTO),
         defaultValues: {
@@ -58,7 +57,7 @@ const AddTemplateForm = () => {
         submitHandler={addNewTemplate}
         isUpdating={isCreating}
         triggerButton={<DialogFooter>
-            <DialogClose className='mt-2' asChild>
+            <DialogClose className='mt-2 md:mt-0' asChild>
                 <Button type="button" variant={"outline"}>Close</Button>
             </DialogClose>
             <Button type="submit" disabled={isCreating} >Create</Button>

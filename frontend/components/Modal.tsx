@@ -1,17 +1,9 @@
 import React from 'react'
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { Button } from '@/components/ui/button'
 import { 
     Dialog,
     DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
     DialogTrigger, 
 } from './ui/dialog';
-import { ScanEye } from "lucide-react";
-/* eslint-disable @typescript-eslint/no-unused-vars */
 
 type TriggerLabel = {
   label: string;
@@ -37,21 +29,6 @@ const Modal = (props: ModalProps) => {
         { triggerButton }
       </DialogTrigger>
       <DialogContent className={`[&>button]:hidden min-w-[80%] overflow-x-auto rounded lg:min-w-[444px] lg:max-w-[888px] ${classname}`}>
-        {/* <DialogHeader className='flex flex-row justify-between items-center'>
-          <div>
-            <DialogTitle>
-              {dialogTitle}
-            </DialogTitle>
-            <DialogDescription className='mt-1'>
-              {dialogDescription}
-            </DialogDescription>
-          </div>
-          <Button variant={"default"} className='!mt-0'>
-            <ScanEye size={16} />
-            <span>Preview</span>
-          </Button>
-        </DialogHeader> */}
-        {/* <hr /> */}
         <div>
           {dialogBody}
         </div>
