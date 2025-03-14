@@ -3,6 +3,7 @@
 import { TableOfContents, ArchiveIcon, Rocket, ChartColumn } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
+import { useGetCampaignByIdQuery } from '@/app/services/CampaignApi';
 
 const FormNavLinks = [
   { title: 'Campaign', path: '/dashboard/campaigns/[id]', icon: <Rocket size={20}/> },
@@ -16,12 +17,21 @@ export default function NewLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { id } = useParams(); // Get campaign ID from URL parameters
+  const { id } : { id: string } = useParams(); // Get campaign ID from URL parameters
   const pathname = usePathname();
 
+  const { data: campaignData, error, isLoading } = useGetCampaignByIdQuery(id);
+  
   return (
     <div className="w-full max-w-6xl lg:p-6 no-scrollbar">
-      <h2 className="text-2xl font-semibold text-gray-900 mb-6">Campaigns</h2>
+      <div className='mb-6 flex items-center gap-x-6'>
+        <h2 className="text-2xl font-semibold text-gray-900">Campaigns</h2>
+        <span
+          className="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-700"
+        >
+          {campaignData?.campaign_name}
+        </span>  
+      </div>
       
       {/* Sub-navigation */}
       <nav className="flex space-x-4 border-b pb-3 mb-6 overflow-x-scroll lg:overflow-x-hidden no-scrollbar">

@@ -4,6 +4,7 @@ import ServerCard from "@/app/dashboard/servers/_components/ServerCard";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import NoServersFound from "@/app/dashboard/servers/NotFound";
+import SnsSubscriptionInfo from "./_components/SnsSubscriptionInfo";
 
 export default function ServerPage() {
   const { data: servers, isLoading, isError } = useGetServersQuery();
@@ -17,6 +18,7 @@ export default function ServerPage() {
   return (
     <>
       <h1>Server Settings</h1>
+      <SnsSubscriptionInfo />
       <div className="flex justify-center">
         <div className="space-y-4">
           {servers?.map((server) => (

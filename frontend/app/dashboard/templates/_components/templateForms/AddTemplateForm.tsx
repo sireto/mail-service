@@ -50,33 +50,6 @@ const AddTemplateForm = () => {
         form.reset();
     }
 
-    const preview = async () => {
-        const mjmlContent = form.getValues("raw_mjml_content");
-
-        if (!mjmlContent) {
-            alert("Please enter MJML content to preview.");
-        }
-
-        const requestBody = JSON.stringify({ mjml_content: mjmlContent });
-        console.log("Sending request with body ===> ", requestBody);
-
-        try {
-            const response = await fetch('http://localhost:3000/api/parse-mjml', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: requestBody,
-            });
-
-            const data = await response.json();
-
-            console.log("THE parsed html is ====> ", data.html);
-        } catch (err) {
-            console.error("Error parsing MJML content: ", err);
-        }
-    }
-
   return (
     <TemplateModalBody 
         modalTitle={"Add Template"}
@@ -85,10 +58,10 @@ const AddTemplateForm = () => {
         submitHandler={addNewTemplate}
         isUpdating={isCreating}
         triggerButton={<DialogFooter>
-            <DialogClose asChild>
+            <DialogClose className='mt-2' asChild>
                 <Button type="button" variant={"outline"}>Close</Button>
             </DialogClose>
-            <Button type="submit" disabled={isCreating}>Create</Button>
+            <Button type="submit" disabled={isCreating} >Create</Button>
         </DialogFooter>}
     />  
   )

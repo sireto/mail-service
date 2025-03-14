@@ -1,4 +1,4 @@
-use aws_sdk_sesv2::{error::SdkError, operation::send_email::SendEmailOutput, types::{Body, Content, Destination, EmailContent, Message, BulkEmailEntry, SuppressionListReason }, Client };
+use aws_sdk_sesv2::{error::SdkError, operation::send_email::SendEmailOutput, types::{Body, Content, Destination, EmailContent, Message, SuppressionListReason }, Client };
 use aws_config::{BehaviorVersion, Region};
 
 use std::{env, error::Error, sync::Arc};

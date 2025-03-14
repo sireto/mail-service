@@ -1,11 +1,12 @@
 use crate::models::mail::{
-    CreateMailRequest, CreateMailResponse, DeleteMailResponse, GetMailResponse, MailQuery, MailWithDetails, UpdateMailRequest, UpdateMailResponse
+    CreateMailRequest, CreateMailResponse, DeleteMailResponse, GetMailResponse, MailQuery, UpdateMailRequest, UpdateMailResponse
 };
 use crate::services::mail_service as mail_service;
 
 use axum::{
-    extract:: { Path, Query }, Json, http::StatusCode
+    extract:: { Path, Query }, Json
 };
+use crate::error::AppError;
 
 #[utoipa::path(
     post,
@@ -17,10 +18,24 @@ use axum::{
 )]
 pub async fn add_mail(
     Json(payload): Json<CreateMailRequest>,
-) -> Result<Json<Vec<CreateMailResponse>>, (StatusCode, String)> {
+) -> Result<Json<Vec<CreateMailResponse>>, AppError> {
     let created_mail = mail_service::create_mail(payload).await?;
 
-    Ok(Json(created_mail))
+    let mut responses = Vec::new();
+
+
+    for mail in created_mail {
+        responses.push(CreateMailResponse {
+            id: mail.id,
+            mail_message: mail.mail_message,
+            contact_id: mail.contact_id,
+            template_id: mail.template_id,
+            campaign_id: mail.campaign_id,
+            sent_at: mail.sent_at,
+            status: mail.status,
+        });
+    }
+    Ok(Json(responses))
 }
 
 #[utoipa::path(
@@ -33,7 +48,7 @@ pub async fn add_mail(
 )]
 pub async fn get_all_mails(
     query: Query<MailQuery>
-) -> Result<Json<Vec<GetMailResponse>>, (StatusCode, String)> {
+) -> Result<Json<Vec<GetMailResponse>>, AppError> {
     let all_mails = mail_service::get_all_mails(
         query.campaign_ids,
         query.from,
@@ -42,6 +57,9 @@ pub async fn get_all_mails(
 
     let mut responses = Vec::new();
 
+    if all_mails.is_empty() {
+        return Ok(Json(vec![]));
+    }
     all_mails.iter().for_each(|mail| {
         responses.push(GetMailResponse {
             id: mail.id.clone(),
@@ -56,8 +74,8 @@ pub async fn get_all_mails(
             status_reason: mail.reason.clone(),
         });
     });
-
     Ok(Json(responses))
+
 }
 
 #[utoipa::path(
@@ -71,7 +89,7 @@ pub async fn get_all_mails(
 pub async fn update_mail(
     Path(mail_id): Path<String>,
     Json(payload): Json<UpdateMailRequest>,
-) -> Result<Json<UpdateMailResponse>, (StatusCode, String)> {
+) -> Result<Json<UpdateMailResponse>, AppError> {
     let updated_mail = mail_service::update_mail(mail_id, payload).await?;
 
     Ok(Json(updated_mail))
@@ -87,7 +105,7 @@ pub async fn update_mail(
 )]
 pub async fn delete_mail(
     Path(mail_id): Path<String>,
-) -> Result<Json<DeleteMailResponse>, (StatusCode, String)> {
+) -> Result<Json<DeleteMailResponse>, AppError> {
     let deleted_mail = mail_service::delete_mail(mail_id).await?;
 
     Ok(Json(deleted_mail))

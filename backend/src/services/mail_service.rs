@@ -1,16 +1,15 @@
-use crate::{handlers::campaign, models::mail::{DeleteMailResponse, GetMailResponse, MailWithDetails, NewMail}, repositories::mail_repository::{self, MailRepository, MailRepositoryImpl}};
-use crate::services::contact as contact_service;
+use crate::{models::mail::{DeleteMailResponse, MailWithDetails, NewMail}, repositories::mail_repository::{ MailRepository, MailRepositoryImpl }};
+use crate::services::contact_service as contact_service;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 use std::sync::Arc;
-use axum::http::StatusCode;
 use crate::models::mail::{
     Mail,
     CreateMailRequest,
-    CreateMailResponse,
     UpdateMailRequest,
     UpdateMailResponse
 };
+use crate::error::AppError;
 
 pub struct MailService {
     repository: Arc<dyn MailRepository + Send + Sync>
@@ -47,7 +46,7 @@ impl MailService {
 }
 
 /// a function to add new mail into the record when the mail_send is triggered...
-pub async fn create_mail(payload: CreateMailRequest) -> Result<Vec<CreateMailResponse>, (StatusCode, String)> {
+pub async fn create_mail(payload: CreateMailRequest) -> Result<Vec<Mail>, AppError> {
     let mail_repository = Arc::new(MailRepositoryImpl);
     let mail_service = MailService::new(mail_repository);
     
@@ -64,23 +63,9 @@ pub async fn create_mail(payload: CreateMailRequest) -> Result<Vec<CreateMailRes
             sent_at: payload.sent_at,
             status: payload.status.clone(),
         };
+        let response = mail_service.create_mail(new_mail).await?;
 
-        let response = mail_service.create_mail(new_mail).await;
-
-        match response {
-            Ok(mail) => responses.push(CreateMailResponse {
-                id: mail.id,
-                mail_message: mail.mail_message,
-                contact_id: mail.contact_id,
-                template_id: mail.template_id,
-                campaign_id: mail.campaign_id,
-                sent_at: mail.sent_at,
-                status: mail.status,
-            }),
-            Err(e) => {
-                return Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string()));
-            }
-        };
+        responses.push(response);
     }
 
     Ok(responses)
@@ -91,78 +76,67 @@ pub async fn get_all_mails(
     campaign_ids: Option<Uuid>,
     from: Option<DateTime<Utc>>,
     to: Option<DateTime<Utc>>
-) -> Result<Vec<MailWithDetails>, (StatusCode, String)> {
+) -> Result<Vec<MailWithDetails>, AppError> {
     let mail_repository = Arc::new(MailRepositoryImpl);
     let mail_service = MailService::new(mail_repository);
-    let response = mail_service.get_all_mails(campaign_ids, from, to).await;
+    
+    let response = mail_service.get_all_mails(campaign_ids, from, to).await?;
 
-    match response {
-        Ok(mails) => Ok(mails),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
-    }
+    Ok(response)
 }
 
 /// a function to update mail in the record...
-pub async fn update_mail(mail_id: String, payload: UpdateMailRequest) -> Result<UpdateMailResponse, (StatusCode, String)> {
+pub async fn update_mail(mail_id: String, payload: UpdateMailRequest) -> Result<UpdateMailResponse, AppError> {
     let mail_repository = Arc::new(MailRepositoryImpl);
     let mail_service = MailService::new(mail_repository);
 
-    let response = mail_service.update_mail(mail_id, payload).await;
+    let response = mail_service.update_mail(mail_id, payload).await?;
 
-    match response {
-        Ok(mail) => Ok(UpdateMailResponse {
-            id: mail.id,
-            mail_message: mail.mail_message,
-            template_id: mail.template_id,
-            campaign_id: mail.campaign_id,
-            status: Some(mail.status),
-            updated_at: chrono::Utc::now(),
-            open: mail.open,
-            clicks: mail.clicks,
-        }),
-        Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
-    }
+    Ok(UpdateMailResponse {
+        id: response.id,
+        mail_message: response.mail_message,
+        template_id: response.template_id,
+        campaign_id: response.campaign_id,
+        status: Some(response.status),
+        updated_at: chrono::Utc::now(),
+        open: response.open,
+        clicks: response.clicks,
+    })
 }
 
 /// a function to update mail status...
-pub async fn update_mail_status(mail_id: String, new_status: String) -> Result<UpdateMailResponse, (StatusCode, String)> {
+pub async fn update_mail_status(mail_id: String, new_status: String) -> Result<UpdateMailResponse, AppError> {
     let mail_repository = Arc::new(MailRepositoryImpl);
     let mail_service = MailService::new(mail_repository);
 
-    let response = mail_service.update_mail_status(mail_id, &new_status).await;
+    let response = mail_service.update_mail_status(mail_id, &new_status).await?;
 
-    match response {
-        Ok(mail) => Ok(UpdateMailResponse {
-            id: mail.id,
-            mail_message: mail.mail_message,
-            template_id: mail.template_id,
-            campaign_id: mail.campaign_id,
-            status: Some(mail.status),
-            updated_at: chrono::Utc::now(),
-            open: mail.open,
-            clicks: mail.clicks,
-        }),
-        Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
-    }
+    Ok(UpdateMailResponse {
+        id: response.id,
+        mail_message: response.mail_message,
+        template_id: response.template_id,
+        campaign_id: response.campaign_id,
+        status: Some(response.status),
+        updated_at: chrono::Utc::now(),
+        open: response.open,
+        clicks: response.clicks,
+    })
 }
 
 /// a function to delete mail from the db relation...
-pub async fn delete_mail(mail_id: String) -> Result<DeleteMailResponse, (StatusCode, String)> {
+pub async fn delete_mail(mail_id: String) -> Result<DeleteMailResponse, AppError> {
     let mail_repository = Arc::new(MailRepositoryImpl);
     let mail_service = MailService::new(mail_repository);
 
-    let response = mail_service.delete_mail(mail_id).await;
+    let response = mail_service.delete_mail(mail_id).await?;
 
-    match response {
-        Ok(mail) => Ok(DeleteMailResponse {
-            id: mail.id,
-            status: Some(mail.status),
-        }),
-        Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
-    }
+    Ok(DeleteMailResponse {
+        id: response.id,
+        status: Some(response.status),
+    })
 }
 
-pub async fn increment_mail_clicks(mail_id: String) -> Result<UpdateMailResponse, diesel::result::Error> {
+pub async fn increment_mail_clicks(mail_id: String) -> Result<UpdateMailResponse, AppError> {
     let mail_repository = Arc::new(MailRepositoryImpl);
     let mail_service = MailService::new(mail_repository);
 

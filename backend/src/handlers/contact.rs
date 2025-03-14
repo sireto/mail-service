@@ -1,17 +1,14 @@
-use crate::{models::contact::
+use crate::{error::AppError, models::contact::
     { 
-        Contact, CreateContactRequest, CreateContactResponse, DeleteContactResponse, EmailQuery, GetContactResponse, GetContactResponsee, UpdateContactRequest, UpdateContactResponse, ImportOptions, ImportResponse
-    }, services::contact
+        CreateContactRequest, CreateContactResponse, DeleteContactResponse, EmailQuery, GetContactResponse, GetContactResponsee, UpdateContactRequest, UpdateContactResponse, ImportOptions, ImportResponse
+    }, services::contact_service
 };
-use crate::services::contact as contact_service;
 
 use axum::{
-    extract::{ Path, Query}, http::StatusCode, Json
+    extract::{ Path, Query}, Json
 };
 
 use axum_extra::extract::Multipart;
-use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::utils::contact_lists_functions::parse_csv_data;
@@ -26,10 +23,9 @@ use crate::utils::contact_lists_functions::parse_csv_data;
 )]
 pub async fn create_contacts(
     Json(payloads): Json<Vec<CreateContactRequest>>, // Corrected JSON extractor
-) -> Result<Json<Vec<CreateContactResponse>>, (StatusCode, String)> {
+) -> Result<Json<Vec<CreateContactResponse>>, AppError> {
     
-    let created_contacts = contact_service::create_contacts(payloads).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, "NO Contacts Created".to_string()))?; 
+    let created_contacts = contact_service::create_contacts(payloads).await?; 
 
     let response: Vec<CreateContactResponse> = created_contacts.iter().map(|contact| CreateContactResponse {
         id: contact.id,
@@ -50,14 +46,9 @@ pub async fn create_contacts(
         (status = 404)
     )
 )]
-pub async fn get_contacts() -> Result<Json<Vec<GetContactResponsee>>, (StatusCode, String)> {
+pub async fn get_contacts() -> Result<Json<Vec<GetContactResponsee>>, AppError> {
     println!("Handler called");
-    let contacts = contact_service::get_all_contacts().await?;
-
-    if contacts.is_empty() {
-        println!("No contacts found");
-        return Err((StatusCode::NOT_FOUND, "No contacts found".to_string()));
-    }
+    let contacts = contact_service::get_all_contacts().await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     println!("Found {} contacts", contacts.len()); 
     Ok(Json(contacts))
@@ -72,8 +63,10 @@ pub async fn get_contacts() -> Result<Json<Vec<GetContactResponsee>>, (StatusCod
         (status = 404)
     )
 )]
-pub async fn get_contact_by_id(Path(contact_id): Path<String>) -> Result<Json<GetContactResponse>, (StatusCode, String)> {
-    let contact = contact_service::get_contact_by_id(contact_id).await?;
+pub async fn get_contact_by_id(Path(contact_id): Path<String>) -> Result<Json<GetContactResponse>, AppError> {
+    let uuid_id = Uuid::parse_str(&contact_id)?;
+
+    let contact = contact_service::get_contact_by_id(uuid_id).await?;
 
     Ok(Json(contact))
 }
@@ -95,9 +88,10 @@ pub async fn update_contact(
     
     Path(contact_id): Path<String>,
     Json(payload): Json<UpdateContactRequest>
-) -> Result<Json<UpdateContactResponse>, (StatusCode, String)> {
+) -> Result<Json<UpdateContactResponse>, AppError> {
+    let uuid_id = Uuid::parse_str(&contact_id)?;
 
-    let update_contact_response = contact_service::update_contact(contact_id, payload).await?;
+    let update_contact_response = contact_service::update_contact(uuid_id, payload).await?;
 
     Ok(Json(update_contact_response))
 }
@@ -118,8 +112,10 @@ pub async fn update_contact(
 )]
 pub async fn delete_contact(
     Path(contact_id): Path<String>
-) -> Result<Json<DeleteContactResponse>, (StatusCode, String)> {
-    let delete_contact_response = contact::delete_contact(contact_id).await?;
+) -> Result<Json<DeleteContactResponse>, AppError> {
+    let uuid_id = Uuid::parse_str(&contact_id)?;
+
+    let delete_contact_response = contact_service::delete_contact(uuid_id).await?;
 
     Ok(Json(delete_contact_response))
 }
@@ -139,15 +135,11 @@ pub async fn delete_contact(
 )]
 pub async fn check_email(
     Query(query): Query<EmailQuery>
-) -> Result<Json<bool>, (StatusCode, String)> {
+) -> Result<Json<bool>, AppError> {
+    
+    let exists = contact_service::check_email_exists(query.email).await?;
 
-    match contact::check_email_exists(query.email).await {
-        Ok(exists) => Ok(Json(exists)),
-        Err(err) => Err((
-            StatusCode::INTERNAL_SERVER_ERROR, 
-            format!("{:?}", err)  
-        )),
-    }
+    Ok(Json(exists))
 }
 
 
@@ -163,7 +155,7 @@ pub async fn check_email(
 )]
 pub async fn import_contacts(
     mut multipart: Multipart,
-) -> Result<Json<ImportResponse>, (StatusCode, String)> {
+) -> Result<Json<ImportResponse>, AppError> {
     // Default form values
     let mut file_data = None;
     let mut mode = "subscribe".to_string();
@@ -174,39 +166,27 @@ pub async fn import_contacts(
 
     // Process multipart form fields
     while let Some(field) = multipart.next_field().await.map_err(|e| 
-        (StatusCode::BAD_REQUEST, format!("Failed to process form: {}", e))
+        AppError::BadRequestError(Some(format!("Failed to process form: {}", e)))
     )? {
         if let Some(name) = field.name() {
             match name {
                 "file" => {
-                    file_data = Some(field.bytes().await.map_err(|e| 
-                        (StatusCode::BAD_REQUEST, format!("Failed to read file: {}", e))
-                    )?.to_vec());
+                    file_data = Some(field.bytes().await.map_err(|err| AppError::BadRequestError(Some(err.to_string())))?.to_vec());
                 },
                 "mode" => {
-                    mode = field.text().await.map_err(|e|
-                        (StatusCode::BAD_REQUEST, format!("Invalid mode: {}", e))
-                    )?.to_string();
+                    mode = field.text().await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?.to_string();
                 },
                 "status" => {
-                    status = field.text().await.map_err(|e|
-                        (StatusCode::BAD_REQUEST, format!("Invalid status: {}", e))
-                    )?.to_string();
+                    status = field.text().await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?.to_string();
                 },
                 "overwrite" => {
-                    overwrite = field.text().await.map_err(|e|
-                        (StatusCode::BAD_REQUEST, format!("Invalid overwrite value: {}", e))
-                    )?.to_lowercase() == "true";
+                    overwrite = field.text().await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?.to_lowercase() == "true";
                 },
                 "delimiter" => {
-                    delimiter = field.text().await.map_err(|e|
-                        (StatusCode::BAD_REQUEST, format!("Invalid delimiter: {}", e))
-                    )?.to_string();
+                    delimiter = field.text().await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?.to_string();
                 },
                 "lists" => {
-                    lists_json = Some(field.text().await.map_err(|e|
-                        (StatusCode::BAD_REQUEST, format!("Invalid lists data: {}", e))
-                    )?.to_string());
+                    lists_json = Some(field.text().await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?.to_string());
                 },
                 _ => {} // Ignore unknown fields
             }
@@ -214,10 +194,9 @@ pub async fn import_contacts(
     }
 
     // Ensure file was uploaded
-    let file_data = file_data.ok_or((
-        StatusCode::BAD_REQUEST, 
-        "Missing required file upload".to_string()
-    ))?;
+    let file_data = file_data.ok_or_else(|| 
+        AppError::BadRequestError(Some("Missing required file upload".to_string()))
+    )?;
 
     // Parse list IDs from JSON
     let list_ids = lists_json
@@ -235,10 +214,9 @@ pub async fn import_contacts(
         &mode,
         &status,
         overwrite,
-    ).map_err(|e| (StatusCode::BAD_REQUEST, format!("CSV parsing error: {}", e)))?;
+    ).map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
-    let result = contact_service::import_contacts(contacts, list_ids, overwrite).await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Import failed: {}", e)))?;
+    let result = contact_service::import_contacts(contacts, list_ids, overwrite).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     Ok(Json(ImportResponse {
         success: true,

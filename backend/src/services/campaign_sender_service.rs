@@ -1,4 +1,5 @@
-use crate::{models::campaign_sender::{CampaignSenderRequest, ValidateEmailIdentityRequest, ValidateEmailIdentityResponse}, repositories::campaign_sender::{CampaignSenderRepository, CampaignSenderRepositoryImpl}};
+use crate::{models::campaign_sender::{CampaignSenderRequest, ValidateEmailIdentityRequest, ValidateEmailIdentityResponse}, {error::AppError, repositories::campaign_sender::{CampaignSenderRepository, CampaignSenderRepositoryImpl}}};
+use multipart::server::nickel::nickel::hyper::method::Method::Delete;
 use uuid::Uuid;
 use std::sync::Arc;
 use axum::http::StatusCode;
@@ -51,7 +52,7 @@ impl CampaignSenderService {
     }
 }
 
-pub async fn create_campaign_sender(payload: CampaignSenderRequest) -> Result<CreateCampaignSenderResponse, (StatusCode, String)> {
+pub async fn create_campaign_sender(payload: CampaignSenderRequest) -> Result<CreateCampaignSenderResponse, AppError> {
     let sender_repository = Arc::new(CampaignSenderRepositoryImpl);
     let sender_service = CampaignSenderService::new(sender_repository);
 
@@ -63,49 +64,41 @@ pub async fn create_campaign_sender(payload: CampaignSenderRequest) -> Result<Cr
         from_name: payload.from_name
     };
 
-    let response = sender_service.create_campaign_sender(payload).await;
+    let response = sender_service.create_campaign_sender(payload).await?;
 
-    let response = match response {
-        Ok(sender) => CreateCampaignSenderResponse {
-            id: sender.id,
-            server_id: sender.server_id,
-            from_name: sender.from_name,
-            from_email: sender.from_email,
-        },
-        Err(err) => return Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
-    };
-
-    Ok(response)
+    Ok(CreateCampaignSenderResponse {
+        id: response.id,
+        server_id: response.server_id,
+        from_name: response.from_name,
+        from_email: response.from_email,
+    })
 }
 
-pub async fn get_all_campaign_senders() -> Result<Vec<GetCampaignSenderResponse>, (StatusCode, String)> {
+pub async fn get_all_campaign_senders() -> Result<Vec<GetCampaignSenderResponse>, AppError> {
     let sender_repository = Arc::new(CampaignSenderRepositoryImpl);
     let sender_service = CampaignSenderService::new(sender_repository);
-    let all_senders = sender_service.get_all_campaign_senders().await;
+    let all_senders = sender_service.get_all_campaign_senders().await?;
 
-    let response = match all_senders {
-        Ok(senders) => senders.into_iter().map(|sender| GetCampaignSenderResponse {
-            id: sender.id,
-            server_id: sender.server_id,
-            from_name: sender.from_name,
-            from_email: sender.from_email,
-            created_at: sender.created_at,
-            updated_at: sender.updated_at,
-        }).collect(),
-        Err(err) => return Err((StatusCode::NOT_FOUND, err.to_string()))
-    };
+    let senders = all_senders.into_iter().map(|sender| GetCampaignSenderResponse {
+        id: sender.id,
+        server_id: sender.server_id,
+        from_name: sender.from_name,
+        from_email: sender.from_email,
+        created_at: sender.created_at,
+        updated_at: sender.updated_at,
+    }).collect();
 
-    Ok(response)
+    Ok(senders)
 }
 
-pub async fn get_campaign_sender_by_id(sender_id: String) -> Result<GetCampaignSenderResponse, (StatusCode, String)> {
-    let uuid_id = Uuid::parse_str(&sender_id).map_err(|_| (StatusCode::BAD_REQUEST, "Invalid sender ID format".to_string()))?;
+pub async fn get_campaign_sender_by_id(sender_id: String) -> Result<GetCampaignSenderResponse, AppError> {
+    let uuid_id = Uuid::parse_str(&sender_id)?;
 
     let sender_repository = Arc::new(CampaignSenderRepositoryImpl);
     let sender_service = CampaignSenderService::new(sender_repository);
     let sender = sender_service.get_campaign_sender_by_id(uuid_id).await;
 
-    let sender = sender.map_err(|err| (StatusCode::NOT_FOUND, err.to_string()))?;
+    let sender = sender.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     let sender_response = GetCampaignSenderResponse {
         id: sender.id,
@@ -120,52 +113,37 @@ pub async fn get_campaign_sender_by_id(sender_id: String) -> Result<GetCampaignS
 }
 
 pub async fn update_campaign_sender(
-    sender_id: String,
+    sender_id: Uuid,
     payload: UpdateCampaignSenderRequest
-) -> Result<UpdateCampaignSenderResponse, (StatusCode, String)> {
-    let uuid_id = Uuid::parse_str(&sender_id).map_err(|_| (StatusCode::BAD_REQUEST, "Invalid sender ID format".to_string()))?;
-
+) -> Result<UpdateCampaignSenderResponse, AppError> {
     let sender_repository = Arc::new(CampaignSenderRepositoryImpl);
     let sender_service = CampaignSenderService::new(sender_repository);
 
-    let updated_sender_response = sender_service.update_campaign_sender(uuid_id, payload).await;
+    let updated_sender_response = sender_service.update_campaign_sender(sender_id, payload).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
-    let response_sender = match updated_sender_response {
-        Ok(sender) => UpdateCampaignSenderResponse {
-            id: sender.id,
-            server_id: sender.server_id,
-            from_name: sender.from_name,
-            from_email: sender.from_email,
-            updated_at: sender.updated_at,
-        },
-        Err(err) => return Err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))
-    };
-
-    Ok(response_sender)
+    Ok(UpdateCampaignSenderResponse {
+        id: updated_sender_response.id,
+        server_id: updated_sender_response.server_id,
+        from_name: updated_sender_response.from_name,
+        from_email: updated_sender_response.from_email,
+        updated_at: updated_sender_response.updated_at,
+    })
 }
 
 pub async fn delete_campaign_sender(
-    sender_id: String,
-) -> Result<DeleteCampaignSenderResponse, (StatusCode, String)> {
-    let uuid_id = Uuid::parse_str(&sender_id)
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid UUID format".to_string()))?;
-
+    sender_id: Uuid,
+) -> Result<DeleteCampaignSenderResponse, AppError> {
     let sender_repository = Arc::new(CampaignSenderRepositoryImpl);
     let sender_service = CampaignSenderService::new(sender_repository);
 
-    let deleted_sender_response = sender_service.delete_campaign_sender(uuid_id).await;
+    let deleted_sender_response = sender_service.delete_campaign_sender(sender_id).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
-    let response_sender = match deleted_sender_response {
-        Ok(sender) => DeleteCampaignSenderResponse {
-            id: sender.id,
-            server_id: sender.server_id,
-            from_name: sender.from_name,
-            from_email: sender.from_email,
-        },
-        Err(err) => return Err((StatusCode::NOT_FOUND, err.to_string()))
-    };
-
-    Ok(response_sender)
+    Ok(DeleteCampaignSenderResponse {
+        id: deleted_sender_response.id,
+        server_id: deleted_sender_response.server_id,
+        from_name: deleted_sender_response.from_name,
+        from_email: deleted_sender_response.from_email,
+    })
 }
 
 pub async fn validate_email_identity(payload: ValidateEmailIdentityRequest) -> Result<ValidateEmailIdentityResponse, (StatusCode, String)> {

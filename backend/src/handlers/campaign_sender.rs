@@ -1,3 +1,4 @@
+use crate::error::AppError;
 use crate::{
     models::campaign_sender::{
         CampaignSenderRequest, CreateCampaignSenderRequest, CreateCampaignSenderResponse, DeleteCampaignSenderResponse, GetCampaignSenderResponse, UpdateCampaignSenderRequest, UpdateCampaignSenderResponse, ValidateEmailIdentityRequest, ValidateEmailIdentityResponse
@@ -5,8 +6,9 @@ use crate::{
     services::campaign_sender_service
 };
 use axum::{
-    extract::Path, Json, http::StatusCode
+    extract::Path, Json, http::status::StatusCode
 };
+use uuid::Uuid;
 
 #[utoipa::path(
     post,
@@ -20,7 +22,7 @@ use axum::{
 )]
 pub async fn create_campaign_sender(
     Json(payload): Json<CampaignSenderRequest>,
-) -> Result<Json<CreateCampaignSenderResponse>, (StatusCode, String)> {
+) -> Result<Json<CreateCampaignSenderResponse>, AppError> {
     let created_sender = campaign_sender_service::create_campaign_sender(payload).await?;
     Ok(Json(created_sender))
 }
@@ -33,12 +35,8 @@ pub async fn create_campaign_sender(
         (status = 404, description = "No senders found")
     )
 )]
-pub async fn get_campaign_senders() -> Result<Json<Vec<GetCampaignSenderResponse>>, (StatusCode, String)> {
+pub async fn get_campaign_senders() -> Result<Json<Vec<GetCampaignSenderResponse>>, AppError> {
     let senders = campaign_sender_service::get_all_campaign_senders().await?;
-
-    if senders.is_empty() {
-        return Err((StatusCode::NOT_FOUND, "No campaign senders found".to_string()));
-    }
 
     Ok(Json(senders))
 }
@@ -57,7 +55,7 @@ pub async fn get_campaign_senders() -> Result<Json<Vec<GetCampaignSenderResponse
 )]
 pub async fn get_campaign_sender_by_id(
     Path(sender_id): Path<String>
-) -> Result<Json<GetCampaignSenderResponse>, (StatusCode, String)> {
+) -> Result<Json<GetCampaignSenderResponse>, AppError> {
     let sender = campaign_sender_service::get_campaign_sender_by_id(sender_id).await?;
     Ok(Json(sender))
 }
@@ -79,8 +77,10 @@ pub async fn get_campaign_sender_by_id(
 pub async fn update_campaign_sender(
     Path(sender_id): Path<String>,
     Json(payload): Json<UpdateCampaignSenderRequest>
-) -> Result<Json<UpdateCampaignSenderResponse>, (StatusCode, String)> {
-    let updated_sender = campaign_sender_service::update_campaign_sender(sender_id, payload).await?;
+) -> Result<Json<UpdateCampaignSenderResponse>, AppError> {
+    let uuid_id = Uuid::parse_str(&sender_id)?;
+
+    let updated_sender = campaign_sender_service::update_campaign_sender(uuid_id, payload).await?;
     Ok(Json(updated_sender))
 }
 
@@ -99,8 +99,10 @@ pub async fn update_campaign_sender(
 )]
 pub async fn delete_campaign_sender(
     Path(sender_id): Path<String>
-) -> Result<Json<DeleteCampaignSenderResponse>, (StatusCode, String)> {
-    let deleted_sender = campaign_sender_service::delete_campaign_sender(sender_id).await?;
+) -> Result<Json<DeleteCampaignSenderResponse>, AppError> {
+    let uuid_id = Uuid::parse_str(&sender_id)?;
+
+    let deleted_sender = campaign_sender_service::delete_campaign_sender(uuid_id).await?;
     Ok(Json(deleted_sender))
 }
 

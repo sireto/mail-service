@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use backend::{models::contact::{Contact, CreateContactRequest, UpdateContactRequest }, repositories::contact::MockContactRepository, services::contact::ContactService};
+use backend::{models::contact::{Contact, CreateContactRequest, UpdateContactRequest }, repositories::contact::MockContactRepository, services::contact_service::ContactService};
 use uuid::Uuid;
 use mockall::predicate::*;
 

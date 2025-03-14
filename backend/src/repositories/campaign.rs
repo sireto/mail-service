@@ -22,7 +22,6 @@ pub trait CampaignRepository{
     async fn update_campaign(&self, campaign_id: Uuid, payload: UpdateCampaignRequest) -> Result<Campaign, diesel::result::Error>;
     async fn delete_campaign(&self, campaign_id: Uuid) -> Result<Campaign, diesel::result::Error>;
     async fn get_campaign_by_id(&self, campaign_id: Uuid) -> Result<Campaign, diesel::result::Error>;
-    
 }   
 
 pub struct CampaginRepositoryImpl;
