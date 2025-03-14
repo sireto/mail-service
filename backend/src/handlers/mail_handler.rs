@@ -80,7 +80,7 @@ pub async fn get_all_mails(
 
 #[utoipa::path(
     patch,
-    path = "/api/all_mails/{mail_id}",
+    path = "/api/mails/{mail_id}",
     responses(
         (status = 200, description = "Update a mail", body = UpdateMailResponse),
         (status = 404)
