@@ -108,3 +108,18 @@ pub struct ValidateEmailIdentityResponse {
     pub is_valid: bool,
     pub message: Option<String>,
 }
+
+#[derive(Serialize, Debug, Default, Deserialize, ToSchema, Queryable)]
+pub struct SendTestEmailRequest {
+    pub from_email: String,
+    pub to_email: String,
+    pub from_name: String,
+    pub server_id: String,
+    pub subject: Option<String>,
+}
+
+#[derive(Serialize, Debug, Default, Deserialize, ToSchema, Queryable)]
+pub struct SendTestEmailResponse {
+    pub success: bool,
+    pub message: String,
+}

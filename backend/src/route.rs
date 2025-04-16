@@ -66,6 +66,7 @@ use crate::servers::servers_routes::servers_routes;
         campaign_sender::delete_campaign_sender,
         campaign_sender::validate_email_identity, 
         campaign_sender::get_verified_identities,
+        campaign_sender::send_test_email,
         servers::create_server,
         servers::get_servers, 
         servers::get_server_by_id, 
