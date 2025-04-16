@@ -148,10 +148,8 @@ pub async fn send_campaign_email_smtp(
     use crate::services::campaign_service::send_campaign_email_smtp;
     
     let campaign_uuid = Uuid::parse_str(&campaign_id)?;
-    let server_id = "ee1cc08b-fb4d-44e6-8a48-3a42e1b250a4";
     let campaign_sender_id = campaign_service::get_campaign_by_id(campaign_uuid.clone()).await.unwrap().campaign_senders.unwrap().to_string();
     let campaign_sender = campaign_sender_service::get_campaign_sender_by_id(campaign_sender_id).await?;
-    let server_uuid = Uuid::parse_str(server_id).map_err(|_| AppError::BadRequestError(Some("Invalid server_id".to_string())))?;
     let server_uuid = campaign_sender.server_id;
 
     let result = send_campaign_email_smtp(campaign_uuid, server_uuid).await.map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;

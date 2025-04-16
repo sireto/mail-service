@@ -1,12 +1,21 @@
-use crate::{error::AppError, servers::servers_model::{DeleteServerResponse, Server, ServerRequest, ServerResponse}};
+use crate::{error::AppError, servers::servers_model::{ServerRequest, ServerResponse}};
 use axum::{
-    extract::Extension, http::StatusCode, Json
+    extract::Extension, http::StatusCode, response::IntoResponse, Json
 };
+use utoipa::ToSchema;
 
 use std::sync::Arc;
 
 use super::servers_services::ServerServiceTrait;
 use crate::servers::servers_services::ServerService;
+
+use serde::Serialize;
+
+#[derive(Serialize ,ToSchema)]
+struct SmtpCheckResponse {
+    success: bool,
+    message: String,
+}
 
 #[utoipa::path(
     post, 
@@ -159,4 +168,26 @@ pub async fn delete_server(
         created_at: deleted_server.created_at,
         updated_at: deleted_server.updated_at,
     }))
+}
+
+#[utoipa::path(
+    post, 
+    path="/api/servers/check-smtp/{server_id}", 
+    responses(
+        (status=200, description = "Check SMTP Credentials", body= SmtpCheckResponse), 
+        (status=404)
+    )
+)]
+pub async fn check_credentials(
+    server_id: axum::extract::Path<String>,
+    Extension(server_service): Extension<Arc<ServerService>>,
+) -> Result<impl IntoResponse, AppError> {
+    server_service.check_credentials(&server_id).await?;
+
+    let response = SmtpCheckResponse {
+        success: true,
+        message: "SMTP credentials are valid".to_string(),
+    };
+
+    Ok((StatusCode::OK, axum::Json(response)))
 }

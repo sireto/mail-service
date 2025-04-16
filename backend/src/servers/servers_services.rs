@@ -1,9 +1,16 @@
-use crate::{error::AppError, servers::servers_repo::{ServerRepo, ServerRepoImpl}};
+use crate::{error::AppError, schema::sql_types::TlsType, servers::servers_repo::{ServerRepo, ServerRepoImpl}};
+
 use uuid::Uuid;
 use std::sync::Arc;
 use axum::http::StatusCode;
 use crate::servers::servers_model::{Server, ServerRequest};
 use async_trait::async_trait;
+
+use super::servers_model::TlsTypeEnum;
+
+use lettre::{
+    message::{Message, MultiPart, SinglePart}, transport::smtp::{authentication::Credentials, client::{Tls, TlsParameters}}, SmtpTransport, Transport
+};
 
 #[async_trait]
 pub trait ServerServiceTrait {
@@ -22,6 +29,7 @@ pub trait ServerServiceTrait {
         subject: &str,
         html_data: &str,
     ) -> Result<String, (StatusCode, String)>;
+    async fn check_credentials(&self, server_id: &str) -> Result<(), AppError>;
 }
 #[derive(Clone)]
 pub struct ServerService {
@@ -83,12 +91,6 @@ impl ServerServiceTrait for ServerService {
         subject: &str,
         html_data: &str,
     ) -> Result<String, (StatusCode, String)> {
-        
-        use lettre::{
-            transport::smtp::{authentication::Credentials, client::{Tls, TlsParameters}},
-            message::{header, MultiPart, SinglePart, Message},
-            SmtpTransport, Transport,
-        };
 
         // Fetch the server details
         let server = self.repository.get_server_by_id(server_id).await
@@ -160,6 +162,50 @@ impl ServerServiceTrait for ServerService {
             Ok(_) => Ok("Email sent successfully".to_string()),
             Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to send email: {}", e))),
         }
+    }
+
+    async fn check_credentials(&self, server_id: &str) -> Result<(), AppError>{
+        let uuid_id = Uuid::parse_str(server_id)
+            .map_err(|e| AppError::UuidError((e)))?;
+
+        let server = self.repository.get_server_by_id(uuid_id).await?;
+
+        let credentials = Credentials::new(server.smtp_username.clone(), server.smtp_password.clone());
+
+        let tls_parameters = TlsParameters::new(server.host.clone())
+            .map_err(|e| AppError::InternalServerError(Some(e.to_string())))?;
+
+        let mailer = match server.tls_type {
+            TlsTypeEnum::STARTTLS => {
+                SmtpTransport::relay(&server.host)
+                .map_err(|e| AppError::InternalServerError(Some(format!("Failed to establish connection: {}", e))))?
+
+                .port(server.port as u16)
+                .credentials(credentials)
+                .tls(Tls::Required(tls_parameters))
+                .build()
+            }
+            TlsTypeEnum::SSLTLS => {
+                SmtpTransport::relay(&server.host)
+                .map_err(|e| AppError::InternalServerError(Some(format!("Failed to establish connection: {}", e))))?
+                .port(server.port as u16)
+                .credentials(credentials)
+                .tls(Tls::Wrapper(tls_parameters))
+                .build()
+            }
+            TlsTypeEnum::NONE => {
+                SmtpTransport::relay(&server.host)
+                    .map_err(|e| AppError::InternalServerError(Some(format!("Failed to establish connection: {}", e))))?
+                    
+                .port(server.port as u16)
+                .credentials(credentials)
+                .tls(Tls::None)
+                .build()
+            }
+        };
+        let _conn = mailer.test_connection().map_err(|e| AppError::SmtpError(e))?;
+
+        Ok(())
     }
 }
 
