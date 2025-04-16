@@ -1,5 +1,5 @@
 // ServerCard.tsx - Main component file
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,7 @@ import { useServerForm } from "@/hooks/useServerForm";
 import SmtpServerForm from "@/app/dashboard/servers/_components/SmtpServerForm";
 import AwsServerForm from "@/app/dashboard/servers/_components/AwsServerForm";
 import { type Server } from "@/lib/type";
+import { useCheckCredentialsMutation } from "@/app/services/ServerApi";
 
 interface ServerCardProps {
   server: Partial<Server>;
@@ -39,6 +40,37 @@ export default function ServerCard({ server, onCancel }: ServerCardProps) {
   } = useServerForm(server);
 
   const serverType = watch("server_type");
+  const isAwsServer = serverType === "AWS";
+  const isSmtpServer = serverType === "SMTP";
+
+  const [checkCredentials, { isLoading: isTesting }] =
+    useCheckCredentialsMutation();
+  const [testSuccess, setTestSuccess] = useState<boolean | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
+
+  const testSmtpConnection = async () => {
+    const id = server.id;
+
+    if (!id) {
+      setTestError("You must save the server before testing.");
+      return;
+    }
+
+    try {
+      const result = await checkCredentials(id).unwrap();
+      if (result.success) {
+        setTestSuccess(true);
+        setTestError(null);
+      } else {
+        setTestSuccess(false);
+        setTestError(result.message || "SMTP connection failed.");
+      }
+    } catch (err) {
+      console.error("SMTP test error:", err);
+      setTestSuccess(false);
+      setTestError("Connection test failed. Please check the credentials.");
+    }
+  };
 
   return (
     <Card className="w-full max-w-4xl">
@@ -157,14 +189,34 @@ export default function ServerCard({ server, onCancel }: ServerCardProps) {
               </Tabs>
             </div>
           </div>
+          {testSuccess && (
+            <p className="text-green-600 text-sm mt-1">
+              SMTP connection successful!
+            </p>
+          )}
+          {testSuccess === false && (
+            <p className="text-red-600 text-sm mt-1">{testError}</p>
+          )}
 
-          {/* Submit Button */}
+          {/* Submit and Test Buttons */}
           <div className="flex justify-end gap-4">
+            {/* SMTP Only: Test Connection Button */}
+            {isSmtpServer && (
+              <>
+                <Button
+                  type="button"
+                  onClick={testSmtpConnection}
+                  disabled={isTesting || !server.id}
+                >
+                  {isTesting ? "Testing..." : "Test Connection"}
+                </Button>
+              </>
+            )}
             <Button
               type="submit"
               disabled={
-                (serverType === "SMTP" && !areSmtpFieldsFilled()) ||
-                (serverType === "AWS" && !areAwsCredentialsFilled())
+                (isSmtpServer && !areSmtpFieldsFilled()) ||
+                (isAwsServer && !areAwsCredentialsFilled())
               }
             >
               {server.id ? "Save Changes" : "Create Server"}

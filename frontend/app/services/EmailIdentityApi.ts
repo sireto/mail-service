@@ -28,10 +28,28 @@ export const emailIdentityApi = createApi({
     getVerifiedIdentities: builder.query<string[], void>({
       query: () => "/campaign-senders/email-identities",
     }),
+
+    sendTestEmail: builder.mutation<
+      { success: boolean; message: string },
+      {
+        from_email: string;
+        to_email: string;
+        from_name: string;
+        server_id: string;
+        subject?: string;
+      }
+    >({
+      query: (data) => ({
+        url: "/campaign-senders/test-email",
+        method: "POST",
+        body: data,
+      }),
+    }),
   }),
 });
 
 export const {
   useValidateEmailIdentityMutation,
   useGetVerifiedIdentitiesQuery,
+  useSendTestEmailMutation,
 } = emailIdentityApi;

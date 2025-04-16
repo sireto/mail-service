@@ -40,14 +40,14 @@ export default {
   				DEFAULT: 'hsl(var(--destructive))',
   				foreground: 'hsl(var(--destructive-foreground))'
   			},
-			danger: {
-				DEFAULT: 'hsl(var(--danger))',
-				foreground: 'hsl(var(--danger-foreground))',
-				onHover: 'hsl(var(--danger-background-on-hover))'
-			},
-			neutral: {
-				DEFAULT: 'hsl(var(--neutral))',
-			},
+  			danger: {
+  				DEFAULT: 'hsl(var(--danger))',
+  				foreground: 'hsl(var(--danger-foreground))',
+  				onHover: 'hsl(var(--danger-background-on-hover))'
+  			},
+  			neutral: {
+  				DEFAULT: 'hsl(var(--neutral))'
+  			},
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
@@ -68,23 +68,45 @@ export default {
   				border: 'hsl(var(--sidebar-border))',
   				ring: 'hsl(var(--sidebar-ring))'
   			},
-			error: {
-				DEFAULT: 'hsl(var(--error))',
-			},
-			success: {
-				DEFAULT: 'hsl(var(--success))',
-			},
-			warning: {
-				DEFAULT: 'hsl(var(--warning))',
-			},
-			failed: {
-				DEFAULT: 'hsl(var(--failed))',
-			}
+  			error: {
+  				DEFAULT: 'hsl(var(--error))'
+  			},
+  			success: {
+  				DEFAULT: 'hsl(var(--success))'
+  			},
+  			warning: {
+  				DEFAULT: 'hsl(var(--warning))'
+  			},
+  			failed: {
+  				DEFAULT: 'hsl(var(--failed))'
+  			}
   		},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
+  		},
+  		keyframes: {
+  			'accordion-down': {
+  				from: {
+  					height: '0'
+  				},
+  				to: {
+  					height: 'var(--radix-accordion-content-height)'
+  				}
+  			},
+  			'accordion-up': {
+  				from: {
+  					height: 'var(--radix-accordion-content-height)'
+  				},
+  				to: {
+  					height: '0'
+  				}
+  			}
+  		},
+  		animation: {
+  			'accordion-down': 'accordion-down 0.2s ease-out',
+  			'accordion-up': 'accordion-up 0.2s ease-out'
   		}
   	}
   },
