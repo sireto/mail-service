@@ -245,6 +245,38 @@ pub async fn send_campaign_email(
     campaign_id: Uuid,
 ) -> Result<CampaignSendResponse, AppError> {
 
+  let campaign = get_campaign_by_id(campaign_id).await?;
+  let campaign_sender_id = campaign
+    .campaign_senders
+    .ok_or(AppError::NotFoundError(Some("Campaign sender not found".into())))?
+    .to_string();
+
+  let campaign_sender = get_campaign_sender_by_id(campaign_sender_id).await?;
+  let server_id = campaign_sender.server_id.to_string();
+  
+  let server_repo = Arc::new(ServerRepoImpl);
+  let server_service = servers_services::ServerService::new(server_repo);
+
+  let server = server_service.get_server_by_id(server_id.as_str()).await?;
+
+
+  match server.server_type {
+    ServerTypeEnum::AWS => {
+        let result = send_campaign_email_aws(campaign_id).await?;
+        Ok(result)
+    }, 
+    ServerTypeEnum::SMTP => {
+        let result = send_campaign_email_smtp(campaign_id, Uuid::parse_str(&server_id).unwrap()).await?;
+        Ok(result)
+    } 
+  }
+
+}
+
+pub async fn send_campaign_email_aws(
+    campaign_id: Uuid,
+) -> Result<CampaignSendResponse, AppError> {
+
     let campaign = get_campaign_by_id(campaign_id.clone())
         .await
         .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
