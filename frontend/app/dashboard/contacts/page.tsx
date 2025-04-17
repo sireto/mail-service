@@ -2,7 +2,7 @@
 
 import DataTable from "@/components/DataTable";
 import { Button } from "@/components/ui/button";
-import { useState, useMemo } from "react";
+import { useState, useMemo, Suspense } from "react";
 import {
   useGetContactsQuery,
   useDeleteContactMutation,
@@ -27,7 +27,7 @@ interface List {
   updated_at: string;
 }
 
-const ContactsPage = () => {
+const ContactsPageContent = () => {
   const [isOpen, setIsOpen] = useState(false);
   // const { data: contacts, isLoading, isError } = useGetContactsQuery({});
   const { data: listsData, isLoading: listsLoading } =
@@ -180,6 +180,14 @@ const ContactsPage = () => {
         />
       </div>
     </div>
+  );
+};
+
+const ContactsPage = () => {
+  return (
+    <Suspense fallback={<div>Loading contacts...</div>}>
+      <ContactsPageContent />
+    </Suspense>
   );
 };
 

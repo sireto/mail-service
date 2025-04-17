@@ -27,7 +27,9 @@ export default function ExportPage() {
   const [isExporting, setIsExporting] = useState(false);
   const multiSelectRef = useRef(null);
 
-  const { data: contacts, isLoading: contactsLoading } = useGetContactsQuery();
+  const { data: contacts, isLoading: contactsLoading } = useGetContactsQuery(
+    {}
+  );
   const { toast } = useToast();
 
   const { data: listsData, isLoading: listsLoading } =
