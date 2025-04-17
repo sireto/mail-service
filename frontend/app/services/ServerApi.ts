@@ -36,11 +36,12 @@ export const ServerApi = createApi({
     }),
     checkCredentials: builder.mutation<
       { success: boolean; message: string },
-      string
+      Omit<Server, "id">
     >({
-      query: (serverId) => ({
-        url: `servers/check-smtp/${serverId}`,
+      query: (newServer) => ({
+        url: `servers/check-smtp`,
         method: "POST",
+        body: newServer,
       }),
     }),
   }),

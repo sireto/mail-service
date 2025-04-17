@@ -29,7 +29,7 @@ pub trait ServerServiceTrait {
         subject: &str,
         html_data: &str,
     ) -> Result<String, (StatusCode, String)>;
-    async fn check_credentials(&self, server_id: &str) -> Result<(), AppError>;
+    async fn check_credentials(&self, payload: ServerRequest) -> Result<(), AppError>;
 }
 #[derive(Clone)]
 pub struct ServerService {
@@ -164,40 +164,36 @@ impl ServerServiceTrait for ServerService {
         }
     }
 
-    async fn check_credentials(&self, server_id: &str) -> Result<(), AppError>{
-        let uuid_id = Uuid::parse_str(server_id)
-            .map_err(|e| AppError::UuidError((e)))?;
+    async fn check_credentials(&self, payload: ServerRequest) -> Result<(), AppError>{
 
-        let server = self.repository.get_server_by_id(uuid_id).await?;
+        let credentials = Credentials::new(payload.smtp_username.clone(), payload.smtp_password.clone());
 
-        let credentials = Credentials::new(server.smtp_username.clone(), server.smtp_password.clone());
-
-        let tls_parameters = TlsParameters::new(server.host.clone())
+        let tls_parameters = TlsParameters::new(payload.host.clone())
             .map_err(|e| AppError::InternalServerError(Some(e.to_string())))?;
 
-        let mailer = match server.tls_type {
+        let mailer = match payload.tls_type {
             TlsTypeEnum::STARTTLS => {
-                SmtpTransport::relay(&server.host)
+                SmtpTransport::relay(&payload.host)
                 .map_err(|e| AppError::InternalServerError(Some(format!("Failed to establish connection: {}", e))))?
 
-                .port(server.port as u16)
+                .port(payload.port as u16)
                 .credentials(credentials)
                 .tls(Tls::Required(tls_parameters))
                 .build()
             }
             TlsTypeEnum::SSLTLS => {
-                SmtpTransport::relay(&server.host)
+                SmtpTransport::relay(&payload.host)
                 .map_err(|e| AppError::InternalServerError(Some(format!("Failed to establish connection: {}", e))))?
-                .port(server.port as u16)
+                .port(payload.port as u16)
                 .credentials(credentials)
                 .tls(Tls::Wrapper(tls_parameters))
                 .build()
             }
             TlsTypeEnum::NONE => {
-                SmtpTransport::relay(&server.host)
+                SmtpTransport::relay(&payload.host)
                     .map_err(|e| AppError::InternalServerError(Some(format!("Failed to establish connection: {}", e))))?
                     
-                .port(server.port as u16)
+                .port(payload.port as u16)
                 .credentials(credentials)
                 .tls(Tls::None)
                 .build()

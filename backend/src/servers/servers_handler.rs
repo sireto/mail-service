@@ -172,17 +172,17 @@ pub async fn delete_server(
 
 #[utoipa::path(
     post, 
-    path="/api/servers/check-smtp/{server_id}", 
+    path="/api/servers/check-smtp", 
     responses(
         (status=200, description = "Check SMTP Credentials", body= SmtpCheckResponse), 
         (status=404)
     )
 )]
 pub async fn check_credentials(
-    server_id: axum::extract::Path<String>,
     Extension(server_service): Extension<Arc<ServerService>>,
+    Json(payload): Json<ServerRequest>
 ) -> Result<impl IntoResponse, AppError> {
-    server_service.check_credentials(&server_id).await?;
+    server_service.check_credentials(payload).await?;
 
     let response = SmtpCheckResponse {
         success: true,

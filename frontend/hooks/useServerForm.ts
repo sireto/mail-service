@@ -21,6 +21,7 @@ export function useServerForm(server: Partial<Server>) {
     reset,
     trigger,
     control,
+    getValues,
     formState: { errors, isValid },
   } = useForm<Server>({
     resolver: zodResolver(ServerSchema),
@@ -163,5 +164,6 @@ export function useServerForm(server: Partial<Server>) {
     handleDelete,
     areAwsCredentialsFilled,
     areSmtpFieldsFilled,
+    getValues,
   };
 }

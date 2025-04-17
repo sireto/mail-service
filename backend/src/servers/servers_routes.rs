@@ -33,6 +33,6 @@ pub fn servers_routes()-> Router<> {
         .route("/{serverId}", get(get_server_by_id))
         .route("/{serverId}", patch(update_server))
         .route("/{serverId}", delete(delete_server))
-        .route("/check-smtp/{serverId}", post(check_credentials))
+        .route("/check-smtp", post(check_credentials))
         .layer(Extension(Arc::new(server_service)))
 }

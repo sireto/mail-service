@@ -1,4 +1,3 @@
-// ServerCard.tsx - Main component file
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +36,7 @@ export default function ServerCard({ server, onCancel }: ServerCardProps) {
     areSmtpFieldsFilled,
     areAwsCredentialsFilled,
     trigger,
+    getValues,
   } = useServerForm(server);
 
   const serverType = watch("server_type");
@@ -48,27 +48,30 @@ export default function ServerCard({ server, onCancel }: ServerCardProps) {
   const [testSuccess, setTestSuccess] = useState<boolean | null>(null);
   const [testError, setTestError] = useState<string | null>(null);
 
-  const testSmtpConnection = async () => {
-    const id = server.id;
-
-    if (!id) {
-      setTestError("You must save the server before testing.");
-      return;
-    }
-
+  const testAndSaveSmtpConnection = async () => {
     try {
-      const result = await checkCredentials(id).unwrap();
+      const formData = getValues();
+      const payload = { ...formData };
+
+      const result = await checkCredentials(payload).unwrap();
       if (result.success) {
         setTestSuccess(true);
         setTestError(null);
+        await onSubmit(formData);
       } else {
         setTestSuccess(false);
         setTestError(result.message || "SMTP connection failed.");
       }
     } catch (err) {
-      console.error("SMTP test error:", err);
+      const error = err as { data?: { message?: string }; message?: string };
+
+      const message =
+        error?.data?.message ||
+        error?.message ||
+        "Connection test failed. Please check the credentials.";
+
       setTestSuccess(false);
-      setTestError("Connection test failed. Please check the credentials.");
+      setTestError(message);
     }
   };
 
@@ -205,10 +208,18 @@ export default function ServerCard({ server, onCancel }: ServerCardProps) {
               <>
                 <Button
                   type="button"
-                  onClick={testSmtpConnection}
-                  disabled={isTesting || !server.id}
+                  onClick={handleSubmit(testAndSaveSmtpConnection)}
+                  disabled={
+                    isTesting ||
+                    (isSmtpServer && !areSmtpFieldsFilled()) ||
+                    (isAwsServer && !areAwsCredentialsFilled())
+                  }
                 >
-                  {isTesting ? "Testing..." : "Test Connection"}
+                  {isTesting
+                    ? "Testing..."
+                    : server.id
+                    ? "Test and Update"
+                    : "Test and Create"}
                 </Button>
               </>
             )}
