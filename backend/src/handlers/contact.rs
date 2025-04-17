@@ -1,6 +1,6 @@
 use crate::{error::AppError, models::contact::
     { 
-        CreateContactRequest, CreateContactResponse, DeleteContactResponse, EmailQuery, GetContactResponse, GetContactResponsee, UpdateContactRequest, UpdateContactResponse, ImportOptions, ImportResponse
+        ContactQuery, CreateContactRequest, CreateContactResponse, DeleteContactResponse, EmailQuery, GetContactResponse, GetContactResponsee, ImportOptions, ImportResponse, UpdateContactRequest, UpdateContactResponse
     }, services::contact_service
 };
 
@@ -9,6 +9,7 @@ use axum::{
 };
 
 use axum_extra::extract::Multipart;
+use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::utils::contact_lists_functions::parse_csv_data;
@@ -46,9 +47,13 @@ pub async fn create_contacts(
         (status = 404)
     )
 )]
-pub async fn get_contacts() -> Result<Json<Vec<GetContactResponsee>>, AppError> {
+pub async fn get_contacts(
+    query: Query<ContactQuery>
+) -> Result<Json<Vec<GetContactResponsee>>, AppError> {
     println!("Handler called");
-    let contacts = contact_service::get_all_contacts().await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+
+    let contacts = contact_service::get_all_contacts(query.list_id, query.search.clone()).await
+        .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     println!("Found {} contacts", contacts.len()); 
     Ok(Json(contacts))

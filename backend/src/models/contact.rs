@@ -155,3 +155,9 @@ pub struct ImportResult {
     pub imported: usize,
     pub errors: Vec<String>,
 }
+
+#[derive(Deserialize)]
+pub struct ContactQuery {
+    pub list_id: Option<Uuid>,
+    pub search: Option<String>
+}

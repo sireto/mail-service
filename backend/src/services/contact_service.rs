@@ -25,8 +25,8 @@ impl ContactService {
         self.repository.create_contacts(payload).await
     }
 
-    pub async fn get_all_contacts(&self) -> Result<Vec<Contact>, diesel::result::Error> {
-        self.repository.get_all_contacts().await
+    pub async fn get_all_contacts(&self, list_id: Option<Uuid>, search: Option<String>) -> Result<Vec<Contact>, diesel::result::Error> {
+        self.repository.get_all_contacts(list_id, search).await
     }
 
     pub async fn get_contact_by_id(&self, contact_id: Uuid) -> Result<Contact, diesel::result::Error> {
@@ -71,13 +71,15 @@ pub async fn create_contacts(
     Ok(response)
 }
 
-pub async fn get_all_contacts() -> Result<Vec<GetContactResponsee>, AppError> {
+pub async fn get_all_contacts(list_id: Option<Uuid>, search: Option<String>) -> Result<Vec<GetContactResponsee>, AppError> {
     let contact_repository = Arc::new(ContactRepositoryImpl);
 
-    let contacts = contact_repository.get_all_contacts().await?;
+    let contacts = contact_repository
+    .get_all_contacts(list_id, search)
+    .await?;
 
-        println!("Found {} base contacts", contacts.len()); // Add this
-    
+    println!("Found {} base contacts", contacts.len());
+
     let contact_ids = contacts.iter().map(|c| c.id).collect();
     let list_contacts = contact_repository.get_list_contacts(contact_ids).await?;
     
@@ -91,14 +93,14 @@ pub async fn get_all_contacts() -> Result<Vec<GetContactResponsee>, AppError> {
     let mut response = Vec::new();
     for contact in contacts {
         let contact_lists = list_contacts.iter()
-        .filter(|lc| lc.contact_id == contact.id)
-        .filter_map(|lc| {
-            list_map.get(&lc.list_id).map(|name| ContactList {
-                list_id: lc.list_id,
-                list_name: name.clone(),
+            .filter(|lc| lc.contact_id == contact.id)
+            .filter_map(|lc| {
+                list_map.get(&lc.list_id).map(|name| ContactList {
+                    list_id: lc.list_id,
+                    list_name: name.clone(),
+                })
             })
-        })
-        .collect::<Vec<ContactList>>();
+            .collect::<Vec<ContactList>>();
 
         response.push(GetContactResponsee {
             id: contact.id,
@@ -109,7 +111,6 @@ pub async fn get_all_contacts() -> Result<Vec<GetContactResponsee>, AppError> {
             created_at: contact.created_at,
             updated_at: contact.updated_at,
             lists: contact_lists,
-
         });
     }
 

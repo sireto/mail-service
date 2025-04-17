@@ -14,6 +14,7 @@ import NoContactsFound from "./NotFound";
 import { AddContact } from "./_components/ContactForms/AddContact";
 import { Contact } from "@/lib/type/contact";
 import { ColumnDef } from "@tanstack/react-table";
+import { useSearchParams } from "next/navigation";
 
 const NAMESPACE_ID = "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
 
@@ -28,16 +29,28 @@ interface List {
 
 const ContactsPage = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { data: contacts, isLoading, isError } = useGetContactsQuery();
+  // const { data: contacts, isLoading, isError } = useGetContactsQuery({});
   const { data: listsData, isLoading: listsLoading } =
     useGetListsQuery(NAMESPACE_ID);
-  console.log("Initial contacts data:", contacts);
+  // console.log("Initial contacts data:", contacts);
   const lists: List[] = listsData ?? [];
   const [deleteContact] = useDeleteContactMutation();
   const [selectedContacts, setSelectedContacts] = useState<
     Record<string, boolean>
   >({});
   const [searchTerm, setSearchTerm] = useState("");
+
+  const searchParams = useSearchParams();
+  const listId = searchParams.get("list_id") ?? undefined;
+
+  const {
+    data: contacts,
+    isLoading,
+    isError,
+  } = useGetContactsQuery({
+    list_id: listId,
+    search: searchTerm,
+  });
 
   const selectedCount = Object.values(selectedContacts).filter(Boolean).length;
 
@@ -77,17 +90,17 @@ const ContactsPage = () => {
     URL.revokeObjectURL(url);
   };
 
-  const filteredContacts: Contact[] = useMemo(() => {
-    if (!contacts) return [];
-    const lowerSearch = searchTerm.toLowerCase();
-    return contacts.filter((contact) => {
-      const emailMatch = contact.email.toLowerCase().includes(lowerSearch);
-      const fullName = `${contact.first_name || ""} ${
-        contact.last_name || ""
-      }`.toLowerCase();
-      return emailMatch || fullName.includes(lowerSearch);
-    });
-  }, [contacts, searchTerm]);
+  // const filteredContacts: Contact[] = useMemo(() => {
+  //   if (!contacts) return [];
+  //   const lowerSearch = searchTerm.toLowerCase();
+  //   return contacts.filter((contact) => {
+  //     const emailMatch = contact.email.toLowerCase().includes(lowerSearch);
+  //     const fullName = `${contact.first_name || ""} ${
+  //       contact.last_name || ""
+  //     }`.toLowerCase();
+  //     return emailMatch || fullName.includes(lowerSearch);
+  //   });
+  // }, [contacts, searchTerm]);
 
   const tableColumns = createColumns(
     handleDeleteContact,
@@ -161,7 +174,7 @@ const ContactsPage = () => {
 
       <div className="p-6">
         <DataTable
-          data={filteredContacts || []}
+          data={contacts || []}
           columns={tableColumns}
           fallback="No Contacts Found"
         />

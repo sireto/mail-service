@@ -6,8 +6,21 @@ export const contactApi = createApi({
   baseQuery: fetchBaseQuery({ baseUrl: process.env.NEXT_PUBLIC_BASE_URL }),
   tagTypes: ["Contact"],
   endpoints: (builder) => ({
-    getContacts: builder.query<Contact[], void>({
-      query: () => "contacts",
+    getContacts: builder.query<
+      Contact[],
+      { list_id?: string; search?: string }
+    >({
+      query: ({ list_id, search }) => {
+        const params = new URLSearchParams();
+        if (list_id) {
+          params.append("list_id", list_id);
+        }
+        if (search) {
+          params.append("search", search);
+        }
+        console.log("The latest query is: ", params.toString());
+        return { url: `contacts?${params.toString()}` };
+      },
       providesTags: ["Contact"],
     }),
     addContact: builder.mutation<Contact, Omit<Contact, "id">>({
