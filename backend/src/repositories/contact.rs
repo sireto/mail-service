@@ -24,7 +24,7 @@ pub async fn get_connection_pool() -> DbPooledConnection {
 #[async_trait]
 pub trait ContactRepository {
     async fn create_contacts(&self, payloads: Vec<CreateContactRequest>) -> Result<Vec<Contact>, diesel::result::Error>;
-    async fn get_all_contacts(&self) -> Result<Vec<Contact>, diesel::result::Error>;
+    async fn get_all_contacts(&self, list_id: Option<Uuid>, search: Option<String>) -> Result<Vec<Contact>, diesel::result::Error>;
     async fn update_contact(&self, contact_id: Uuid, payload: UpdateContactRequest
     ) -> Result<Contact, diesel::result::Error>;
     async fn delete_contact(&self, contact_id: Uuid) -> Result<Contact, diesel::result::Error>;
@@ -48,22 +48,50 @@ impl ContactRepository for ContactRepositoryImpl {
             .get_results::<Contact>(&mut conn)
     }
 
-    async fn get_all_contacts(&self) -> Result<Vec<Contact>, diesel::result::Error> {
+     async fn get_all_contacts(
+        &self,
+        list_id: Option<Uuid>,
+        search: Option<String>,
+    ) -> Result<Vec<Contact>, diesel::result::Error> {
+        use crate::schema::contacts::dsl::*;
+        use diesel::prelude::*;
+    
         let mut conn = get_connection_pool().await;
+    
+        // Start building the query
+        let mut query = contacts
+            .select((id, first_name, last_name, email, attribute, created_at, updated_at))
+            .into_boxed();
+    
+        // Filter by list_id if present
+        if let Some(list_id_val) = list_id {
+            use crate::schema::list_contacts::dsl::*;
+            query = query.filter(
+                id.eq_any(
+                    list_contacts
+                        .select(contact_id)
+                        .filter(list_id.eq(list_id_val)),
+                ),
+            );
+        }
+    
+        // Apply search filter
+        if let Some(search_term) = search {
+            let like_pattern = format!("%{}%", search_term.to_lowercase());
+            let pattern = like_pattern.clone(); 
         
-        contacts
-            .select((
-                id,
-                first_name,
-                last_name,
-                email,
-                attribute,
-                created_at,
-                updated_at,
-            ))
-            .load::<Contact>(&mut conn)
+            query = query.filter(
+                first_name
+                    .ilike(pattern.clone())
+                    .or(last_name.ilike(pattern.clone()))
+                    .or(email.ilike(pattern)),
+            );
+        }
+        
+    
+        query.load::<Contact>(&mut conn)
     }
-
+    
     async fn update_contact (
         &self,
         contact_id: Uuid,

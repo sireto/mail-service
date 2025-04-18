@@ -1,4 +1,4 @@
-use crate::{error::AppError, models::{campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse}, campaign_lists::NewListInCampaign, mail::CreateMailRequest}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, campaign_lists_repo::{CampaignListRepository, CampaignListRepositoryImpl}, list_contact_repo::ListContactRepositoryImpl, mail_repository::MailRepositoryImpl},servers::{servers_repo::ServerRepoImpl, servers_services::{ServerService, ServerServiceTrait}}, utils::contact_lists_functions::populate_contact_template};
+use crate::{error::AppError, models::{campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse}, campaign_lists::NewListInCampaign, mail::CreateMailRequest}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, campaign_lists_repo::{CampaignListRepository, CampaignListRepositoryImpl}, list_contact_repo::ListContactRepositoryImpl, mail_repository::MailRepositoryImpl},servers::{servers_handler::get_server_by_id, servers_model::{Server, ServerTypeEnum}, servers_repo::{self, ServerRepoImpl}, servers_services::{self, ServerService, ServerServiceTrait}}, utils::contact_lists_functions::populate_contact_template};
 use uuid::Uuid;
 use std::{collections::HashSet, sync::Arc, env};
 use axum::http::StatusCode;
@@ -9,11 +9,11 @@ use crate::models::campaign::{
     ExtendedCreateCampaignRequest,
 };
 use crate::models::list::ListResponse;
-use aws_sdk_sesv2::types::{Body, Content, Destination, Message, EmailContent};
+use aws_sdk_sesv2::types::{builders::{BodyBuilder, ContentBuilder}, Body, Content, Destination, EmailContent, Message};
 use crate::services::{aws_service, list_service::ListContactService, template_service::get_template_by_id};
 use anyhow::{anyhow, Result};
 
-use super::{campaign_sender_service::get_campaign_sender_by_id, mail_service::MailService };
+use super::{aws_service::create_aws_client_db, campaign_sender_service::get_campaign_sender_by_id, mail_service::MailService };
 use crate::services::mail_service as mail_service;
 
 
@@ -245,6 +245,38 @@ pub async fn send_campaign_email(
     campaign_id: Uuid,
 ) -> Result<CampaignSendResponse, AppError> {
 
+  let campaign = get_campaign_by_id(campaign_id).await?;
+  let campaign_sender_id = campaign
+    .campaign_senders
+    .ok_or(AppError::NotFoundError(Some("Campaign sender not found".into())))?
+    .to_string();
+
+  let campaign_sender = get_campaign_sender_by_id(campaign_sender_id).await?;
+  let server_id = campaign_sender.server_id.to_string();
+  
+  let server_repo = Arc::new(ServerRepoImpl);
+  let server_service = servers_services::ServerService::new(server_repo);
+
+  let server = server_service.get_server_by_id(server_id.as_str()).await?;
+
+
+  match server.server_type {
+    ServerTypeEnum::AWS => {
+        let result = send_campaign_email_aws(campaign_id).await?;
+        Ok(result)
+    }, 
+    ServerTypeEnum::SMTP => {
+        let result = send_campaign_email_smtp(campaign_id, Uuid::parse_str(&server_id).unwrap()).await?;
+        Ok(result)
+    } 
+  }
+
+}
+
+pub async fn send_campaign_email_aws(
+    campaign_id: Uuid,
+) -> Result<CampaignSendResponse, AppError> {
+
     let campaign = get_campaign_by_id(campaign_id.clone())
         .await
         .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
@@ -436,3 +468,4 @@ pub async fn send_campaign_email_smtp(
         status: "draft".to_string(),
     })
 }
+

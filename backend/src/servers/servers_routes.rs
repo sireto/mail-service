@@ -15,7 +15,8 @@ use crate::servers::servers_handler::{
     get_servers, 
     get_server_by_id, 
     delete_server,
-    update_server
+    update_server, 
+    check_credentials
 };
 
 use crate::servers::servers_services;
@@ -32,5 +33,6 @@ pub fn servers_routes()-> Router<> {
         .route("/{serverId}", get(get_server_by_id))
         .route("/{serverId}", patch(update_server))
         .route("/{serverId}", delete(delete_server))
+        .route("/check-smtp", post(check_credentials))
         .layer(Extension(Arc::new(server_service)))
 }

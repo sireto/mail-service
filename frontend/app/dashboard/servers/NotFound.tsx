@@ -1,6 +1,6 @@
 // components/NoServersFound.tsx
 import { Button } from "@/components/ui/button";
-import ServerCard from "@/components/ServerCard";
+import ServerCard from "@/app/dashboard/servers/_components/ServerCard";
 import { useState } from "react";
 
 const NoServersFound = () => {

@@ -3,6 +3,7 @@ use aws_sdk_sesv2::operation::send_email::SendEmailError;
 use axum::response::IntoResponse;
 use axum::http::status::StatusCode;
 use thiserror::Error;
+use lettre::transport::smtp::Error as SmtpError;
 
 
 #[derive(Debug, Error)]
@@ -19,6 +20,8 @@ pub enum AppError {
     BadRequestError(Option<String>),
     #[error("AWS SES error: {0}")]
     AwsSesError(#[from] SdkError<SendEmailError>),
+    #[error("SMTP error: {0}")]
+    SmtpError(#[from] SmtpError),
 }
 
 impl IntoResponse for AppError {
@@ -47,6 +50,10 @@ impl IntoResponse for AppError {
             AppError::AwsSesError(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("AWS SES error: {:?}", e)
+            ),
+            AppError::SmtpError(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                e.to_string(), 
             ),
         };
         (status, message).into_response()

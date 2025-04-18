@@ -1,4 +1,5 @@
-use crate::{models::campaign_sender::{CampaignSenderRequest, ValidateEmailIdentityRequest, ValidateEmailIdentityResponse}, {error::AppError, repositories::campaign_sender::{CampaignSenderRepository, CampaignSenderRepositoryImpl}}};
+use crate::{error::AppError, models::campaign_sender::{CampaignSenderRequest, SendTestEmailRequest, SendTestEmailResponse, ValidateEmailIdentityRequest, ValidateEmailIdentityResponse}, repositories::campaign_sender::{CampaignSenderRepository, CampaignSenderRepositoryImpl}, servers::{servers_handler::{get_server_by_id, get_servers}, servers_model::{Server, ServerTypeEnum}, servers_services::{self, ServerServiceTrait}}};
+use lettre::{transport::smtp::authentication::Credentials, Message, SmtpTransport, Transport};
 use multipart::server::nickel::nickel::hyper::method::Method::Delete;
 use uuid::Uuid;
 use std::sync::Arc;
@@ -13,7 +14,8 @@ use crate::models::campaign_sender::{
     DeleteCampaignSenderResponse
 };
 use chrono::Utc;
-use super::aws_service;
+use super::aws_service::{self, create_aws_client_db,};
+use crate::servers::servers_repo::ServerRepoImpl;
 
 pub struct CampaignSenderService {
     repository: Arc<dyn CampaignSenderRepository + Send + Sync>
@@ -212,3 +214,146 @@ pub async fn get_verified_identities() -> Result<Vec<String>, (StatusCode, Strin
     
     Ok(identities)
 }
+
+pub async fn send_test_email(payload: SendTestEmailRequest) -> Result<SendTestEmailResponse, AppError> {
+    let server_repo = Arc::new(ServerRepoImpl);
+    let server_service = servers_services::ServerService::new(server_repo);
+    
+    // Get server details
+    let server = server_service.get_server_by_id(&payload.server_id as &str).await?;
+    
+    // Optional: Validate email identity for AWS servers
+    let mut validation_message = String::new();
+    if server.server_type == ServerTypeEnum::AWS {
+        let validation_result = validate_email_identity(ValidateEmailIdentityRequest {
+            email: payload.from_email.clone(),
+            serverId: payload.server_id.clone(),
+        }).await;
+        
+        match validation_result {
+            Ok(result) => {
+                if !result.is_valid {
+                    validation_message = format!("Warning: {} ", result.message.unwrap_or_else(|| "Email identity not verified".to_string()));
+                }
+            },
+            Err((_, msg)) => {
+                validation_message = format!("Warning: Could not validate email identity. {}", msg);
+            }
+        }
+    }
+    
+    // Prepare the subject
+    let subject = payload.subject.unwrap_or_else(|| "Test Email".to_string());
+    
+    // Send test email based on server type
+    let result = match server.server_type {
+        ServerTypeEnum::AWS => {
+            send_aws_test_email(
+                server, 
+                &payload.from_email,
+                &payload.to_email,
+            ).await
+        },
+        ServerTypeEnum::SMTP => {
+            send_smtp_test_email(
+                server,
+                &payload.from_email,
+                &payload.to_email,
+            ).await
+        }
+    };
+    
+    match result {
+        Ok(message) => Ok(SendTestEmailResponse {
+            success: true,
+            message: if validation_message.is_empty() { 
+                message 
+            } else { 
+                format!("{}. {}", message, validation_message) 
+            },
+        }),
+        Err((status, error_message)) => {
+            // Convert the tuple error to AppError
+            let error_msg = if validation_message.is_empty() {
+                error_message
+            } else {
+                format!("{}. {}", error_message, validation_message)
+            };
+            
+            match status {
+                StatusCode::BAD_REQUEST => Err(AppError::BadRequestError(Some(error_msg))),
+                StatusCode::NOT_FOUND => Err(AppError::NotFoundError(Some(error_msg))),
+                _ => Err(AppError::InternalServerError(Some(error_msg)))
+            }
+        }
+    }
+}
+
+use aws_sdk_sesv2::Client;
+pub async fn send_aws_test_email(
+    server: Server,
+    from_email: &str,
+    to_email: &str,
+) -> Result<String, (StatusCode, String)> {
+    use aws_sdk_sesv2::types::{Body, Content, Destination, EmailContent, Message};
+    let client: Client = create_aws_client_db(&server.id.to_string()).await;
+
+    let subject = Content::builder().data("Test Email from AWS SES").build().unwrap();
+    let body_text = Content::builder().data("This is a test email to verify AWS SES configuration.").build().unwrap();
+
+    let message = Message::builder()
+        .subject(subject)
+        .body(Body::builder().text(body_text).build())
+        .build();
+
+    let destination = Destination::builder()
+        .to_addresses(to_email)
+        .build();
+
+    let email_content = EmailContent::builder()
+        .simple(message)
+        .build();
+
+    let send_result = client
+        .send_email()
+        .from_email_address(from_email)
+        .destination(destination)
+        .content(email_content)
+        .send()
+        .await;
+
+    match send_result {
+        Ok(_) => Ok("Test email sent via AWS SES.".to_string()),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to send AWS SES email: {}", e))),
+    }
+}
+
+pub async fn send_smtp_test_email(
+    server: Server,
+    from_email: &str,
+    to_email: &str
+) -> Result<String, (StatusCode, String)> {
+    let creds = Credentials::new(
+        server.smtp_username.clone(),
+        server.smtp_password.clone(),
+    );
+
+    let mailer = SmtpTransport::relay(&server.host.clone())
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("SMTP relay error: {}", e)))?
+        .port(server.port as u16)
+        .credentials(creds)
+        .build();
+
+    let email = Message::builder()
+        .from(from_email.parse().unwrap())
+        .to(to_email.parse().unwrap())
+        .subject("Test Email from SMTP Server")
+        .body("This is a test email to verify SMTP configuration.".to_string())
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Build email error: {}", e)))?;
+
+    match mailer.send(&email) {
+        Ok(_) => Ok("Test email sent via SMTP.".to_string()),
+        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to send SMTP email: {}", e))),
+    }
+}
+

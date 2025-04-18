@@ -60,15 +60,15 @@ async fn test_get_all_contacts() {
 
     mock_repo
         .expect_get_all_contacts()
-        .returning(move || Ok(expected_output.clone()));
+        .returning(move |_list_id, _search| Ok(expected_output.clone()));
 
     let contact_service = ContactService::new(Arc::new(mock_repo));
 
-    let result = contact_service.get_all_contacts().await;
+    let result = contact_service.get_all_contacts(None, None).await;
 
     assert!(result.is_ok());
     assert!(!result.as_ref().unwrap().is_empty());
-    assert!(result.as_ref().unwrap().len() == 1);
+    assert_eq!(result.as_ref().unwrap().len(), 1);
     assert_eq!(result.as_ref().unwrap()[0].email, "john@gmail.com");
 }
 

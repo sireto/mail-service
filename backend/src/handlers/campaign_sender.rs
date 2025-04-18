@@ -1,13 +1,16 @@
 use crate::error::AppError;
+use crate::servers::servers_services::{ServerService, ServerServiceTrait};
 use crate::{
     models::campaign_sender::{
-        CampaignSenderRequest, CreateCampaignSenderRequest, CreateCampaignSenderResponse, DeleteCampaignSenderResponse, GetCampaignSenderResponse, UpdateCampaignSenderRequest, UpdateCampaignSenderResponse, ValidateEmailIdentityRequest, ValidateEmailIdentityResponse
+        CampaignSenderRequest, CreateCampaignSenderRequest, CreateCampaignSenderResponse, DeleteCampaignSenderResponse, GetCampaignSenderResponse, UpdateCampaignSenderRequest, UpdateCampaignSenderResponse, ValidateEmailIdentityRequest, ValidateEmailIdentityResponse, SendTestEmailRequest, SendTestEmailResponse
     },
     services::campaign_sender_service
 };
 use axum::{
-    extract::Path, Json, http::status::StatusCode
+    extract::Path, Json, http::StatusCode
 };
+use serde::Deserialize;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[utoipa::path(
@@ -139,3 +142,21 @@ pub async fn get_verified_identities() -> Result<Json<Vec<String>>, (StatusCode,
         Err((status, message)) => Err((status, message)),
     }
 }
+
+#[utoipa::path(
+    post,
+    path = "/api/campaign-senders/test-email",
+    request_body = SendTestEmailRequest,
+    responses(
+        (status = 200, description = "Test email sent", body = SendTestEmailResponse),
+        (status = 400, description = "Bad request"),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn send_test_email(
+    Json(payload): Json<SendTestEmailRequest>,
+) -> Result<Json<SendTestEmailResponse>, AppError> {
+    let response = campaign_sender_service::send_test_email(payload).await?;
+    Ok(Json(response))
+}
+

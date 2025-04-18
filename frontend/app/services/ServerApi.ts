@@ -34,6 +34,16 @@ export const ServerApi = createApi({
       }),
       invalidatesTags: ["Server"],
     }),
+    checkCredentials: builder.mutation<
+      { success: boolean; message: string },
+      Omit<Server, "id">
+    >({
+      query: (newServer) => ({
+        url: `servers/check-smtp`,
+        method: "POST",
+        body: newServer,
+      }),
+    }),
   }),
 });
 
@@ -42,4 +52,5 @@ export const {
   useCreateServerMutation,
   useUpdateServerMutation,
   useDeleteServerMutation,
+  useCheckCredentialsMutation,
 } = ServerApi;

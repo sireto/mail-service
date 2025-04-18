@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Meta, StoryObj } from "@storybook/react";
-import ServerCard from "@/components/ServerCard";
+import ServerCard from "@/app/dashboard/servers/_components/ServerCard";
 import ReduxProvider from "@/providers/redux-provider";
 
 const validTlsTypes = ["NONE", "SSL/TLS", "STARTTLS"] as const;
