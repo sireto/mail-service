@@ -302,7 +302,8 @@ pub async fn send_campaign_email_aws(
     let sender_name = campaign_sender_response.from_name;
     //These variables are temporary
 
-    let server_id = campaign_sender_response.server_id.to_string();
+    let server_uuid = campaign_sender_response.server_id;
+    let server_id = server_uuid.to_string();
 
     let client = aws_service::create_aws_client_db(&server_id).await;
     let request = client.list_email_identities();
@@ -365,6 +366,7 @@ pub async fn send_campaign_email_aws(
             campaign_id: Some(campaign_id),
             sent_at: chrono::Utc::now(),
             status: "pending".to_string(),
+            server_id: Some(server_uuid),
         };
 
         mail_service::create_mail(new_mail).await?;
@@ -433,6 +435,7 @@ pub async fn send_campaign_email_smtp(
                     campaign_id: Some((campaign_id)),
                     sent_at: chrono::Utc::now(),
                     status: "pending".to_string(),
+                    server_id: Some(server_id),
                 };
                 mail_service::create_mail(new_mail).await.map_err(|err| {
                     AppError::InternalServerError(Some(format!("Failed to create mail: {}", err)))

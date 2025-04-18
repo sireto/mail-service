@@ -50,6 +50,7 @@ pub struct Server {
     pub aws_credentials: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub default_from_email: String,
 }
 // Create DTOs
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq)]
@@ -81,6 +82,9 @@ pub struct ServerRequest {
     pub server_type: ServerTypeEnum,
 
     pub aws_credentials: Option<serde_json::Value>,
+    
+    #[schema(example = "from.email@test.io")]
+    pub default_from_email: String,
 }
 
 // Get DTO
@@ -104,6 +108,8 @@ pub struct ServerResponse {
     pub created_at: DateTime<Utc>,
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>,
+    #[schema(example = "from.email@test.io")]
+    pub default_from_email: String,
 }
 // Delete DTO
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Queryable)]
@@ -114,4 +120,27 @@ pub struct DeleteServerResponse {
     pub port: i16,
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub namespace_id: Uuid,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
+pub struct SendMailFromServerRequest {
+    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub template_id: Uuid,
+
+    pub receiver: Option<String>,   // this should be a list of emails seperated by commas or the list name for now (later to be changed to the list_id)...
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
+pub struct SendMailFromServerResponse {
+    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub id: Uuid,   // mail id...
+    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub server_id: Uuid,
+    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub template_id: Uuid,
+    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub mail_send_ids: Vec<Uuid>,
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub sent_at: DateTime<Utc>,
+    pub status: String,
 }

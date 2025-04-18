@@ -5,7 +5,7 @@ use crate::schema::bounce_logs::dsl as bounce_logs_dsl;
 use diesel::prelude::*;
 use chrono::{ Utc, DateTime };
 use crate::models::mail::{
-    CreateMailRequest, GetMailResponse, Mail, MailWithDetails, NewMail, UpdateMailRequest
+    Mail, MailWithDetails, NewMail, UpdateMailRequest
 };
 use uuid::Uuid;
 use mockall::{ automock, predicate::* };
@@ -53,6 +53,7 @@ impl MailRepository for MailRepositoryImpl {
                 mail_message,
                 template_id,
                 campaign_id,
+                server_id,
                 sent_at,
                 status,
                 open,
@@ -75,6 +76,9 @@ impl MailRepository for MailRepositoryImpl {
         if let Some(to_date) = to {
             query = query.filter(sent_at.le(to_date));
         }
+
+        // Order most recent first...
+        query = query.order(sent_at.desc());
 
         // Execute the query and return
         let results = query.load::<MailWithDetails>(&mut conn)?;

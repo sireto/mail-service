@@ -77,6 +77,7 @@ pub mod utils {
     pub mod template_utils;
     pub mod email_utils;
     pub mod mjml_parser;
+    pub mod server_utils;
 }
 pub mod middleware;
 

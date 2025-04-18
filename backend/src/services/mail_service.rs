@@ -60,6 +60,7 @@ pub async fn create_mail(payload: CreateMailRequest) -> Result<Vec<Mail>, AppErr
             contact_id: contact.id,
             template_id: payload.template_id,
             campaign_id: payload.campaign_id,
+            server_id: payload.server_id,
             sent_at: payload.sent_at,
             status: payload.status.clone(),
         };

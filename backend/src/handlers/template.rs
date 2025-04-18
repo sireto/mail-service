@@ -162,9 +162,10 @@ pub async fn send_templated_email(
         campaign_id: None,
         sent_at: send_templated_email_response.sent_at,
         status: "pending".to_string(),
+        server_id: None,
     };
 
-    mail_handler::add_mail(Json(payload)).await;
+    let _ = mail_handler::add_mail(Json(payload)).await;
 
     Ok(Json(send_templated_email_response))
 }

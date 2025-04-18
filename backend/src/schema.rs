@@ -97,8 +97,9 @@ diesel::table! {
         campaign_id -> Nullable<Uuid>,
         sent_at -> Timestamptz,
         status -> Text,
-        open -> Bool,
+        open -> Nullable<Timestamptz>,
         clicks -> Int4,
+        server_id -> Nullable<Uuid>,
     }
 }
 
@@ -129,6 +130,7 @@ diesel::table! {
         aws_credentials -> Nullable<Jsonb>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        default_from_email -> Varchar,
     }
 }
 
