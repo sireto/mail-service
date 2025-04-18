@@ -1,10 +1,14 @@
 // the following functions are not currently used it might be used for the cleanup process for the contact list while developing...
 
+
+
 use aws_sdk_sesv2::{ Client, Error };
 use tera::{Context, Tera};
 use serde_json::Value;
+use uuid::Uuid;
+use std::{collections::HashMap, sync::Arc};
 
-use crate::models::{contact::{Contact, CreateContactRequest}, template::GetTemplateResponse};
+use crate::{error::AppError, models::{contact::{Contact, CreateContactRequest}, template::GetTemplateResponse}, repositories::{campaign_lists_repo::CampaignListRepositoryImpl, list_contact_repo::ListContactRepositoryImpl}, services::{campaign_service::CampaignListService, list_service::ListContactService}};
 
 pub async fn delete_contact_from_list(client: &Client, list_name: &str, email: &str) -> Result<(), Error> {
     // Attempt to delete the contact from the specified contact list
@@ -153,4 +157,29 @@ pub fn split_name(name: &str) -> (String, String) {
             (first_name, last_name)
         }
     }
+}
+
+pub async fn get_unique_contacts_from_campaign(
+    campaign_id: Uuid,
+) -> Result<Vec<Contact>, AppError> {
+    let campaign_lists_repository = Arc::new(CampaignListRepositoryImpl);
+    let campaign_list_service = CampaignListService::new(campaign_lists_repository);
+
+    let list_ids: Vec<Uuid> = campaign_list_service.get_lists_from_campaign(campaign_id).await?
+        .into_iter()
+        .map(|list| list.id)
+        .collect();
+
+    let list_contact_repository = Arc::new(ListContactRepositoryImpl);
+    let list_contact_service = ListContactService::new(list_contact_repository);
+
+    let all_contacts = list_contact_service.get_contacts_from_lists(list_ids).await?;
+
+    // Deduplicate by email
+    let mut unique_contacts = HashMap::new();
+    for contact in all_contacts {
+        unique_contacts.entry(contact.email.clone()).or_insert(contact);
+    }
+
+    Ok(unique_contacts.into_values().collect())
 }
