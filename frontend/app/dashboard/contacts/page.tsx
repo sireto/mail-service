@@ -16,7 +16,7 @@ import { Contact } from "@/lib/type/contact";
 import { ColumnDef } from "@tanstack/react-table";
 import { useSearchParams } from "next/navigation";
 
-const NAMESPACE_ID = "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
+const NAMESPACE_ID = process.env.NEXT_PUBLIC_NAMESPACE_ID ?? "";
 
 interface List {
   id: string;
@@ -90,18 +90,6 @@ const ContactsPageContent = () => {
     URL.revokeObjectURL(url);
   };
 
-  // const filteredContacts: Contact[] = useMemo(() => {
-  //   if (!contacts) return [];
-  //   const lowerSearch = searchTerm.toLowerCase();
-  //   return contacts.filter((contact) => {
-  //     const emailMatch = contact.email.toLowerCase().includes(lowerSearch);
-  //     const fullName = `${contact.first_name || ""} ${
-  //       contact.last_name || ""
-  //     }`.toLowerCase();
-  //     return emailMatch || fullName.includes(lowerSearch);
-  //   });
-  // }, [contacts, searchTerm]);
-
   const tableColumns = createColumns(
     handleDeleteContact,
     lists,
@@ -133,7 +121,7 @@ const ContactsPageContent = () => {
             + New
           </Button>
         </div>
-        <div className="flex justify-between items-center">
+        <div className="flex items-center">
           <input
             type="text"
             placeholder="Search by name or email..."
@@ -172,7 +160,7 @@ const ContactsPageContent = () => {
         lists={lists}
       />
 
-      <div className="p-6">
+      <div className="p-6 mb-6">
         <DataTable
           data={contacts || []}
           columns={tableColumns}
