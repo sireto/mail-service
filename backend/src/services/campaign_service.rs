@@ -1,4 +1,4 @@
-use crate::{error::AppError, models::{campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse}, campaign_lists::NewListInCampaign, mail::CreateMailRequest}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, campaign_lists_repo::{CampaignListRepository, CampaignListRepositoryImpl}, list_contact_repo::ListContactRepositoryImpl, mail_repository::MailRepositoryImpl},servers::{servers_handler::get_server_by_id, servers_model::{Server, ServerTypeEnum}, servers_repo::{self, ServerRepoImpl}, servers_services::{self, ServerService, ServerServiceTrait}}, utils::contact_lists_functions::populate_contact_template};
+use crate::{error::AppError, models::{campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse}, campaign_lists::NewListInCampaign, mail::CreateMailRequest}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, campaign_lists_repo::{CampaignListRepository, CampaignListRepositoryImpl}, list_contact_repo::ListContactRepositoryImpl, mail_repository::MailRepositoryImpl},servers::{servers_handler::get_server_by_id, servers_model::{Server, ServerTypeEnum}, servers_repo::{self, ServerRepoImpl}, servers_services::{self, ServerService, ServerServiceTrait}}, utils::contact_lists_functions::{get_unique_contacts_from_campaign, populate_contact_template}};
 use uuid::Uuid;
 use std::{collections::HashSet, sync::Arc, env};
 use axum::http::StatusCode;
@@ -38,7 +38,7 @@ impl CampaignListService {
         self.repository.delete_lists_from_campaign(list_id, campaign_id).await
     }
 
-    async fn get_lists_from_campaign(&self, campaign_id: Uuid) -> Result<Vec<ListResponse>, diesel::result::Error> {
+    pub async fn get_lists_from_campaign(&self, campaign_id: Uuid) -> Result<Vec<ListResponse>, diesel::result::Error> {
         self.repository.get_lists_from_campaign(campaign_id).await
     }
 }
@@ -251,6 +251,7 @@ pub async fn send_campaign_email(
     .ok_or(AppError::NotFoundError(Some("Campaign sender not found".into())))?
     .to_string();
 
+
   let campaign_sender = get_campaign_sender_by_id(campaign_sender_id).await?;
   let server_id = campaign_sender.server_id.to_string();
   
@@ -283,17 +284,7 @@ pub async fn send_campaign_email_aws(
 
     let configuration_name = env::var("AWS_SES_CONFIGURATION_SET_NAME").expect("AWS_SES_CONFIGURATION_SET_NAME must be set in .env file");
 
-    let campaign_lists_repository = Arc::new(CampaignListRepositoryImpl);
-    let campaign_list_service = CampaignListService::new(campaign_lists_repository);
-    let list_ids: Vec<Uuid> = campaign_list_service.get_lists_from_campaign(campaign_id).await?
-    .into_iter()
-    .map(|list| list.id)
-    .collect();
-
-    let list_contact_repository = Arc::new(ListContactRepositoryImpl);
-    let list_contact_service = ListContactService::new(list_contact_repository);
-    let contacts = list_contact_service.get_contacts_from_lists(list_ids.clone()).await?;
-
+    let contacts = get_unique_contacts_from_campaign(campaign_id).await?;
 
     let template = get_template_by_id(campaign.template_id.clone()).await
     .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
@@ -403,16 +394,7 @@ pub async fn send_campaign_email_smtp(
         .await
         .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
-    let campaign_lists_repository = Arc::new(CampaignListRepositoryImpl);
-    let campaign_list_service = CampaignListService::new(campaign_lists_repository);
-    let list_ids: Vec<Uuid> = campaign_list_service.get_lists_from_campaign(campaign_id).await?
-    .into_iter()
-    .map(|list| list.id)
-    .collect();
-
-    let list_contact_repository = Arc::new(ListContactRepositoryImpl);
-    let list_contact_service = ListContactService::new(list_contact_repository);
-    let contacts = list_contact_service.get_contacts_from_lists(list_ids).await?;
+    let contacts = get_unique_contacts_from_campaign(campaign_id).await?;
 
     let template = get_template_by_id(campaign.template_id.clone()).await
         .map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;
