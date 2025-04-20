@@ -16,7 +16,9 @@ import { Contact } from "@/lib/type/contact";
 import { ColumnDef } from "@tanstack/react-table";
 import { useSearchParams } from "next/navigation";
 
-const NAMESPACE_ID = process.env.NEXT_PUBLIC_NAMESPACE_ID ?? "";
+const NAMESPACE_ID =
+  process.env.NEXT_PUBLIC_NAMESPACE_ID ??
+  "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
 
 interface List {
   id: string;
