@@ -6,6 +6,7 @@ import { Edit3, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Contact } from "@/lib/type/contact";
 import { EditContact } from "./_components/ContactForms/EditContact";
+import Link from "next/link";
 
 interface List {
   id: string;
@@ -88,9 +89,12 @@ export const createColumns = (
     header: "Email",
     cell: ({ row }) => (
       <div>
-        <div className="text-blue-600 hover:underline cursor-pointer">
+        <Link 
+          href={`/dashboard/contacts/${row.original.id}/mails`}
+          className="text-blue-600 hover:underline cursor-pointer w-max"
+        >
           {row.original.email}
-        </div>
+        </Link>
         {Array.isArray(row.original.lists) && row.original.lists.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-1">
             {row.original.lists.map((list, index) => (
