@@ -211,6 +211,9 @@ pub struct DeleteMailResponse {
     pub id: String,
     
     pub status: Option<String>,
+    
+    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub contact_id: Option<Uuid>,
 }
 
 /**

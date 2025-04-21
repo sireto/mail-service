@@ -138,6 +138,7 @@ pub async fn delete_mail(mail_id: String) -> Result<DeleteMailResponse, AppError
     Ok(DeleteMailResponse {
         id: response.id,
         status: Some(response.status),
+        contact_id: Some(response.contact_id),
     })
 }
 
