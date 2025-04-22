@@ -9,8 +9,6 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::servers::servers_services::{ServerServiceTrait, ServerService};
-use crate::utils::server_utils::secure_server_response;
-
 
 use serde::Serialize;
 
@@ -31,23 +29,9 @@ struct SmtpCheckResponse {
 pub async fn create_server(Extension(server_service): Extension<Arc<ServerService>>, Json(payload): Json<ServerRequest>)->Result<Json<ServerResponse>, AppError> {
     let created_server = server_service.create_server(payload).await?;
 
-    let safe_aws = created_server.aws_credentials.map(|creds| secure_server_response(creds));
+    let server_response: ServerResponse = created_server.into();
 
-    Ok(Json(ServerResponse {
-        id: created_server.id,
-        active: created_server.active,
-        host: created_server.host,
-        smtp_username: created_server.smtp_username,
-        smtp_password: "*************".to_string(),
-        namespace_id: created_server.namespace_id,
-        tls_type: created_server.tls_type,
-        server_type: created_server.server_type,
-        aws_credentials: safe_aws,
-        port: created_server.port,
-        created_at: created_server.created_at, 
-        updated_at: created_server.updated_at,
-        default_from_email: created_server.default_from_email,
-    }))
+    Ok(Json(server_response))
 }
 
 #[utoipa::path(
@@ -64,24 +48,10 @@ pub async fn get_servers(
     let servers = server_service.get_all_servers().await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
     
     let response: Vec<ServerResponse> = servers.into_iter().map(|server| {
-        let safe_aws = server.aws_credentials.map(|creds| secure_server_response(creds));
+        let server_response: ServerResponse = server.into();
 
-        return ServerResponse {
-          id: server.id,
-          active: server.active,
-          host: server.host,
-          smtp_username: server.smtp_username,
-          smtp_password: "*************".to_string(),
-          namespace_id: server.namespace_id,
-          tls_type: server.tls_type,
-          server_type: server.server_type, 
-          port: server.port,
-          aws_credentials: safe_aws,
-          created_at: server.created_at,
-          updated_at: server.updated_at,
-          default_from_email: server.default_from_email,
-          };  
-        }).collect(); 
+        return server_response;
+    }).collect(); 
 
     Ok(Json(response))
 }
@@ -101,23 +71,9 @@ pub async fn get_server_by_id(
 ) -> Result<Json<ServerResponse>, AppError> {
     let server = server_service.get_server_by_id(&server_id).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
-    let safe_aws = server.aws_credentials.map(|creds| secure_server_response(creds));
+    let server_response: ServerResponse = server.into();
 
-    Ok(Json(ServerResponse {
-        id: server.id,
-        active: server.active,
-        host: server.host,
-        smtp_username: server.smtp_username,
-        smtp_password: "*************".to_string(),
-        namespace_id: server.namespace_id,
-        tls_type: server.tls_type,
-        server_type: server.server_type, 
-        aws_credentials: safe_aws,
-        port: server.port,
-        created_at: server.created_at,
-        updated_at: server.updated_at,
-        default_from_email: server.default_from_email,
-    }))
+    Ok(Json(server_response))
 }
 
 #[utoipa::path(
@@ -139,31 +95,16 @@ pub async fn update_server(
     
     let updated_server = server_service.update_server(&server_id, payload).await?;
 
-    let safe_aws = updated_server.aws_credentials.map(|creds| secure_server_response(creds));
+    let server_response: ServerResponse = updated_server.into();
 
-
-    Ok(Json(ServerResponse {
-        id: updated_server.id,
-        active: updated_server.active,
-        host: updated_server.host,
-        smtp_username: updated_server.smtp_username,
-        smtp_password: "*************".to_string(),
-        namespace_id: updated_server.namespace_id,
-        tls_type: updated_server.tls_type,
-        server_type: updated_server.server_type,
-        aws_credentials: safe_aws,
-        port: updated_server.port,
-        created_at: updated_server.created_at,
-        updated_at: updated_server.updated_at,
-        default_from_email: updated_server.default_from_email,
-    }))
+    Ok(Json(server_response))
 }
 
 #[utoipa::path(
     delete, 
     path="/api/servers/{server_id}", 
     responses(
-        (status=200, description = "Delete server", body = ServerResponse),
+        (status=204, description = "Delete server"),
         (status=400, description = "Invalid server ID format"),
         (status=404, description = "Server not found")
     )
@@ -171,26 +112,10 @@ pub async fn update_server(
 pub async fn delete_server(
     Extension(server_service): Extension<Arc<ServerService>>,
     server_id: axum::extract::Path<String>, 
-) -> Result<Json<ServerResponse>, AppError> {
-    let deleted_server = server_service.delete_server(&server_id).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+) -> Result<StatusCode, AppError> {
+    server_service.delete_server(&server_id).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
-    let safe_aws = deleted_server.aws_credentials.map(|creds| secure_server_response(creds));
-
-    Ok(Json(ServerResponse {
-        id: deleted_server.id,
-        active: deleted_server.active,
-        host: deleted_server.host,
-        smtp_username: deleted_server.smtp_username,
-        smtp_password: "*************".to_string(),
-        namespace_id: deleted_server.namespace_id,
-        tls_type: deleted_server.tls_type,
-        server_type: deleted_server.server_type, 
-        aws_credentials: safe_aws,
-        port: deleted_server.port,
-        created_at: deleted_server.created_at,
-        updated_at: deleted_server.updated_at,
-        default_from_email: deleted_server.default_from_email,
-    }))
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[utoipa::path(

@@ -70,13 +70,6 @@ fn establish_connection(database_url: &str) -> PgConnection {
 
 /// Runs the migrations on PostgreSQL
 fn run_migrations(connection: &mut impl MigrationHarness<diesel::pg::Pg>) {
-    // connection.run_migration(MIGRATIONS).expect("Failed to run database migrations");
-
-   //This is done to update the database schema, Remove it in the next commit
-    // connection
-    // .revert_migration(MIGRATIONS)
-    // .expect("Failed to revert migrations");
-
     connection
     .run_pending_migrations(MIGRATIONS)
         .expect("Failed to run pending migrations");

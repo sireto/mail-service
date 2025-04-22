@@ -4,6 +4,7 @@ use utoipa::ToSchema;
 use diesel::prelude::*;
 use uuid::Uuid;
 use diesel_derive_enum;
+use crate::utils::server_utils::secure_server_response;
 
 // Assuming TlsTypeEnum is defined elsewhere with proper diesel and serde derivations
 #[derive(Debug, Clone, PartialEq, diesel_derive_enum::DbEnum, Serialize, Deserialize, ToSchema, Default)]
@@ -111,6 +112,30 @@ pub struct ServerResponse {
     #[schema(example = "from.email@test.io")]
     pub default_from_email: String,
 }
+
+impl From<Server> for ServerResponse {
+    fn from(server: Server) -> Self {
+        let safe_aws = server.aws_credentials.map(|creds| secure_server_response(creds));
+
+        Self {
+            id: server.id,
+            active: server.active,
+            host: server.host,
+            smtp_username: server.smtp_username,
+            smtp_password: "*************".to_string(),
+            namespace_id: server.namespace_id,
+            tls_type: server.tls_type,
+            port: server.port,
+            server_type: server.server_type,
+            aws_credentials: safe_aws,
+            created_at: server.created_at,
+            updated_at: server.updated_at,
+            default_from_email: server.default_from_email,
+        }
+    }
+}
+
+
 // Delete DTO
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Queryable)]
 pub struct DeleteServerResponse {
