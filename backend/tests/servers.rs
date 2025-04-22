@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use axum::http::StatusCode;
 use backend::error::AppError;
-use backend::schema::sql_types::ServerType;
 use backend::servers::servers_model::{Server, ServerRequest, TlsTypeEnum, ServerTypeEnum};
 use backend::servers::servers_repo::MockServerRepo;
 use backend::servers::servers_services::{ServerService, ServerServiceTrait};

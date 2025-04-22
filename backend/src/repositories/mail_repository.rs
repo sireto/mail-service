@@ -28,6 +28,7 @@ pub trait MailRepository {
     async fn delete_mail(&self, mail_id: String) -> Result<Mail, diesel::result::Error>;
     async fn increment_mail_clicks(&self, mail_id: String) -> Result<Mail, diesel::result::Error>;
     async fn get_mails_by_contact(&self, c_id: Uuid) -> Result<Vec<MailWithDetails>, diesel::result::Error>;
+    async fn get_queued_mails(&self) -> Result<Vec<MailWithDetails>, diesel::result::Error>;
 }
 
 pub struct MailRepositoryImpl;
@@ -59,6 +60,9 @@ impl MailRepository for MailRepositoryImpl {
                 status,
                 open,
                 clicks,
+                scheduled_at,
+                attempts,
+                last_error,
                 contacts_dsl::email,
                 bounce_logs_dsl::reason.nullable(),
             ))
@@ -136,11 +140,41 @@ impl MailRepository for MailRepositoryImpl {
                 status,
                 open,
                 clicks,
+                scheduled_at,
+                attempts,
+                last_error,
                 contacts_dsl::email,
                 bounce_logs_dsl::reason.nullable()
             ))
             .filter(contact_id.eq(c_id))
             .order(sent_at.desc())
+            .load::<MailWithDetails>(&mut conn)
+    }
+
+    async fn get_queued_mails(&self) -> Result<Vec<MailWithDetails>, diesel::result::Error> {
+        let mut conn = get_connection_pool().await;
+
+        mails
+            .inner_join(contacts_dsl::contacts.on(contact_id.eq(contacts_dsl::id)))
+            .left_outer_join(bounce_logs_dsl::bounce_logs.on(id.eq(bounce_logs_dsl::mail_id)))
+            .select((
+                id,
+                mail_message,
+                template_id,
+                campaign_id,
+                server_id,
+                sent_at,
+                status,
+                open,
+                clicks,
+                scheduled_at,
+                attempts,
+                last_error,
+                contacts_dsl::email,
+                bounce_logs_dsl::reason.nullable(),
+            ))
+            .filter(status.eq("pending"))
+            .order(sent_at.asc())   // Order by sent_at ascending here...
             .load::<MailWithDetails>(&mut conn)
     }
 }

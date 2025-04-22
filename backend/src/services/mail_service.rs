@@ -1,6 +1,7 @@
 use crate::{models::mail::{DeleteMailResponse, MailWithDetails, NewMail}, repositories::mail_repository::{ MailRepository, MailRepositoryImpl }};
 use crate::services::contact_service as contact_service;
 use chrono::{DateTime, Utc};
+use tokio::time::{interval, Duration};
 use uuid::Uuid;
 use std::sync::Arc;
 use crate::models::mail::{
@@ -46,6 +47,10 @@ impl MailService {
 
     pub async fn get_mails_by_contact(&self, contact_id: Uuid) -> Result<Vec<MailWithDetails>, diesel::result::Error> {
         self.repository.get_mails_by_contact(contact_id).await
+    }
+
+    pub async fn get_queued_mails(&self) -> Result<Vec<MailWithDetails>, diesel::result::Error> {
+        self.repository.get_queued_mails().await
     }
 }
 
@@ -106,6 +111,9 @@ pub async fn update_mail(mail_id: String, payload: UpdateMailRequest) -> Result<
         updated_at: chrono::Utc::now(),
         open: response.open,
         clicks: response.clicks,
+        scheduled_at: response.scheduled_at,
+        attempts: response.attempts,
+        last_error: response.last_error,
     })
 }
 
@@ -125,6 +133,9 @@ pub async fn update_mail_status(mail_id: String, new_status: String) -> Result<U
         updated_at: chrono::Utc::now(),
         open: response.open,
         clicks: response.clicks,
+        scheduled_at: response.scheduled_at,
+        attempts: response.attempts,
+        last_error: response.last_error,
     })
 }
 
@@ -157,6 +168,9 @@ pub async fn increment_mail_clicks(mail_id: String) -> Result<UpdateMailResponse
         updated_at: chrono::Utc::now(),
         open: response.open,
         clicks: response.clicks,
+        scheduled_at: response.scheduled_at,
+        attempts: response.attempts,
+        last_error: response.last_error,
     })
 }
 
@@ -167,4 +181,42 @@ pub async fn get_mails_by_contact(contact_id: Uuid) -> Result<Vec<MailWithDetail
     let response = mail_service.get_mails_by_contact(contact_id).await?;
 
     Ok(response)
+}
+
+pub async fn fetch_queued_mails() -> Result<Vec<MailWithDetails>, AppError> {
+    let mail_repository = Arc::new(MailRepositoryImpl);
+    let mail_service = MailService::new(mail_repository);
+
+    let response = mail_service.get_queued_mails().await?;
+
+    Ok(response)
+}
+
+/// a function to process mails every 30 seconds...
+pub async fn process_mails(
+    intv: u64,
+) -> Result<(), AppError> {
+    let mut interval = interval(Duration::from_secs(intv));
+
+    loop {
+        interval.tick().await;
+
+        match fetch_queued_mails().await {
+            Ok(emails) if !emails.is_empty() => {
+                println!("Found {} queued emails.", emails.len());
+                for mail in emails {
+                    println!("Processing email to: {}", mail.email);
+                    // Example: pretend to send email
+                    // Then mark it as sent
+                    println!("Email sent to: {}", mail.email);
+                }
+            }
+            Ok(_) => {
+                println!("No queued emails to process.");
+            }
+            Err(e) => {
+                eprintln!("Error fetching emails: {:?}", e);
+            }
+        }
+    }
 }

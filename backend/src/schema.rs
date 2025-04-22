@@ -100,6 +100,9 @@ diesel::table! {
         open -> Nullable<Timestamptz>,
         clicks -> Int4,
         server_id -> Nullable<Uuid>,
+        scheduled_at -> Timestamptz,
+        attempts -> Int4,
+        last_error -> Nullable<Text>,
     }
 }
 

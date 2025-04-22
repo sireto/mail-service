@@ -118,6 +118,9 @@ impl ServerRepo for ServerRepoImpl {
                 status,
                 open,
                 clicks,
+                scheduled_at,
+                attempts,
+                last_error,
                 contacts_dsl::email,
                 bounce_logs_dsl::reason.nullable(),
             ))

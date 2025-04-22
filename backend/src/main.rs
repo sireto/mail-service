@@ -5,6 +5,7 @@ use axum::response::Response;
 use axum::BoxError;
 use backend::error::AppError;
 use backend::route::create_router;
+use backend::services::mail_service;
 use diesel::PgConnection;
 use diesel::Connection; // Import the Connection trait
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
@@ -51,6 +52,13 @@ async fn main() {
     let app = create_router()
         .layer(cors)
         .layer(middleware::from_fn(error_handling_middleware));
+
+    // Worker for processing mails...
+    tokio::spawn(async {
+        if let Err(err) = mail_service::process_mails(30).await {
+            eprintln!("Mail worker error: {:?}", err);
+        }
+    });
 
     // Address configuration
     let addr = env::var("SERVER_ADDRESS").unwrap_or_else(|_| "0.0.0.0:8000".to_string());

@@ -74,6 +74,9 @@ pub async fn get_all_mails(
             status: mail.status.clone(),
             status_reason: mail.reason.clone(),
             server_id: mail.server_id.clone(),
+            scheduled_at: mail.scheduled_at,
+            attempts: mail.attempts,
+            last_error: mail.last_error.clone(),
         });
     });
     Ok(Json(responses))
