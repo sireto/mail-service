@@ -73,6 +73,8 @@ use crate::servers::servers_routes::servers_routes;
         servers::update_server, 
         servers::delete_server,
         servers::check_credentials,
+        servers::send_mail_from_server,
+        servers::get_mails_from_server,
         mail_handler::add_mail,
         mail_handler::get_all_mails,
         mail_handler::update_mail,

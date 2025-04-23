@@ -24,8 +24,9 @@ pub struct Mail {
     pub campaign_id: Option<Uuid>,
     pub sent_at: DateTime<Utc>,
     pub status: String,
-    pub open: bool,
+    pub open: Option<DateTime<Utc>>,
     pub clicks: i32,
+    pub server_id: Option<Uuid>,
 }
 
 #[derive(Queryable, QueryableByName, ToSchema )]
@@ -45,6 +46,9 @@ pub struct MailWithDetails {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub campaign_id: Option<Uuid>,
 
+    #[schema(value_type = String, example = "b78def3b-b8ef-4450-a405-f37f008f3439")]
+    pub server_id: Option<Uuid>,
+
     #[diesel(sql_type = diesel::sql_types::Timestamptz)]
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub sent_at: DateTime<Utc>,
@@ -52,8 +56,8 @@ pub struct MailWithDetails {
     #[diesel(sql_type = diesel::sql_types::Text)]
     pub status: String,
 
-    #[diesel(sql_type = diesel::sql_types::Bool)]
-    pub open: bool,
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub open: Option<DateTime<Utc>>,
 
     #[diesel(sql_type = diesel::sql_types::Integer)]
     pub clicks: i32,
@@ -81,9 +85,13 @@ pub struct GetMailResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub campaign_id: Option<Uuid>,
 
+    #[schema(value_type = String, example = "b78def3b-b8ef-4450-a405-f37f008f3439")]
+    pub server_id: Option<Uuid>,
+
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub sent_at: DateTime<Utc>,
-    pub open: bool,
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub open: Option<DateTime<Utc>>,
     pub clicks: i32,
     pub status: String,
     pub status_reason: Option<String>,
@@ -104,6 +112,9 @@ pub struct NewMail {
     #[schema(value_type = String, example = "c1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub campaign_id: Option<Uuid>,
 
+    #[schema(value_type = String, example = "b78def3b-b8ef-4450-a405-f37f008f3439")]
+    pub server_id: Option<Uuid>,
+
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub sent_at: DateTime<Utc>,
     pub status: String,
@@ -123,6 +134,9 @@ pub struct CreateMailRequest {
 
     #[schema(value_type = String, example = "c1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub campaign_id: Option<Uuid>,
+
+    #[schema(value_type = String, example = "b78def3b-b8ef-4450-a405-f37f008f3439")]
+    pub server_id: Option<Uuid>,
 
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub sent_at: DateTime<Utc>,
@@ -145,6 +159,9 @@ pub struct CreateMailResponse {
     #[schema(value_type = String, example = "d2a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub campaign_id: Option<Uuid>,
 
+    #[schema(value_type = String, example = "b78def3b-b8ef-4450-a405-f37f008f3439")]
+    pub server_id: Option<Uuid>,
+
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub sent_at: DateTime<Utc>,
     pub status: String, 
@@ -161,7 +178,9 @@ pub struct UpdateMailRequest {
     #[schema(value_type = String, example = "d2a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub campaign_id: Option<Uuid>,
     pub status: Option<String>,
-    pub open: Option<bool>,
+    #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub open: Option<DateTime<Utc>>,
     pub clicks: Option<i32>,
 }
 
@@ -181,7 +200,8 @@ pub struct UpdateMailResponse {
 
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>,
-    pub open: bool,
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub open: Option<DateTime<Utc>>,
     pub clicks: i32,
 }
 

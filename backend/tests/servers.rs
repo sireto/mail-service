@@ -22,6 +22,7 @@ async fn test_create_server() {
         server_type: ServerTypeEnum::SMTP, 
         aws_credentials: None,
         port: 587,
+        default_from_email: "user@example.com".to_string(),
     };
     let expected_server = Server {
         id: Uuid::new_v4(),
@@ -36,6 +37,7 @@ async fn test_create_server() {
         port: test_payload.port,
         created_at: Utc::now(),
         updated_at: Utc::now(),
+        default_from_email: "user@example.com".to_string(),
     };
     mock_repo
         .expect_create_server()
@@ -66,6 +68,7 @@ async fn test_get_all_servers() {
             aws_credentials: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            default_from_email: "user@example.com".to_string(),
         }
     ];
     mock_repo.expect_get_all_servers().returning(move || Ok(expected_servers.clone()));
@@ -95,6 +98,7 @@ async fn test_get_server_by_id() {
         aws_credentials: None,
         created_at: Utc::now(),
         updated_at: Utc::now(),
+        default_from_email: "user@example.com".to_string(),
     };
     mock_repo.expect_get_server_by_id().with(eq(server_id)).returning(move |_| Ok(expected_server.clone()));
     let server_service = ServerService::new(Arc::new(mock_repo));
@@ -140,6 +144,7 @@ async fn test_update_server() {
         server_type: ServerTypeEnum::SMTP, 
         aws_credentials: None,
         port: 465,
+        default_from_email: "user@example.com".to_string(),
     };
     let updated_server = Server {
         id: server_id,
@@ -154,6 +159,7 @@ async fn test_update_server() {
         aws_credentials: None,
         created_at: Utc::now(),
         updated_at: Utc::now(),
+        default_from_email: "user@example.com".to_string(),
     };
     mock_repo.expect_update_server().with(eq(server_id), eq(update_payload.clone())).returning(move |_, _| Ok(updated_server.clone()));
     let server_service = ServerService::new(Arc::new(mock_repo));
@@ -179,6 +185,7 @@ async fn test_delete_server() {
         aws_credentials: None,
         created_at: Utc::now(),
         updated_at: Utc::now(),
+        default_from_email: "user@example.com".to_string(),
     };
     mock_repo.expect_delete_server().with(eq(server_id)).returning(move |_| Ok(expected_server.clone()));
     let server_service = ServerService::new(Arc::new(mock_repo));

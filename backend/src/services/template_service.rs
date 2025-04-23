@@ -198,10 +198,7 @@ async fn populate_and_parse_template(template: &GetTemplateResponse, payload: &S
 
     let rendered = tera.render("demo_template", &context)?;
 
-    println!("THE POPULATED HTML ====> {}", &rendered);
-
     let parsed_html = mjml_to_html(rendered)?;
-    println!("----------THE RENDERED MJML PART ===> {}", &parsed_html);
     Ok(parsed_html)
 }
 

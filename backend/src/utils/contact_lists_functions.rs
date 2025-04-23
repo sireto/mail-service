@@ -69,7 +69,7 @@ pub async fn populate_contact_template(
         }
     }
 
-    // basic contact info
+    // basic contact info...
     context.insert("first_name", &contact.first_name);
     context.insert("last_name", &contact.last_name);
     context.insert("email", &contact.email);

@@ -131,6 +131,21 @@ export default function AwsServerForm({
           />
         </div>
       </div>
+
+      <div className="space-y-2">
+        <Label>Default From Email</Label>
+          <Input
+            {...register("default_from_email", {
+              onChange: () => trigger("default_from_email"),
+            })}
+            placeholder="from.email@test.io"
+          />
+          {errors.default_from_email && (
+            <span className="text-sm text-destructive">
+              {errors.default_from_email.message}
+            </span>
+          )}
+      </div>
     </>
   );
 }

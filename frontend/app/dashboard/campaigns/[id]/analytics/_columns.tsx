@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { ColumnDef } from '@tanstack/react-table';
-import { formatDate, formatDateWithoutDay } from '@/lib/utils';
+import { formatDateWithoutDay } from '@/lib/utils';
 import Link from 'next/link';
 import ActionsColumn from './_components/ActionsColumn';
 import ToolTip from '@/components/common/ToolTip';
@@ -46,13 +46,20 @@ export const columns = (
             return `Views (${viewCount})`;
         },
         cell: ({ row }) => {
-            const isOpened = row.getValue("open");
-            const reason: string | null = isOpened ? "Mail has been viewed" : "Mail hasn't been viewed";
+            const opened: string | null = row.getValue("open");
+
+            const { localDate, localTime } = formatDateWithoutDay(opened ?? "");
+            
+            
+            const reason: string | null = opened ? `
+                ${localDate} | 
+                ${localTime}
+            ` : "Mail hasn't been viewed";
 
             return <ToolTip
                 message={reason}
                 tooltipTrigger={<div>
-                    <span className={`block w-2 h-2 rounded-full ${isOpened ? 'bg-success' : 'bg-warning'}`}></span>
+                    <span className={`block w-2 h-2 rounded-full ${opened ? 'bg-success' : 'bg-warning'}`}></span>
                 </div>}
             />
         },

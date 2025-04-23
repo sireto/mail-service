@@ -1,0 +1,8 @@
+ALTER TABLE mails
+ALTER COLUMN open TYPE BOOLEAN
+USING (
+    CASE
+        WHEN open IS NOT NULL THEN TRUE
+        ELSE FALSE
+    END
+);

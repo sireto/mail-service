@@ -1,0 +1,10 @@
+ALTER TABLE "mails"
+    ALTER COLUMN "open" DROP DEFAULT,
+    ALTER COLUMN "open" TYPE TIMESTAMPTZ
+    USING (
+        CASE
+            WHEN open IS TRUE THEN CURRENT_TIMESTAMP
+            ELSE NULL
+        END
+    ),
+    ALTER COLUMN "open" DROP NOT NULL;

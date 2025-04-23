@@ -41,6 +41,9 @@ export default function SmtpServerForm({
 }: SmtpServerFormProps) {
   const { handlePortChange } = usePortControls(watch, setValue, trigger);
   const currentPort = watch("port");
+  const currentDefaultFromEmail = watch("default_from_email");
+
+  // console.warn("THE DEFAULT from email ===> ", currentDefaultFromEmail);
 
   return (
     <>
@@ -149,6 +152,20 @@ export default function SmtpServerForm({
           {errors.tls_type && (
             <span className="text-sm text-destructive">
               {errors.tls_type.message}
+            </span>
+          )}
+        </div>
+        <div className="space-y-2">
+        <Label>Default From Email</Label>
+          <Input
+            {...register("default_from_email", {
+              onChange: () => trigger("default_from_email"),
+            })}
+            placeholder="from.email@test.io"
+          />
+          {errors.default_from_email && (
+            <span className="text-sm text-destructive">
+              {errors.default_from_email.message}
             </span>
           )}
         </div>

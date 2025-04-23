@@ -1,11 +1,13 @@
+use crate::models::mail::MailWithDetails;
 use crate::{establish_connection, get_connection_pool};
-use crate::{appState::DbPooledConnection, GLOBAL_APP_STATE};
 use crate::schema::servers::dsl::*;
 use diesel::prelude::*;
 use crate::servers::servers_model::{
     Server,
     ServerRequest,
 };
+use crate::schema::contacts::dsl as contacts_dsl;
+use crate::schema::bounce_logs::dsl as bounce_logs_dsl;
 use uuid::Uuid;
 use mockall::{automock, predicate::*};
 use async_trait::async_trait;
@@ -19,6 +21,7 @@ pub trait ServerRepo {
     async fn update_server(&self, server_id: Uuid, payload: ServerRequest) -> Result<Server, diesel::result::Error>;
     async fn delete_server(&self, server_id: Uuid) -> Result<Server, diesel::result::Error>;
     async fn get_server_by_id(&self, server_id: Uuid) -> Result<Server, diesel::result::Error>;
+    async fn get_mails_by_server_id(&self, server_id: Uuid) -> Result<Vec<MailWithDetails>, diesel::result::Error>;
 }
 
 pub struct ServerRepoImpl;
@@ -51,6 +54,7 @@ impl ServerRepo for ServerRepoImpl {
                 aws_credentials,
                 created_at,
                 updated_at,
+                default_from_email,
             ))
             .load::<Server>(&mut conn)
     }
@@ -73,6 +77,7 @@ impl ServerRepo for ServerRepoImpl {
                 server_type.eq(&payload.server_type), 
                 aws_credentials.eq(&payload.aws_credentials),
                 port.eq(&payload.port),
+                default_from_email.eq(&payload.default_from_email),
             ))
             .get_result(&mut conn)
     }
@@ -90,5 +95,32 @@ impl ServerRepo for ServerRepoImpl {
         servers
             .filter(id.eq(server_id))
             .first(&mut conn)
+    }
+
+    async fn get_mails_by_server_id(&self, server_id_arg: Uuid) -> Result<Vec<MailWithDetails>, diesel::result::Error> {
+        use crate::schema::mails::dsl::*;
+
+        let mut conn = get_connection_pool().await;
+        
+       // get mails only related to that server with the help of the server_id column in the mails table...
+
+        mails
+            .filter(server_id.eq(server_id_arg))
+            .inner_join(contacts_dsl::contacts.on(contact_id.eq(contacts_dsl::id)))
+            .left_outer_join(bounce_logs_dsl::bounce_logs.on(id.eq(bounce_logs_dsl::mail_id)))
+            .select((
+                id,
+                mail_message,
+                template_id,
+                campaign_id,
+                server_id,
+                sent_at,
+                status,
+                open,
+                clicks,
+                contacts_dsl::email,
+                bounce_logs_dsl::reason.nullable(),
+            ))
+            .load::<MailWithDetails>(&mut conn)
     }
 }

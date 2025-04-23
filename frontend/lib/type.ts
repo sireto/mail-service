@@ -67,6 +67,7 @@ export const ServerSchema = z.object({
   smtp_password: z.string(),
   tls_type: z.enum(["STARTTLS", "SSL/TLS", "NONE"]),
   server_type: z.enum(["SMTP", "AWS"]),
+  default_from_email: z.string().email("Invalid email format"),
   aws_credentials: z.object({
     access_key_id: z.string(),
     secret_access_key: z.string(),

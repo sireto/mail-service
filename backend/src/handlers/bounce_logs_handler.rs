@@ -80,7 +80,7 @@ pub async fn handle_sns_notification (
                 match event_type.as_str() {
                     "Open" => {
                         mail_service.update_mail(mail_id, UpdateMailRequest {
-                            open: Some(true),
+                            open: Some(chrono::Utc::now()),
                             ..Default::default()
                         }).await?;
                     },

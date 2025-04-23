@@ -33,6 +33,7 @@ pub async fn add_mail(
             campaign_id: mail.campaign_id,
             sent_at: mail.sent_at,
             status: mail.status,
+            server_id: mail.server_id,
         });
     }
     Ok(Json(responses))
@@ -72,6 +73,7 @@ pub async fn get_all_mails(
             clicks: mail.clicks,
             status: mail.status.clone(),
             status_reason: mail.reason.clone(),
+            server_id: mail.server_id.clone(),
         });
     });
     Ok(Json(responses))
