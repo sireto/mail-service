@@ -365,7 +365,7 @@ pub async fn send_campaign_email_aws(
             template_id: Some(Uuid::parse_str(&template.id)?),
             campaign_id: Some(campaign_id),
             sent_at: chrono::Utc::now(),
-            status: "pending".to_string(),
+            status: "queued".to_string(),
             server_id: Some(server_uuid),
         };
 
@@ -432,9 +432,9 @@ pub async fn send_campaign_email_smtp(
                     mail_message: parsed_html,
                     email: vec![contact.email.clone()],
                     template_id: Some(Uuid::parse_str(&template.id)?),
-                    campaign_id: Some((campaign_id)),
+                    campaign_id: Some(campaign_id),
                     sent_at: chrono::Utc::now(),
-                    status: "pending".to_string(),
+                    status: "queued".to_string(),
                     server_id: Some(server_id),
                 };
                 mail_service::create_mail(new_mail).await.map_err(|err| {

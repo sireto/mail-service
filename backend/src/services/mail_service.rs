@@ -192,7 +192,7 @@ pub async fn fetch_queued_mails() -> Result<Vec<MailWithDetails>, AppError> {
     Ok(response)
 }
 
-/// a function to process mails every 30 seconds...
+/// a function to process mails every interval 'intv'...
 pub async fn process_mails(
     intv: u64,
 ) -> Result<(), AppError> {

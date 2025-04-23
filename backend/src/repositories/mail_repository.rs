@@ -173,7 +173,7 @@ impl MailRepository for MailRepositoryImpl {
                 contacts_dsl::email,
                 bounce_logs_dsl::reason.nullable(),
             ))
-            .filter(status.eq("pending"))
+            .filter(status.eq("queued"))
             .order(sent_at.asc())   // Order by sent_at ascending here...
             .load::<MailWithDetails>(&mut conn)
     }

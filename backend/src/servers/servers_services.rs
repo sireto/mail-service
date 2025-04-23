@@ -265,7 +265,7 @@ impl ServerServiceTrait for ServerService {
                     template_id,
                     server_id: server.id,
                     mail_send_ids: vec![mail_send_uuid],
-                    status: "pending".to_string(),
+                    status: "queued".to_string(),
                     sent_at: chrono::Utc::now(),
                 }) 
             },
@@ -315,7 +315,7 @@ impl ServerServiceTrait for ServerService {
                         campaign_id: None,
                         server_id: Some(server.id),
                         sent_at: chrono::Utc::now(),
-                        status: "pending".to_string(),
+                        status: "queued".to_string(),
                     };
                 
                     mail_service::create_mail(new_mail).await.map_err(|err| {

@@ -15,8 +15,12 @@ use uuid::Uuid;
 
 enum MailStatus {
     Draft,
-    Pending,
-    Sent,
+    Scheduled,
+    Queued,
+    Processing, // this status might not be necessary...
+    Submitted,
+    Delivered,
+    Failed,
     Bounced,
 }
 
@@ -24,8 +28,12 @@ impl MailStatus {
     pub fn as_str(&self) -> &'static str {
         match self {
             MailStatus::Draft => "draft",
-            MailStatus::Pending => "pending",
-            MailStatus::Sent => "sent",
+            MailStatus::Scheduled => "scheduled",
+            MailStatus::Queued => "queued",
+            MailStatus::Processing => "processing",
+            MailStatus::Submitted => "submitted",
+            MailStatus::Delivered => "delivered",
+            MailStatus::Failed => "failed",
             MailStatus::Bounced => "bounced",
         }
     }
@@ -33,8 +41,12 @@ impl MailStatus {
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "draft" => Some(MailStatus::Draft),
-            "pending" => Some(MailStatus::Pending),
-            "sent" => Some(MailStatus::Sent),
+            "scheduled" => Some(MailStatus::Scheduled),
+            "queued" => Some(MailStatus::Queued),
+            "processing" => Some(MailStatus::Processing),
+            "submitted" => Some(MailStatus::Submitted),
+            "delivered" => Some(MailStatus::Delivered),
+            "failed" => Some(MailStatus::Failed),
             "bounced" => Some(MailStatus::Bounced),
             _ => None,
         }
@@ -129,7 +141,7 @@ pub async fn handle_sns_notification (
             }
             "Delivery" => {
                 if let Some(delivery) = sns_event.delivery {
-                    let status = MailStatus::Sent;
+                    let status = MailStatus::Delivered;
 
                     let _ = mail_service.update_mail_status(sns_event.mail.mail_id, status.as_str()).await;
                 }

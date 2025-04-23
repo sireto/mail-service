@@ -161,7 +161,7 @@ pub async fn send_templated_email(
         template_id: Some(send_templated_email_response.id),
         campaign_id: None,
         sent_at: send_templated_email_response.sent_at,
-        status: "pending".to_string(),
+        status: "queued".to_string(),
         server_id: None,
     };
 
