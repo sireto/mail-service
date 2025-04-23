@@ -25,10 +25,7 @@ export const campaignApi = createApi({
     // Query to fetch all lists...
     getCampaigns: builder.query<Campaign[], void>({
       query: () => "",
-      providesTags: (result) =>
-        result
-          ? result.map((campaign) => ({ type: "Campaign", id: campaign.id }))
-          : [{ type: "Campaign" }],
+      providesTags: ["Campaign"],
     }),
     getCampaignById: builder.query<Campaign, string>({
       query: (campaignId) => `/${campaignId}`,
@@ -42,7 +39,7 @@ export const campaignApi = createApi({
         method: "POST",
         body: newCampaign,
       }),
-      invalidatesTags: [{ type: "Campaign" }],
+      invalidatesTags: ["Campaign"],
     }),
     updateCampaign: builder.mutation<
       UpdateCampaignResponse,
@@ -62,7 +59,7 @@ export const campaignApi = createApi({
           console.error("Error updating campaign:", err);
         }
       },
-      invalidatesTags: [{ type: "Campaign" }],
+      invalidatesTags: ["Campaign"],
     }),
     deleteCampaign: builder.mutation<void, string>({
       query: (campaignId) => ({
@@ -80,7 +77,7 @@ export const campaignApi = createApi({
         method: "POST",
         body: { list_id: listId },
       }),
-      invalidatesTags: [{ type: "Campaign" }],
+      invalidatesTags: ["Campaign"],
     }),
   }),
 });
