@@ -8,7 +8,9 @@ use crate::models::contact::{
     CreateContactResponse, GetContactResponse, UpdateContactRequest, UpdateContactResponse,
     DeleteContactResponse, ImportResult
 };
+use crate::models::mail::MailWithDetails;
 use crate::error::AppError;
+use crate::services::mail_service::get_mails_by_contact;
 
 use super::list_service;
 
@@ -249,4 +251,10 @@ pub async fn import_contacts(
     }
     
     Ok(result)
+}
+
+pub async fn get_mails_for_contact (contact_id: Uuid) -> Result<Vec<MailWithDetails>, AppError> {
+    let mails = get_mails_by_contact(contact_id).await?;
+
+    Ok(mails)
 }

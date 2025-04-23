@@ -27,6 +27,7 @@ pub trait MailRepository {
     async fn update_mail_status(&self, mail_id: String, new_status: &str) -> Result<Mail, diesel::result::Error>;
     async fn delete_mail(&self, mail_id: String) -> Result<Mail, diesel::result::Error>;
     async fn increment_mail_clicks(&self, mail_id: String) -> Result<Mail, diesel::result::Error>;
+    async fn get_mails_by_contact(&self, c_id: Uuid) -> Result<Vec<MailWithDetails>, diesel::result::Error>;
 }
 
 pub struct MailRepositoryImpl;
@@ -118,4 +119,28 @@ impl MailRepository for MailRepositoryImpl {
             .get_result(&mut conn)
     }
 
+    async fn get_mails_by_contact(&self, c_id: Uuid) -> Result<Vec<MailWithDetails>, diesel::result::Error> {
+        let mut conn = get_connection_pool().await;
+
+        // get all the mails for the contact...
+        mails
+            .inner_join(contacts_dsl::contacts.on(contact_id.eq(contacts_dsl::id)))
+            .left_outer_join(bounce_logs_dsl::bounce_logs.on(id.eq(bounce_logs_dsl::mail_id)))
+            .select((
+                id,
+                mail_message,
+                template_id,
+                campaign_id,
+                server_id,
+                sent_at,
+                status,
+                open,
+                clicks,
+                contacts_dsl::email,
+                bounce_logs_dsl::reason.nullable()
+            ))
+            .filter(contact_id.eq(c_id))
+            .order(sent_at.desc())
+            .load::<MailWithDetails>(&mut conn)
+    }
 }

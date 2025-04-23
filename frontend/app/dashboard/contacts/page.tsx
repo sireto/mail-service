@@ -109,7 +109,7 @@ const ContactsPageContent = () => {
 
   return (
     <div>
-      <div className="p-6">
+      <div>
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-semibold">
             Contacts{" "}
@@ -162,7 +162,7 @@ const ContactsPageContent = () => {
         lists={lists}
       />
 
-      <div className="p-6 mb-6">
+      <div className="py-6 mb-6">
         <DataTable
           data={contacts || []}
           columns={tableColumns}

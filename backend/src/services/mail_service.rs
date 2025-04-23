@@ -43,6 +43,10 @@ impl MailService {
     pub async fn increment_mail_clicks(&self, mail_id: String) -> Result<Mail, diesel::result::Error> {
         self.repository.increment_mail_clicks(mail_id).await
     }
+
+    pub async fn get_mails_by_contact(&self, contact_id: Uuid) -> Result<Vec<MailWithDetails>, diesel::result::Error> {
+        self.repository.get_mails_by_contact(contact_id).await
+    }
 }
 
 /// a function to add new mail into the record when the mail_send is triggered...
@@ -134,6 +138,7 @@ pub async fn delete_mail(mail_id: String) -> Result<DeleteMailResponse, AppError
     Ok(DeleteMailResponse {
         id: response.id,
         status: Some(response.status),
+        contact_id: Some(response.contact_id),
     })
 }
 
@@ -153,4 +158,13 @@ pub async fn increment_mail_clicks(mail_id: String) -> Result<UpdateMailResponse
         open: response.open,
         clicks: response.clicks,
     })
+}
+
+pub async fn get_mails_by_contact(contact_id: Uuid) -> Result<Vec<MailWithDetails>, AppError> {
+    let mail_repository = Arc::new(MailRepositoryImpl);
+    let mail_service = MailService::new(mail_repository);
+
+    let response = mail_service.get_mails_by_contact(contact_id).await?;
+
+    Ok(response)
 }

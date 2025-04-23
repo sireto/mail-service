@@ -4,8 +4,15 @@ import {
     MailDTO
 } from '@/lib/type';
 import environments from "@/config/environments";
+import { contactApi } from "./ContactApi";
 
 type Mail = z.infer<typeof MailDTO>;
+
+interface MailDeleteResponse {
+    id: string;
+    contact_id: string;
+    status: string;
+}
 
 // Mail API slice...
 export const mailApi = createApi({
@@ -43,12 +50,20 @@ export const mailApi = createApi({
                     ? result.map((mail) => ({ type: 'Mail', id: mail.id }))
                     : [{ type: 'Mail' }]
         }),
-        deleteMail: builder.mutation<void, string>({
+        deleteMail: builder.mutation<MailDeleteResponse, string>({
             query: (mailId) => ({
                 url: `/${mailId}`,
                 method: "DELETE",
             }),
-            invalidatesTags: [{ type: 'Mail' }]
+            invalidatesTags: [{ type: 'Mail' }],
+            async onQueryStarted(contactId, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    dispatch(contactApi.util.invalidateTags([{ type: "Mail", id: data.contact_id }]));
+                } catch (error) {
+                    console.error("Error deleting mail: ", error);
+                }
+            }
         })
     })
 });

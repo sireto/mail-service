@@ -3,6 +3,7 @@ use crate::{error::AppError, models::contact::
         ContactQuery, CreateContactRequest, CreateContactResponse, DeleteContactResponse, EmailQuery, GetContactResponse, GetContactResponsee, ImportOptions, ImportResponse, UpdateContactRequest, UpdateContactResponse
     }, services::contact_service
 };
+use crate::models::mail::GetMailResponse;
 
 use axum::{
     extract::{ Path, Query}, Json
@@ -230,3 +231,33 @@ pub async fn import_contacts(
     }))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/contacts/{contact_id}/mails",
+    responses(
+        (status = 200, description = "Successfully get all the mails sent to that contact", body = GetMailResponse),
+        (status = 400, description = "Bad request"),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn get_mails_by_contact_id(
+    Path(contact_id): Path<String>
+) -> Result<Json<Vec<GetMailResponse>>, AppError> {
+    let uuid_id = Uuid::parse_str(&contact_id)?;
+
+    let mails_response = contact_service::get_mails_for_contact(uuid_id).await?;
+
+    Ok(Json(mails_response.into_iter().map(|mail| GetMailResponse {
+        id: mail.id,
+        mail_message: mail.mail_message,
+        email: mail.email,
+        template_id: mail.template_id,
+        campaign_id: mail.campaign_id,
+        server_id: mail.server_id,
+        sent_at: mail.sent_at,
+        open: mail.open,
+        clicks: mail.clicks,
+        status: mail.status,
+        status_reason: mail.reason,
+    }).collect()))
+}

@@ -7,13 +7,7 @@ use axum::{
     }, Router };
 
 use crate::handlers::contact::{
-    create_contacts,
-    get_contacts,
-    update_contact,
-    delete_contact, 
-    get_contact_by_id, 
-    check_email,
-    import_contacts
+    check_email, create_contacts, delete_contact, get_contact_by_id, get_contacts, get_mails_by_contact_id, import_contacts, update_contact
 };
 
 pub fn contact_routes() -> Router {
@@ -25,4 +19,5 @@ pub fn contact_routes() -> Router {
         .route("/{contactId}", delete(delete_contact))
         .route("/check-email", get(check_email)) 
         .route("/import", post(import_contacts))
+        .route("/{contactId}/mails", get(get_mails_by_contact_id))
 }
