@@ -134,6 +134,7 @@ diesel::table! {
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         default_from_email -> Varchar,
+        rate_limit -> Int4,
     }
 }
 
