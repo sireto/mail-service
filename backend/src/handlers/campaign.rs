@@ -1,5 +1,6 @@
 use uuid::Uuid;
 use crate::error::AppError;
+use crate::models::campaign::AddMailToQueueResponse;
 use crate::{models::{campaign::
     {
     CampaignSendResponse, CreateCampaignRequest, CreateCampaignResponse, DeleteCampaignResponse, ExtendedCreateCampaignRequest, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse 
@@ -122,7 +123,7 @@ pub async fn delete_campaign(
 )]
 pub async fn send_campaign_email(
     Path(campaign_id): Path<String>
-) -> Result<Json<CampaignSendResponse>, AppError> {
+) -> Result<Json<AddMailToQueueResponse>, AppError> {
     let uuid_id = Uuid::parse_str(&campaign_id)?;
     let result = campaign_service::send_campaign_email(uuid_id).await?;
 

@@ -1,4 +1,4 @@
-use crate::{error::AppError, models::{campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse}, campaign_lists::NewListInCampaign, mail::CreateMailRequest}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, campaign_lists_repo::{CampaignListRepository, CampaignListRepositoryImpl}, list_contact_repo::ListContactRepositoryImpl, mail_repository::MailRepositoryImpl},servers::{servers_handler::get_server_by_id, servers_model::{Server, ServerTypeEnum}, servers_repo::{self, ServerRepoImpl}, servers_services::{self, ServerService, ServerServiceTrait}}, utils::contact_lists_functions::{get_unique_contacts_from_campaign, populate_contact_template}};
+use crate::{error::AppError, models::{campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse, AddMailToQueueResponse}, campaign_lists::NewListInCampaign, mail::CreateMailRequest}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, campaign_lists_repo::{CampaignListRepository, CampaignListRepositoryImpl}, list_contact_repo::ListContactRepositoryImpl, mail_repository::MailRepositoryImpl}, servers::{servers_handler::get_server_by_id, servers_model::{Server, ServerTypeEnum}, servers_repo::{self, ServerRepoImpl}, servers_services::{self, ServerService, ServerServiceTrait}}, services::mail_service::update_mail_status, utils::contact_lists_functions::{get_unique_contacts_from_campaign, populate_contact_template}};
 use uuid::Uuid;
 use std::{collections::HashSet, sync::Arc, env};
 use axum::http::StatusCode;
@@ -243,8 +243,7 @@ pub async fn delete_campaign(campaign_id: Uuid)->Result<DeleteCampaignResponse, 
 
 pub async fn send_campaign_email(
     campaign_id: Uuid,
-) -> Result<CampaignSendResponse, AppError> {
-
+) -> Result<AddMailToQueueResponse, AppError> {
   let campaign = get_campaign_by_id(campaign_id).await?;
   let campaign_sender_id = campaign
     .campaign_senders
@@ -264,14 +263,22 @@ pub async fn send_campaign_email(
   match server.server_type {
     ServerTypeEnum::AWS => {
         let result = send_campaign_email_aws(campaign_id).await?;
-        Ok(result)
+        return Ok(AddMailToQueueResponse {
+            status: StatusCode::OK.into(),
+            message: "Campaign email sent successfully".to_string(),
+        });
     }, 
     ServerTypeEnum::SMTP => {
-        let result = send_campaign_email_smtp(campaign_id, Uuid::parse_str(&server_id).unwrap()).await?;
-        Ok(result)
+        // let result = send_campaign_email_smtp(campaign_id, Uuid::parse_str(&server_id).unwrap()).await?;
+        let result = enqueue_email(campaign_id, server.id).await?;
+        return Ok(AddMailToQueueResponse {
+            status: StatusCode::OK.into(),
+            message: "Campaign email sent successfully".to_string(),
+        });
     } 
   }
 
+    // instead of sending the email, lets first enqueue the emails which will be sent by background process in interval...
 }
 
 pub async fn send_campaign_email_aws(
@@ -454,3 +461,86 @@ pub async fn send_campaign_email_smtp(
     })
 }
 
+/// a function to send a single email to a contact with smtp server...
+pub async fn send_single_email_smtp (
+    mail_id: String,
+    campaign_id: Uuid,
+    server_id: Uuid,
+    email: &str,
+    message: String,
+    subject: String,
+) -> Result<CampaignSendResponse, AppError> {
+    let server_service = ServerService::new(Arc::new(ServerRepoImpl));
+
+    let campaign = get_campaign_by_id(campaign_id.clone())
+        .await
+        .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+
+    let sender_id_string = match campaign.campaign_senders {
+        Some(uuid) => uuid.to_string(),
+        None => return Err(AppError::NotFoundError(Some("Sender ID not found for campaign.".to_string()))),
+    };
+
+    let campaign_sender_response = get_campaign_sender_by_id(sender_id_string).await
+        .map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;
+
+    let sender_email = campaign_sender_response.from_email;
+
+    let result = server_service.send_mail_with_smtp(
+        server_id,
+        &sender_email,
+        vec![email.to_string()],
+        None,
+        None,
+        &subject,
+        &message,
+    ).await.map_err(|err| AppError::InternalServerError(Some(format!("{:?}", err))))?;
+
+    let mail_status = "submitted".to_string();
+
+    update_mail_status(mail_id, mail_status.clone()).await.map_err(|err| {
+        AppError::InternalServerError(Some(format!("Failed to update mail status: {}", err)))
+    })?;
+
+    Ok(CampaignSendResponse {
+        campaign_id: campaign_id.to_string(),
+        total_recipients: 1,
+        status: mail_status,
+    })
+}
+
+/// a function to enqueue email for sending...
+pub async fn enqueue_email(
+    campaign_id: Uuid,
+    server_id: Uuid
+) -> Result<(), AppError> {
+    let campaign = get_campaign_by_id(campaign_id.clone())
+    .await
+    .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+
+    let contacts = get_unique_contacts_from_campaign(campaign_id).await?;
+
+    let template = get_template_by_id(campaign.template_id.clone()).await
+    .map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;
+
+    for contact in contacts.clone() {
+        let parsed_html = populate_contact_template(&template, &contact).await.map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;
+
+        let new_mail = CreateMailRequest {
+            id: Uuid::new_v4().to_string(),
+            mail_message: parsed_html,
+            email: vec![contact.email.clone()],
+            template_id: Some(Uuid::parse_str(&template.id)?),
+            campaign_id: Some(campaign_id),
+            sent_at: chrono::Utc::now(),
+            status: "queued".to_string(),
+            server_id: Some(server_id),
+        };
+
+        mail_service::create_mail(new_mail).await.map_err(|err| {
+            AppError::InternalServerError(Some(format!("Failed to create mail: {}", err)))
+        })?;
+    }
+
+    Ok(())
+}

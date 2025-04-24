@@ -1,4 +1,4 @@
-use crate::{models::mail::{DeleteMailResponse, MailWithDetails, NewMail}, repositories::mail_repository::{ MailRepository, MailRepositoryImpl }};
+use crate::{models::mail::{DeleteMailResponse, MailWithDetails, NewMail}, repositories::mail_repository::{ MailRepository, MailRepositoryImpl }, services::campaign_service::{send_campaign_email, send_campaign_email_smtp, send_single_email_smtp}};
 use crate::services::contact_service as contact_service;
 use chrono::{DateTime, Utc};
 use tokio::time::{interval, Duration};
@@ -208,6 +208,23 @@ pub async fn process_mails(
                     println!("Processing email to: {}", mail.email);
                     // Example: pretend to send email
                     // Then mark it as sent
+                    let current_campaign_id = mail.campaign_id;
+
+                    let subject = format!("Hello {}", mail.email);
+
+                    // send the campaign email only if the email has campaign_id (or campaign is associated with the email)...
+                    if let Some(campaign_id) = current_campaign_id {
+                        let result_mail= send_single_email_smtp
+                        (
+                            mail.id,
+                            campaign_id, mail.server_id.unwrap(),
+                            &mail.email,
+                            mail.mail_message,
+                            subject
+                        ).await?;
+                    } else {
+                        println!("No valid campaign ID found for this email.");
+                    }
                     println!("Email sent to: {}", mail.email);
                 }
             }
