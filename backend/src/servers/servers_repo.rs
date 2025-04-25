@@ -55,6 +55,7 @@ impl ServerRepo for ServerRepoImpl {
                 created_at,
                 updated_at,
                 default_from_email,
+                rate_limit,
             ))
             .load::<Server>(&mut conn)
     }
@@ -78,6 +79,7 @@ impl ServerRepo for ServerRepoImpl {
                 aws_credentials.eq(&payload.aws_credentials),
                 port.eq(&payload.port),
                 default_from_email.eq(&payload.default_from_email),
+                rate_limit.eq(&payload.rate_limit),
             ))
             .get_result(&mut conn)
     }

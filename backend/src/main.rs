@@ -6,6 +6,7 @@ use axum::BoxError;
 use backend::error::AppError;
 use backend::route::create_router;
 use backend::services::mail_service;
+use backend::servers::{ servers_repo, servers_services };
 use diesel::PgConnection;
 use diesel::Connection; // Import the Connection trait
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
@@ -17,7 +18,7 @@ use axum::http::{
 };
 use tower_http::cors::CorsLayer;
 use std::convert::Infallible;
-use std::{env, net::SocketAddr};
+use std::{env, net::SocketAddr, sync::Arc};
 use backend::middleware::error_handling_middleware;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
@@ -53,10 +54,14 @@ async fn main() {
         .layer(cors)
         .layer(middleware::from_fn(error_handling_middleware));
 
+    // Instantiate the server service and repository one time, and inject it to the process_mails background process...
+    let server_repo = Arc::new(servers_repo::ServerRepoImpl);
+    let server_service = servers_services::ServerService::new(server_repo);
+
     // Worker for processing mails...
     tokio::spawn(async {
-        if let Err(err) = mail_service::process_mails(30).await {
-            eprintln!("Mail worker error: {:?}", err);
+        if let Err(err) = mail_service::process_mails(server_service.into()).await.map_err(|err| AppError::InternalServerError(Some(format!("Mail worker error: {:?}", err.to_string())))) {
+            eprintln!("Error occurred in mail worker: {:?}", err);
         }
     });
 

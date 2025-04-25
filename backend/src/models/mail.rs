@@ -4,6 +4,7 @@ use utoipa::ToSchema;
 use diesel::{pg::Pg, prelude::*};
 use uuid::Uuid;
 
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 
 enum MailStatus {
@@ -230,6 +231,24 @@ pub struct UpdateMailResponse {
     pub scheduled_at: DateTime<Utc>,
     pub attempts: i32,
     pub last_error: Option<String>,
+}
+
+impl From<Mail> for UpdateMailResponse {
+    fn from(mail: Mail) -> Self {
+        Self {
+            id: mail.id,
+            mail_message: mail.mail_message,
+            template_id: mail.template_id,
+            campaign_id: mail.campaign_id,
+            status: Some(mail.status),
+            updated_at: chrono::Utc::now(),
+            open: mail.open,
+            clicks: mail.clicks,
+            scheduled_at: mail.scheduled_at,
+            attempts: mail.attempts,
+            last_error: mail.last_error,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

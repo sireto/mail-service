@@ -1,16 +1,10 @@
 use axum::{
     routing::{
-        get,
-        post,
-        patch,
-        delete
+        delete, get, patch, post
     }, Router };
 
 use crate::handlers::mail_handler::{
-    add_mail,
-    get_all_mails,
-    update_mail,
-    delete_mail
+    add_mail, delete_mail, get_all_mails, update_mail
 };
 
 pub fn mail_routes() -> Router {

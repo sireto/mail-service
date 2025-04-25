@@ -241,6 +241,7 @@ pub async fn delete_campaign(campaign_id: Uuid)->Result<DeleteCampaignResponse, 
     })
 }
 
+/// a function that queues the email for sending...
 pub async fn send_campaign_email(
     campaign_id: Uuid,
 ) -> Result<AddMailToQueueResponse, AppError> {
@@ -259,26 +260,12 @@ pub async fn send_campaign_email(
 
   let server = server_service.get_server_by_id(server_id.as_str()).await?;
 
-
-  match server.server_type {
-    ServerTypeEnum::AWS => {
-        let result = send_campaign_email_aws(campaign_id).await?;
-        return Ok(AddMailToQueueResponse {
-            status: StatusCode::OK.into(),
-            message: "Campaign email sent successfully".to_string(),
-        });
-    }, 
-    ServerTypeEnum::SMTP => {
-        // let result = send_campaign_email_smtp(campaign_id, Uuid::parse_str(&server_id).unwrap()).await?;
-        let result = enqueue_email(campaign_id, server.id).await?;
-        return Ok(AddMailToQueueResponse {
-            status: StatusCode::OK.into(),
-            message: "Campaign email sent successfully".to_string(),
-        });
-    } 
-  }
-
-    // instead of sending the email, lets first enqueue the emails which will be sent by background process in interval...
+    // modified to add the mails to queue rather than directly sending them...
+  let _result = enqueue_email(campaign_id, server.id).await?;
+  return Ok(AddMailToQueueResponse {
+      status: StatusCode::OK.into(),
+      message: "Campaign email sent successfully".to_string(),
+  });
 }
 
 pub async fn send_campaign_email_aws(
@@ -462,11 +449,12 @@ pub async fn send_campaign_email_smtp(
 }
 
 /// a function to send a single email to a contact with smtp server...
-pub async fn send_single_email_smtp (
+pub async fn send_single_email (
+    server_type: ServerTypeEnum,
     mail_id: String,
     campaign_id: Uuid,
     server_id: Uuid,
-    email: &str,
+    email: String,
     message: String,
     subject: String,
 ) -> Result<CampaignSendResponse, AppError> {
@@ -486,16 +474,32 @@ pub async fn send_single_email_smtp (
 
     let sender_email = campaign_sender_response.from_email;
 
-    let result = server_service.send_mail_with_smtp(
-        server_id,
-        &sender_email,
-        vec![email.to_string()],
-        None,
-        None,
-        &subject,
-        &message,
-    ).await.map_err(|err| AppError::InternalServerError(Some(format!("{:?}", err))))?;
+    let _result = match server_type {
+        ServerTypeEnum::AWS => {
+            let client = aws_service::create_aws_client_db(&server_id.to_string()).await;
 
+            aws_service::send_mail(
+                client, 
+                &sender_email, 
+                vec![email], 
+                None, 
+                None, 
+                &subject, 
+                &message,
+            ).await.map_err(|err| AppError::InternalServerError(Some(format!("{:?}", err))))?;
+        },
+        ServerTypeEnum::SMTP => {
+            server_service.send_mail_with_smtp(
+                server_id,
+                &sender_email,
+                vec![email],
+                None,
+                None,
+                &subject,
+                &message,
+            ).await.map_err(|err| AppError::InternalServerError(Some(format!("{:?}", err))))?;
+        }
+    };
     let mail_status = "submitted".to_string();
 
     update_mail_status(mail_id, mail_status.clone()).await.map_err(|err| {

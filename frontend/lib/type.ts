@@ -76,6 +76,7 @@ export const ServerSchema = z.object({
   }),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
+  rate_limit: z.number().int().min(1).max(1000).default(60),
 });
 
 export type Server = z.infer<typeof ServerSchema>;

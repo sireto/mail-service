@@ -1,9 +1,10 @@
-use crate::{models::mail::{DeleteMailResponse, MailWithDetails, NewMail}, repositories::mail_repository::{ MailRepository, MailRepositoryImpl }, services::campaign_service::{send_campaign_email, send_campaign_email_smtp, send_single_email_smtp}};
+use crate::{models::mail::{DeleteMailResponse, MailWithDetails, NewMail}, repositories::mail_repository::{ MailRepository, MailRepositoryImpl }, services::campaign_service::{send_campaign_email, send_campaign_email_smtp, send_single_email}};
+use crate::servers::servers_services::{ ServerService, ServerServiceTrait };
 use crate::services::contact_service as contact_service;
 use chrono::{DateTime, Utc};
 use tokio::time::{interval, Duration};
 use uuid::Uuid;
-use std::sync::Arc;
+use std::{collections::HashMap, num::NonZeroU32, sync::Arc, time::Instant};
 use crate::models::mail::{
     Mail,
     CreateMailRequest,
@@ -11,7 +12,16 @@ use crate::models::mail::{
     UpdateMailResponse
 };
 use crate::error::AppError;
+use governor::{Quota, RateLimiter, clock::DefaultClock, state::{ InMemoryState, NotKeyed }, middleware::NoOpMiddleware};
+use crate::servers::servers_model::ServerTypeEnum;
 
+
+/// a structure to hold the server state along with its rate limiter and the server_type to decide from what server (either AWS or SMTP) to send the email...
+#[derive(Debug)]
+pub struct ServerState {
+    pub limiter: RateLimiter<NotKeyed, InMemoryState, DefaultClock, NoOpMiddleware>,
+    pub server_type: ServerTypeEnum,
+}
 pub struct MailService {
     repository: Arc<dyn MailRepository + Send + Sync>
 }
@@ -102,19 +112,9 @@ pub async fn update_mail(mail_id: String, payload: UpdateMailRequest) -> Result<
 
     let response = mail_service.update_mail(mail_id, payload).await?;
 
-    Ok(UpdateMailResponse {
-        id: response.id,
-        mail_message: response.mail_message,
-        template_id: response.template_id,
-        campaign_id: response.campaign_id,
-        status: Some(response.status),
-        updated_at: chrono::Utc::now(),
-        open: response.open,
-        clicks: response.clicks,
-        scheduled_at: response.scheduled_at,
-        attempts: response.attempts,
-        last_error: response.last_error,
-    })
+    let updated_mail_response: UpdateMailResponse = response.into();
+
+    Ok(updated_mail_response)
 }
 
 /// a function to update mail status...
@@ -124,19 +124,9 @@ pub async fn update_mail_status(mail_id: String, new_status: String) -> Result<U
 
     let response = mail_service.update_mail_status(mail_id, &new_status).await?;
 
-    Ok(UpdateMailResponse {
-        id: response.id,
-        mail_message: response.mail_message,
-        template_id: response.template_id,
-        campaign_id: response.campaign_id,
-        status: Some(response.status),
-        updated_at: chrono::Utc::now(),
-        open: response.open,
-        clicks: response.clicks,
-        scheduled_at: response.scheduled_at,
-        attempts: response.attempts,
-        last_error: response.last_error,
-    })
+    let updated_mail_response: UpdateMailResponse = response.into();
+
+    Ok(updated_mail_response)
 }
 
 /// a function to delete mail from the db relation...
@@ -159,19 +149,9 @@ pub async fn increment_mail_clicks(mail_id: String) -> Result<UpdateMailResponse
 
     let response = mail_service.increment_mail_clicks(mail_id).await?;
 
-    Ok(UpdateMailResponse {
-        id: response.id,
-        mail_message: response.mail_message,
-        template_id: response.template_id,
-        campaign_id: response.campaign_id,
-        status: Some(response.status),
-        updated_at: chrono::Utc::now(),
-        open: response.open,
-        clicks: response.clicks,
-        scheduled_at: response.scheduled_at,
-        attempts: response.attempts,
-        last_error: response.last_error,
-    })
+    let updated_mail_response: UpdateMailResponse = response.into();
+
+    Ok(updated_mail_response)
 }
 
 pub async fn get_mails_by_contact(contact_id: Uuid) -> Result<Vec<MailWithDetails>, AppError> {
@@ -192,47 +172,69 @@ pub async fn fetch_queued_mails() -> Result<Vec<MailWithDetails>, AppError> {
     Ok(response)
 }
 
-/// a function to process mails every interval 'intv'...
+/// Process queued mails with per-server rate limiting using the governor crate...
 pub async fn process_mails(
-    intv: u64,
+    server_service: Arc<ServerService>,
 ) -> Result<(), AppError> {
-    let mut interval = interval(Duration::from_secs(intv));
+    // Create a rate limiter for each server...
+    let mut limiters: HashMap<Uuid, ServerState> = HashMap::new();
+    for server in server_service.get_all_servers().await? {
+        // rate_limit defines max tokens per second
+        let per_sec = NonZeroU32::new(server.rate_limit as u32)
+            .unwrap_or_else(|| NonZeroU32::new(1).unwrap());
+        let quota = Quota::per_second(per_sec);
 
+        let limiter = RateLimiter::direct(quota);
+
+        let server_state = ServerState {
+            limiter,
+            server_type: server.server_type,
+        };
+
+        limiters.insert(server.id, server_state);
+    }
+
+    // run the process in a loop each second...
+    let mut ticker = interval(Duration::from_secs(1));
     loop {
-        interval.tick().await;
+        ticker.tick().await;
 
-        match fetch_queued_mails().await {
-            Ok(emails) if !emails.is_empty() => {
-                println!("Found {} queued emails.", emails.len());
-                for mail in emails {
-                    println!("Processing email to: {}", mail.email);
-                    // Example: pretend to send email
-                    // Then mark it as sent
-                    let current_campaign_id = mail.campaign_id;
 
-                    let subject = format!("Hello {}", mail.email);
+        let mails = fetch_queued_mails().await?;
 
-                    // send the campaign email only if the email has campaign_id (or campaign is associated with the email)...
-                    if let Some(campaign_id) = current_campaign_id {
-                        let result_mail= send_single_email_smtp
-                        (
-                            mail.id,
-                            campaign_id, mail.server_id.unwrap(),
-                            &mail.email,
-                            mail.mail_message,
-                            subject
-                        ).await?;
-                    } else {
-                        println!("No valid campaign ID found for this email.");
-                    }
-                    println!("Email sent to: {}", mail.email);
-                }
-            }
-            Ok(_) => {
-                println!("No queued emails to process.");
-            }
-            Err(e) => {
-                eprintln!("Error fetching emails: {:?}", e);
+        if mails.is_empty() {
+            println!("No queued mails to process");
+            continue;
+        }
+        for mail in mails {
+            let sid = match mail.server_id {
+                Some(id) => id,
+                None => continue,
+            };
+
+            if let Some(server_state) = limiters.get(&sid) {
+                println!("[Server {:?}] waiting for token to send mail {} to {}", sid, mail.id, mail.email);
+                let start = Instant::now();
+                // try by adding the until_ready() to the limiter...
+                server_state.limiter.until_ready().await;
+                let waited = start.elapsed();
+                println!("[Server {:?}] waited {:?} before sending mail {}", sid, waited, mail.id);
+                let email = mail.email.clone();
+                
+                // create n backgroun task to send the email bound by server rate limit...
+                tokio::spawn(
+                    send_single_email(
+                        server_state.server_type,
+                        mail.id.clone(),
+                        mail.campaign_id.unwrap(),
+                        sid,
+                        email,
+                        mail.mail_message.clone(),
+                        format!("Hello {}", mail.email),
+                    )
+                );
+                // Update status on success
+                update_mail_status(mail.id, "submitted".to_string()).await?;
             }
         }
     }
