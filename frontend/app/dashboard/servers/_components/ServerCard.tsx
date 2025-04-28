@@ -51,6 +51,7 @@ export default function ServerCard({ server, onCancel }: ServerCardProps) {
   const testAndSaveSmtpConnection = async () => {
     try {
       const formData = getValues();
+      console.log("THE FORM VALUE FROM THE SERVER ===> ", formData);
       const payload = { ...formData };
 
       const result = await checkCredentials(payload).unwrap();

@@ -165,7 +165,7 @@ impl MailServiceTrait for MailService {
         }
 
         // run the process in a loop each second...
-        let mut ticker = interval(Duration::from_secs(1));
+        let mut ticker = interval(Duration::from_secs(5));
         loop {
             ticker.tick().await;
 
@@ -191,7 +191,7 @@ impl MailServiceTrait for MailService {
                     println!("[Server {:?}] waited {:?} before sending mail {}", sid, waited, mail.id);
                     let email = mail.email.clone();
 
-                    // create n backgroun task to send the email bound by server rate limit...
+                    // create n background task to send the email bound by server rate limit...
                     tokio::spawn(
                         send_single_email(
                             server_state.server_type,
