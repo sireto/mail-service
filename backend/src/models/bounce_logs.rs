@@ -83,6 +83,12 @@ pub struct SnsNotification {
 
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub struct Header {
+    pub name: String,
+    pub value: String,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
 pub struct Message {
     #[serde(rename = "notificationType")]
@@ -92,7 +98,7 @@ pub struct Message {
     pub bounce: Option<BounceDetails>,
     pub delivery: Option<DeliveryDetails>,
     pub open: Option<OpenDetails>,
-    pub mail: MailDetails,
+    pub mail: MailDetails
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
@@ -119,6 +125,7 @@ pub struct MailDetails {
     pub destination: Vec<String>,
     #[serde(rename = "messageId")]
     pub mail_id: String,
+    pub headers: Vec<Header>
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]

@@ -1,10 +1,11 @@
 use crate::models::mail::{
     CreateMailRequest, CreateMailResponse, DeleteMailResponse, GetMailResponse, MailQuery, UpdateMailRequest, UpdateMailResponse
 };
-use crate::services::mail_service as mail_service;
+use crate::services::mail_service::{MailService, MailServiceTrait};
 
+use std::sync::Arc;
 use axum::{
-    extract:: { Path, Query }, Json
+    extract:: { Extension, Path, Query }, Json
 };
 use crate::error::AppError;
 
@@ -17,9 +18,10 @@ use crate::error::AppError;
     )
 )]
 pub async fn add_mail(
+    Extension(mail_service): Extension<Arc<MailService>>,
     Json(payload): Json<CreateMailRequest>,
 ) -> Result<Json<Vec<CreateMailResponse>>, AppError> {
-    let created_mail = mail_service::create_mail(payload).await?;
+    let created_mail = mail_service.create_mail(payload).await?;
 
     let mut responses = Vec::new();
 
@@ -48,9 +50,10 @@ pub async fn add_mail(
     )
 )]
 pub async fn get_all_mails(
+    Extension(mail_service): Extension<Arc<MailService>>,
     query: Query<MailQuery>
 ) -> Result<Json<Vec<GetMailResponse>>, AppError> {
-    let all_mails = mail_service::get_all_mails(
+    let all_mails = mail_service.get_all_mails(
         query.campaign_ids,
         query.from,
         query.to
@@ -92,10 +95,11 @@ pub async fn get_all_mails(
     )
 )]
 pub async fn update_mail(
+    Extension(mail_service): Extension<Arc<MailService>>,
     Path(mail_id): Path<String>,
     Json(payload): Json<UpdateMailRequest>,
 ) -> Result<Json<UpdateMailResponse>, AppError> {
-    let updated_mail = mail_service::update_mail(mail_id, payload).await?;
+    let updated_mail = mail_service.update_mail(mail_id, payload).await?;
 
     Ok(Json(updated_mail))
 }
@@ -109,9 +113,10 @@ pub async fn update_mail(
     )
 )]
 pub async fn delete_mail(
+    Extension(mail_service): Extension<Arc<MailService>>,
     Path(mail_id): Path<String>,
 ) -> Result<Json<DeleteMailResponse>, AppError> {
-    let deleted_mail = mail_service::delete_mail(mail_id).await?;
+    let deleted_mail = mail_service.delete_mail(mail_id).await?;
 
     Ok(Json(deleted_mail))
 }

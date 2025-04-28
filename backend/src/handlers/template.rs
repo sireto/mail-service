@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use crate::error::AppError;
 use crate::models::mail::CreateMailRequest;
 use crate::models::template::{ CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, ParseMjml2HtmlRequest, ParseMjml2HtmlResponse, SendMailRequest, SendMailResponse, TemplateResponse, UpdateTemplateRequest, UpdateTemplateResponse };
@@ -5,8 +6,9 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use axum::{
-    extract:: Path, Json, http::StatusCode
+    extract:: Path, Json, http::StatusCode, Extension
 };
+use crate::services::mail_service::MailService;
 
 use crate::services::template_service;
 use crate::handlers::mail_handler as mail_handler;
@@ -140,6 +142,7 @@ pub async fn delete_template(
     )
 )]
 pub async fn send_templated_email(
+    Extension(mail_service): Extension<Arc<MailService>>,
     Path(template_id): Path<String>,
     Json(payload): Json<SendMailRequest>
 ) -> Result<Json<SendMailResponse>, AppError> {
@@ -165,7 +168,7 @@ pub async fn send_templated_email(
         server_id: None,
     };
 
-    let _ = mail_handler::add_mail(Json(payload)).await;
+    let _ = mail_handler::add_mail(Extension(mail_service), Json(payload)).await;
 
     Ok(Json(send_templated_email_response))
 }

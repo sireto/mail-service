@@ -1,4 +1,4 @@
-use crate::{error::AppError, schema::sql_types::TlsType, models::contact::Contact, servers::{servers_repo::{ServerRepo, ServerRepoImpl}, servers_services}};
+use crate::{error::AppError, models::contact::Contact, schema::sql_types::TlsType, servers::{servers_repo::{ServerRepo, ServerRepoImpl}, servers_services}, services::mail_service::MailServiceTrait};
 
 use uuid::Uuid;
 use std::sync::Arc;
@@ -6,6 +6,7 @@ use axum::extract::Extension;
 use axum::http::StatusCode;
 use crate::models::mail::{CreateMailRequest, MailWithDetails};
 use crate::services::mail_service;
+use crate::repositories::mail_repository::{ MailRepository, MailRepositoryImpl };
 use crate::servers::servers_model::{ Server, ServerRequest, SendMailFromServerResponse, ServerTypeEnum };
 use crate::services::template_service::{get_template_by_id, send_templated_email};
 use crate::models::template::SendMailRequest;
@@ -19,8 +20,10 @@ use super::servers_model::TlsTypeEnum;
 use lettre::{
     message::{Message, MultiPart, SinglePart}, transport::smtp::{authentication::Credentials, client::{Tls, TlsParameters}}, SmtpTransport, Transport
 };
+use mockall::{ automock, predicate::* };
 
 
+#[automock]
 #[async_trait]
 pub trait ServerServiceTrait {
     async fn create_server(&self, payload: ServerRequest) -> Result<Server, AppError>;
@@ -42,6 +45,7 @@ pub trait ServerServiceTrait {
     async fn send_mail_from_server(&self, server_id: &str, template_id: Uuid, receiver: String) -> Result<SendMailFromServerResponse, AppError>;
     async fn get_mails_by_server_id(&self, server_id: Uuid) -> Result<Vec<MailWithDetails>, AppError>;
 }
+
 #[derive(Clone)]
 pub struct ServerService {
     repository: Arc<dyn ServerRepo + Send + Sync>
@@ -228,6 +232,9 @@ impl ServerServiceTrait for ServerService {
         let receivers = receiver.split(",").map(|s| s.to_string()).collect::<Vec<String>>();
         let mut mail_send_ids: Vec<Uuid> = Vec::new();
 
+        let mail_repo = Arc::new(MailRepositoryImpl);
+        let mail_service = mail_service::MailService::new(mail_repo);
+
         match server.server_type {
             // send mail using the AWS credentials...
             ServerTypeEnum::AWS => {
@@ -255,10 +262,11 @@ impl ServerServiceTrait for ServerService {
                     sent_at: chrono::Utc::now(),
                     status: "sent".to_string(),
                 };
-            
-                mail_service::create_mail(new_mail).await.map_err(|err| {
+
+                mail_service.create_mail(new_mail).await.map_err(|err| {
                     AppError::InternalServerError(Some(format!("Failed to create mail: {}", err)))
                 })?;
+            
 
                 Ok(SendMailFromServerResponse {
                     id: mail_send_uuid,
@@ -318,7 +326,7 @@ impl ServerServiceTrait for ServerService {
                         status: "queued".to_string(),
                     };
                 
-                    mail_service::create_mail(new_mail).await.map_err(|err| {
+                    mail_service.create_mail(new_mail).await.map_err(|err| {
                         AppError::InternalServerError(Some(format!("Failed to create mail: {}", err)))
                     })?;
 

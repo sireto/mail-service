@@ -1,4 +1,4 @@
-use crate::{error::AppError, models::{campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse, AddMailToQueueResponse}, campaign_lists::NewListInCampaign, mail::CreateMailRequest}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, campaign_lists_repo::{CampaignListRepository, CampaignListRepositoryImpl}, list_contact_repo::ListContactRepositoryImpl, mail_repository::MailRepositoryImpl}, servers::{servers_handler::get_server_by_id, servers_model::{Server, ServerTypeEnum}, servers_repo::{self, ServerRepoImpl}, servers_services::{self, ServerService, ServerServiceTrait}}, services::mail_service::update_mail_status, utils::contact_lists_functions::{get_unique_contacts_from_campaign, populate_contact_template}};
+use crate::{error::AppError, models::{campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse, AddMailToQueueResponse}, campaign_lists::NewListInCampaign, mail::CreateMailRequest}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, campaign_lists_repo::{CampaignListRepository, CampaignListRepositoryImpl}, list_contact_repo::ListContactRepositoryImpl, mail_repository::{ MailRepository, MailRepositoryImpl}}, servers::{servers_handler::get_server_by_id, servers_model::{Server, ServerTypeEnum}, servers_repo::{self, ServerRepoImpl}, servers_services::{self, ServerService, ServerServiceTrait}}, utils::contact_lists_functions::{get_unique_contacts_from_campaign, populate_contact_template}};
 use uuid::Uuid;
 use std::{collections::HashSet, sync::Arc, env};
 use axum::http::StatusCode;
@@ -13,7 +13,7 @@ use aws_sdk_sesv2::types::{builders::{BodyBuilder, ContentBuilder}, Body, Conten
 use crate::services::{aws_service, list_service::ListContactService, template_service::get_template_by_id};
 use anyhow::{anyhow, Result};
 
-use super::{aws_service::create_aws_client_db, campaign_sender_service::get_campaign_sender_by_id, mail_service::MailService };
+use super::{aws_service::create_aws_client_db, campaign_sender_service::get_campaign_sender_by_id, mail_service::{MailService, MailServiceTrait} };
 use crate::services::mail_service as mail_service;
 
 
@@ -302,6 +302,9 @@ pub async fn send_campaign_email_aws(
     let client = aws_service::create_aws_client_db(&server_id).await;
     let request = client.list_email_identities();
 
+    let mail_repo = Arc::new(MailRepositoryImpl);
+    let mail_service = mail_service::MailService::new(mail_repo);
+
     // Send the request and await the response
     let result = request.send().await.map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;
 
@@ -363,7 +366,7 @@ pub async fn send_campaign_email_aws(
             server_id: Some(server_uuid),
         };
 
-        mail_service::create_mail(new_mail).await?;
+        mail_service.create_mail(new_mail).await?;
     }
     Ok(CampaignSendResponse {
         campaign_id: campaign_id.to_string(),
@@ -406,6 +409,9 @@ pub async fn send_campaign_email_smtp(
     let sender_email = campaign_sender_response.from_email;
     let server_service = ServerService::new(Arc::new(ServerRepoImpl));
 
+    let mail_repo = Arc::new(MailRepositoryImpl);
+    let mail_service = mail_service::MailService::new(mail_repo);
+
     for contact in contacts.clone() {
         let parsed_html = populate_contact_template(&template, &contact).await.map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;
 
@@ -431,7 +437,7 @@ pub async fn send_campaign_email_smtp(
                     status: "queued".to_string(),
                     server_id: Some(server_id),
                 };
-                mail_service::create_mail(new_mail).await.map_err(|err| {
+                mail_service.create_mail(new_mail).await.map_err(|err| {
                     AppError::InternalServerError(Some(format!("Failed to create mail: {}", err)))
                 })?;
             },
@@ -474,6 +480,9 @@ pub async fn send_single_email (
 
     let sender_email = campaign_sender_response.from_email;
 
+    let mail_repo = Arc::new(MailRepositoryImpl);
+    let mail_service = mail_service::MailService::new(mail_repo);
+
     let _result = match server_type {
         ServerTypeEnum::AWS => {
             let client = aws_service::create_aws_client_db(&server_id.to_string()).await;
@@ -486,6 +495,7 @@ pub async fn send_single_email (
                 None, 
                 &subject, 
                 &message,
+                Some(&mail_id),
             ).await.map_err(|err| AppError::InternalServerError(Some(format!("{:?}", err))))?;
         },
         ServerTypeEnum::SMTP => {
@@ -500,16 +510,16 @@ pub async fn send_single_email (
             ).await.map_err(|err| AppError::InternalServerError(Some(format!("{:?}", err))))?;
         }
     };
-    let mail_status = "submitted".to_string();
+    let mail_status = "submitted";
 
-    update_mail_status(mail_id, mail_status.clone()).await.map_err(|err| {
+    mail_service.update_mail_status(mail_id, mail_status).await.map_err(|err| {
         AppError::InternalServerError(Some(format!("Failed to update mail status: {}", err)))
     })?;
 
     Ok(CampaignSendResponse {
         campaign_id: campaign_id.to_string(),
         total_recipients: 1,
-        status: mail_status,
+        status: mail_status.to_string(),
     })
 }
 
@@ -527,6 +537,9 @@ pub async fn enqueue_email(
     let template = get_template_by_id(campaign.template_id.clone()).await
     .map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;
 
+    let mail_repo = Arc::new(MailRepositoryImpl);
+    let mail_service = mail_service::MailService::new(mail_repo);
+
     for contact in contacts.clone() {
         let parsed_html = populate_contact_template(&template, &contact).await.map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;
 
@@ -541,7 +554,7 @@ pub async fn enqueue_email(
             server_id: Some(server_id),
         };
 
-        mail_service::create_mail(new_mail).await.map_err(|err| {
+        mail_service.create_mail(new_mail).await.map_err(|err| {
             AppError::InternalServerError(Some(format!("Failed to create mail: {}", err)))
         })?;
     }

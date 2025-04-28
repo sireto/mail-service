@@ -1,7 +1,6 @@
 use crate::{models::contact::{ContactList, GetContactResponsee}, repositories::contact::{self, ContactRepository, ContactRepositoryImpl}};
 use uuid::Uuid;
 use std::{collections::HashMap, sync::Arc};
-use axum::{http::StatusCode, Json};
 use crate::models::contact::{
     Contact,
     CreateContactRequest,
@@ -10,9 +9,10 @@ use crate::models::contact::{
 };
 use crate::models::mail::MailWithDetails;
 use crate::error::AppError;
-use crate::services::mail_service::get_mails_by_contact;
+use super::{list_service, mail_service::MailServiceTrait};
+use crate::repositories::mail_repository::{ MailRepository, MailRepositoryImpl };
+use crate::services::mail_service;
 
-use super::list_service;
 
 pub struct ContactService {
     repository: Arc<dyn ContactRepository + Send + Sync>
@@ -254,7 +254,10 @@ pub async fn import_contacts(
 }
 
 pub async fn get_mails_for_contact (contact_id: Uuid) -> Result<Vec<MailWithDetails>, AppError> {
-    let mails = get_mails_by_contact(contact_id).await?;
+    let mail_repo = Arc::new(MailRepositoryImpl);
+        let mail_service = mail_service::MailService::new(mail_repo);
+
+    let mails = mail_service.get_mails_by_contact(contact_id).await?;
 
     Ok(mails)
 }
