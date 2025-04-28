@@ -100,12 +100,21 @@ async fn test_process_mails_rate_limiting() {
             mail_service.process_mails(server_service).await.unwrap();
         }
     });
-    tokio::time::sleep(Duration::from_secs(3)).await;
+    tokio::time::sleep(Duration::from_secs(10)).await;
     handle.abort();
 
     // assert we got at least two updates, each ≥1s apart...
     let sent = times.lock().unwrap();
-    assert!(sent.len() >= 2, "sent.len()={}", sent.len());
+    assert!(
+        sent.len() >= 2, 
+        "sent.len()={}", 
+        sent.len()
+    );
+    assert!(
+        sent.len() <= 10,
+        "Expected at most 10 mails sent, but got {}",
+        sent.len()
+    );
     for window in sent.windows(2) {
         let delta = window[1] - window[0];
         assert!(
