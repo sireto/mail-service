@@ -13,6 +13,7 @@ const statusTagStyleMap = {
     submitted: 'bg-blue-100 text-blue-800',
     delivered: 'bg-green-100 text-green-800',
     bounced: 'bg-red-100 text-red-800',
+    failed: 'border border-red-800 text-red-800',
 }
 
 export const columns = (

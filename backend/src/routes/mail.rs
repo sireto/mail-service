@@ -6,7 +6,7 @@ use axum::{
     }, Extension, Router };
 
 use crate::handlers::mail_handler::{
-    add_mail, delete_mail, get_all_mails, update_mail
+    add_mail, delete_mail, get_all_mails, update_mail, get_bounced_mails
 };
 
 use crate::services::mail_service as service;
@@ -21,5 +21,6 @@ pub fn mail_routes() -> Router {
         .route("/", get(get_all_mails))
         .route("/{mailId}", patch(update_mail))
         .route("/{mailId}", delete(delete_mail))
+        .route("/bounce", get(get_bounced_mails))
         .layer(Extension(Arc::new(mail_service)))
 }

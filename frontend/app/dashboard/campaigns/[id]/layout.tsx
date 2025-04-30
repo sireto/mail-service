@@ -19,6 +19,7 @@ export default function NewLayout({
 }) {
   const { id } : { id: string } = useParams(); // Get campaign ID from URL parameters
   const pathname = usePathname();
+  const isEditing = id !== "new"; // if not new this Page is opened in the editing mode...
 
   const { data: campaignData, error, isLoading } = useGetCampaignByIdQuery(id);
   
@@ -26,11 +27,11 @@ export default function NewLayout({
     <div className="w-full max-w-6xl lg:p-6 no-scrollbar">
       <div className='mb-6 flex items-center gap-x-6'>
         <h2 className="text-2xl font-semibold text-gray-900">Campaigns</h2>
-        <span
+        {isEditing && <span
           className="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-700"
         >
           {campaignData?.campaign_name}
-        </span>  
+        </span>}  
       </div>
       
       {/* Sub-navigation */}

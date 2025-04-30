@@ -44,24 +44,29 @@ async fn test_process_mails_rate_limiting() {
     let mut mock_mail_repo = MockMailRepository::new();
     // every call to get_queued_mails returns our single pending mail...
     mock_mail_repo
-        .expect_get_queued_mails()
-        .returning(move || {
-            Ok(vec![ MailWithDetails {
-                id: mail_id.clone(),
-                mail_message: "hi".into(),
-                template_id: None,
-                campaign_id: Some(Uuid::new_v4()),
-                server_id: Some(server_id),
-                sent_at: Utc::now(),
-                status: "pending".into(),
-                open: None,
-                clicks: 0,
-                scheduled_at: Utc::now(),
-                attempts: 0,
-                last_error: None,
-                email: "abc@example.com".into(),
-                reason: None,
-            }])
+        .expect_get_mails_by_status()
+        .returning(move |status_arg, _ | {
+            if status_arg == "queued" {
+                Ok(vec![ MailWithDetails {
+                    id: mail_id.clone(),
+                    mail_message: "hi".into(),
+                    template_id: None,
+                    campaign_id: Some(Uuid::new_v4()),
+                    server_id: Some(server_id),
+                    sent_at: Utc::now(),
+                    status: "pending".into(),
+                    open: None,
+                    clicks: 0,
+                    scheduled_at: Utc::now(),
+                    attempts: 0,
+                    last_error: None,
+                    email: "abc@example.com".into(),
+                    reason: None,
+                    from_name: None,
+                }])
+            } else {
+                Ok(vec![])
+            }
         });
 
     // record the instants when update_mail_status is called...

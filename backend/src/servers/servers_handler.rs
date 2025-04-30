@@ -203,6 +203,7 @@ pub async fn get_mails_from_server(
         scheduled_at: mail.scheduled_at,
         attempts: mail.attempts,
         last_error: mail.last_error,
+        from_name: mail.from_name,
     }).collect();
 
     Ok(Json(mails_response))

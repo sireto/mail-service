@@ -57,17 +57,32 @@ async fn main() {
 
     // Instantiate the server service and repository one time, and inject it to the process_mails background process...
     let server_repo = Arc::new(servers_repo::ServerRepoImpl);
-    let server_service = servers_services::ServerService::new(server_repo);
+    let server_service = Arc::new(servers_services::ServerService::new(server_repo));
 
     let mail_repo = Arc::new(mail_repository::MailRepositoryImpl);
-    let mail_service = mail_service::MailService::new(mail_repo);
+    let mail_service = Arc::new(mail_service::MailService::new(mail_repo));
 
     // Worker for processing mails...
-    tokio::spawn(async move {
-        if let Err(err) = mail_service.process_mails(server_service.into()).await.map_err(|err| AppError::InternalServerError(Some(format!("Mail worker error: {:?}", err.to_string())))) {
-            eprintln!("Error occurred in mail worker: {:?}", err);
-        }
-    });
+    {
+        let mail_service = Arc::clone(&mail_service);
+        let server_service = Arc::clone(&server_service);
+        tokio::spawn(async move {
+            if let Err(err) = mail_service.process_mails(server_service.into()).await.map_err(|err| AppError::InternalServerError(Some(format!("Mail worker error: {:?}", err.to_string())))) {
+                eprintln!("Error occurred in mail worker: {:?}", err);
+            }
+        });
+    }
+
+    // Worker for retrying submitted but not delivered mails...
+    {
+        let mail_service = Arc::clone(&mail_service);
+        let server_service = Arc::clone(&server_service);
+        tokio::spawn(async move {
+            if let Err(err) = mail_service.process_submitted_mails(server_service.into()).await.map_err(|err| AppError::InternalServerError(Some(format!("Mail retry worker error: {:?}", err.to_string())))) {
+                eprintln!("Error occurred in mail retry worker: {:?}", err);
+            }
+        });
+    }
 
     // Address configuration
     let addr = env::var("SERVER_ADDRESS").unwrap_or_else(|_| "0.0.0.0:8000".to_string());

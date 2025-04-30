@@ -1,6 +1,6 @@
 'use client'
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -27,6 +27,7 @@ const EditListForm = ({ listId }: { listId: string }) => {
             description: "",
         }
     });
+    const closeRef = useRef<HTMLButtonElement>(null);
 
 
     useEffect(() => {
@@ -56,6 +57,7 @@ const EditListForm = ({ listId }: { listId: string }) => {
             updatedList
         });
         form.reset();
+        closeRef.current?.click();
     }
 
     return (
@@ -69,6 +71,9 @@ const EditListForm = ({ listId }: { listId: string }) => {
                     <Button type="button" variant={"outline"}>Close</Button>
                 </DialogClose>
                 <Button type="submit" disabled={isUpdating}>Save</Button>
+                <DialogClose asChild>
+                    <button ref={closeRef} className="hidden" />
+                </DialogClose>
             </DialogFooter>}
         />
     )

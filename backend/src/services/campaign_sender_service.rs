@@ -1,6 +1,5 @@
 use crate::{error::AppError, models::campaign_sender::{CampaignSenderRequest, SendTestEmailRequest, SendTestEmailResponse, ValidateEmailIdentityRequest, ValidateEmailIdentityResponse}, repositories::campaign_sender::{CampaignSenderRepository, CampaignSenderRepositoryImpl}, servers::{servers_handler::{get_server_by_id, get_servers}, servers_model::{Server, ServerTypeEnum}, servers_services::{self, ServerServiceTrait}}};
 use lettre::{transport::smtp::authentication::Credentials, Message, SmtpTransport, Transport};
-use multipart::server::nickel::nickel::hyper::method::Method::Delete;
 use uuid::Uuid;
 use std::sync::Arc;
 use axum::http::StatusCode;

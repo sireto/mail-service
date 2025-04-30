@@ -1,6 +1,6 @@
 'use client'
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import React from 'react';
+
+import React, { useRef } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -23,14 +23,11 @@ const AddTemplateForm = () => {
     });
 
     const [createTemplate, { isLoading: isCreating, error: createError }] = useCreateTemplateMutation();
+    const closeRef = useRef<HTMLButtonElement>(null);
 
     if (createError) {
         return <div>There was an error creating template...</div>
     }
-
-    // if (isCreating) {
-    //     return <div>Creating template...</div>
-    // }
 
     async function addNewTemplate(value: z.infer<typeof AddTemplateFormSchemaDTO>) {
         console.log(value);
@@ -47,6 +44,7 @@ const AddTemplateForm = () => {
 
         await createTemplate(newTemplate);
         form.reset();
+        closeRef.current?.click();
     }
 
   return (
@@ -61,6 +59,10 @@ const AddTemplateForm = () => {
                 <Button type="button" variant={"outline"}>Close</Button>
             </DialogClose>
             <Button type="submit" disabled={isCreating} >Create</Button>
+            {/* hidden button to close dialog */}
+            <DialogClose asChild>
+                <button ref={closeRef} className="hidden" />
+            </DialogClose>
         </DialogFooter>}
     />  
   )

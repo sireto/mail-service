@@ -19,10 +19,10 @@ pub async fn get_connection_pool() -> DbPooledConnection {
 #[async_trait]
 pub trait ListRepository { 
     async fn create_list(&self, payload: CreateListRequest) -> Result<List, diesel::result::Error>; 
-    async fn get_all_lists(&self, namespaceId: Uuid) -> Result<Vec<List>, diesel::result::Error>;
-    async fn get_list_by_id(&self, namespaceId: Uuid, list_id: Uuid) -> Result<List, diesel::result::Error>;
-    async fn update_list(&self, namespaceId: Uuid, list_id: Uuid, payload: UpdateListRequest) -> Result<List, diesel::result::Error>;
-    async fn delete_list(&self, namespaceId: Uuid, list_id: Uuid)->Result<List, diesel::result::Error>;
+    async fn get_all_lists(&self, namespace_uuid: Uuid) -> Result<Vec<List>, diesel::result::Error>;
+    async fn get_list_by_id(&self, namespace_uuid: Uuid, list_id: Uuid) -> Result<List, diesel::result::Error>;
+    async fn update_list(&self, namespace_uuid: Uuid, list_id: Uuid, payload: UpdateListRequest) -> Result<List, diesel::result::Error>;
+    async fn delete_list(&self, namespace_uuid: Uuid, list_id: Uuid)->Result<List, diesel::result::Error>;
 
 }
 
@@ -46,7 +46,7 @@ async fn create_list (
         .get_result::<List>(&mut conn)
 }
 
-async fn get_all_lists(&self, namespaceId: Uuid) -> Result<Vec<List>, diesel::result::Error> {
+async fn get_all_lists(&self, namespace_uuid: Uuid) -> Result<Vec<List>, diesel::result::Error> {
     let mut conn = get_connection_pool().await;
 
     lists
@@ -58,23 +58,24 @@ async fn get_all_lists(&self, namespaceId: Uuid) -> Result<Vec<List>, diesel::re
             created_at, 
             updated_at
         ))
-        .filter(namespace_id.eq(namespaceId))
+        .filter(namespace_id.eq(namespace_uuid))
+        .order(updated_at.desc())
         .load::<List>(&mut conn)
 }
 
-async fn get_list_by_id(&self, namespaceId: Uuid, list_id: Uuid) -> Result<List, diesel::result::Error> {
+async fn get_list_by_id(&self, namespace_uuid: Uuid, list_id: Uuid) -> Result<List, diesel::result::Error> {
     let mut conn = get_connection_pool().await;
 
     // Ensure you're querying with both Uuids
     lists
-        .filter(namespace_id.eq(namespaceId))  // Make sure this is referencing the correct variable
+        .filter(namespace_id.eq(namespace_uuid))  // Make sure this is referencing the correct variable
         .filter(id.eq(list_id))  // Filter by list_id as well
         .first(&mut conn)
 }
 
 async fn update_list (
     &self, 
-    namespaceId: Uuid, 
+    namespace_uuid: Uuid, 
     list_id: Uuid, 
     payload: UpdateListRequest
 ) -> Result<List, diesel::result::Error> {
@@ -83,18 +84,19 @@ async fn update_list (
 
     diesel::update(lists)
             .filter(id.eq(list_id))
-            .filter(namespace_id.eq(namespaceId))
+            .filter(namespace_id.eq(namespace_uuid))
             .set((
                 name.eq(payload.name), 
-                description.eq(payload.description)
+                description.eq(payload.description),
+                updated_at.eq(diesel::dsl::now),
             ))
             .get_result(&mut conn)
 }
 
- async fn delete_list(&self, namespaceId: Uuid, list_id: Uuid) -> Result<List, diesel::result::Error> {
+ async fn delete_list(&self, namespace_uuid: Uuid, list_id: Uuid) -> Result<List, diesel::result::Error> {
     let mut conn = get_connection_pool().await;
 
-    diesel::delete(lists.filter(namespace_id.eq(namespaceId)))
+    diesel::delete(lists.filter(namespace_id.eq(namespace_uuid)))
             .filter(id.eq(list_id))
         .get_result(&mut conn)
 }
