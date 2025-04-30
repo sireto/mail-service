@@ -52,6 +52,7 @@ impl CampaignRepository for CampaginRepositoryImpl {
                 created_at, 
                 updated_at
             ))
+            .order(updated_at.desc())
             .load::<Campaign>(&mut conn)
     }
     async fn update_campaign(&self, campaign_id: Uuid, payload: UpdateCampaignRequest)->Result<Campaign, diesel::result::Error> {
@@ -63,7 +64,8 @@ impl CampaignRepository for CampaginRepositoryImpl {
                 template_id.eq(&payload.template_id), 
                 status.eq(&payload.status),
                 campaign_senders.eq(&payload.campaign_senders), 
-                scheduled_at.eq(&payload.scheduled_at)
+                scheduled_at.eq(&payload.scheduled_at),
+                updated_at.eq(diesel::dsl::now),
             ))
             .get_result(&mut conn)
     }

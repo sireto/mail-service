@@ -58,6 +58,7 @@ impl TemplateRepository for TemplateRespositoryImpl {
                 created_at,
                 updated_at,
             )) // Select columns explicitly
+            .order(updated_at.desc())
             .load::<Template>(&mut conn)
     }
     

@@ -12,6 +12,7 @@ import PreviewFrame from "./PreviewFrame";
 import Editor from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 
+
 interface TemplateModalBodyProps {
     modalTitle: string;
     modalDescription: string;
@@ -98,7 +99,7 @@ const TemplateModalBody = ({
                                 <FormControl className="relative">
                                     <Editor
                                         height={400}
-                                        defaultLanguage="html"
+                                        defaultLanguage="xml"
                                         value={field.value}
                                         options={{
                                             wordWrap: 'on',

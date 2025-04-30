@@ -80,6 +80,7 @@ pub async fn get_all_mails(
             scheduled_at: mail.scheduled_at,
             attempts: mail.attempts,
             last_error: mail.last_error.clone(),
+            from_name: mail.from_name.clone(),
         });
     });
     Ok(Json(responses))
@@ -119,4 +120,46 @@ pub async fn delete_mail(
     let deleted_mail = mail_service.delete_mail(mail_id).await?;
 
     Ok(Json(deleted_mail))
+}
+
+
+#[utoipa::path(
+    get,
+    path = "/api/mails/bounce",
+    responses(
+        (status = 200, description = "Get all bounced mails", body = Vec<GetMailResponse>),
+        (status = 404)
+    )
+)]
+pub async fn get_bounced_mails(
+    Extension(mail_service): Extension<Arc<MailService>>,
+) -> Result<Json<Vec<GetMailResponse>>, AppError> {
+    let all_bounced_mails = mail_service.fetch_bounced_mails().await?;
+
+    let mut responses = Vec::new();
+
+    if all_bounced_mails.is_empty() {
+        return Ok(Json(vec![]));
+    }
+    all_bounced_mails.iter().for_each(|mail| {
+        responses.push(GetMailResponse {
+            id: mail.id.clone(),
+            mail_message: mail.mail_message.clone(),
+            email: mail.email.clone(),
+            template_id: mail.template_id.clone(),
+            campaign_id: mail.campaign_id,
+            sent_at: mail.sent_at,
+            open: mail.open,
+            clicks: mail.clicks,
+            status: mail.status.clone(),
+            status_reason: mail.reason.clone(),
+            server_id: mail.server_id.clone(),
+            scheduled_at: mail.scheduled_at,
+            attempts: mail.attempts,
+            last_error: mail.last_error.clone(),
+            from_name: mail.from_name.clone(),
+        });
+    });
+    Ok(Json(responses))
+
 }

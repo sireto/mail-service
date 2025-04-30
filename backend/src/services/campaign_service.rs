@@ -487,7 +487,7 @@ pub async fn send_single_email (
         ServerTypeEnum::AWS => {
             let client = aws_service::create_aws_client_db(&server_id.to_string()).await;
 
-            aws_service::send_mail(
+            let response = aws_service::send_mail(
                 client, 
                 &sender_email, 
                 vec![email], 
@@ -497,6 +497,8 @@ pub async fn send_single_email (
                 &message,
                 Some(&mail_id),
             ).await.map_err(|err| AppError::InternalServerError(Some(format!("{:?}", err))))?;
+
+            println!("THe response from the aws ====> {:?}", response);
         },
         ServerTypeEnum::SMTP => {
             server_service.send_mail_with_smtp(

@@ -80,6 +80,9 @@ pub struct MailWithDetails {
 
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
     pub reason: Option<String>,  // This comes from bounce_logs.reason
+
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    pub from_name: Option<String>,
 }
 
 
@@ -108,6 +111,7 @@ pub struct GetMailResponse {
     pub clicks: i32,
     pub status: String,
     pub status_reason: Option<String>,
+    pub from_name: Option<String>,
 
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub scheduled_at: DateTime<Utc>,

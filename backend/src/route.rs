@@ -80,6 +80,7 @@ use crate::servers::servers_routes::servers_routes;
         mail_handler::get_all_mails,
         mail_handler::update_mail,
         mail_handler::delete_mail,
+        mail_handler::get_bounced_mails,
         bounce_logs_handler::handle_sns_notification,
         bounce_logs_handler::get_all_bounces,
         bounce_logs_handler::get_bounces_by_contact_id,
