@@ -483,13 +483,15 @@ pub async fn send_single_email (
     let mail_repo = Arc::new(MailRepositoryImpl);
     let mail_service = mail_service::MailService::new(mail_repo);
 
+    let from_email = format!("{} <{}>", campaign_sender_response.from_name, sender_email);
+
     let _result = match server_type {
         ServerTypeEnum::AWS => {
             let client = aws_service::create_aws_client_db(&server_id.to_string()).await;
 
             let response = aws_service::send_mail(
                 client, 
-                &sender_email, 
+                &from_email, 
                 vec![email], 
                 None, 
                 None, 
@@ -501,9 +503,10 @@ pub async fn send_single_email (
             println!("THe response from the aws ====> {:?}", response);
         },
         ServerTypeEnum::SMTP => {
+            println!("Sending email via SMTP");
             server_service.send_mail_with_smtp(
                 server_id,
-                &sender_email,
+                &from_email,
                 vec![email],
                 None,
                 None,

@@ -1,9 +1,11 @@
+use crate::servers::servers_model::ServerTypeEnum;
 use crate::{ appState::DbPooledConnection, GLOBAL_APP_STATE };
 use crate::schema::mails::dsl::*;
 use crate::schema::contacts::dsl as contacts_dsl;
 use crate::schema::bounce_logs::dsl as bounce_logs_dsl;
 use crate::schema::campaign_senders::dsl as campaign_senders_dsl;
 use crate::schema::campaigns::dsl as campaigns_dsl;
+use crate::schema::servers::{dsl as servers_dsl, server_type};
 use diesel::prelude::*;
 use chrono::{ Utc, DateTime, Duration };
 use crate::models::mail::{
@@ -203,6 +205,7 @@ impl MailRepository for MailRepositoryImpl {
         mails
             .inner_join(contacts_dsl::contacts.on(contact_id.eq(contacts_dsl::id)))
             .left_outer_join(bounce_logs_dsl::bounce_logs.on(id.eq(bounce_logs_dsl::mail_id)))
+            .left_outer_join(servers_dsl::servers.on(server_id.eq(servers_dsl::id.nullable())))
             .select((
                 id,
                 mail_message,
@@ -221,6 +224,7 @@ impl MailRepository for MailRepositoryImpl {
                 sql::<Nullable<Text>>("NULL")
             ))
             .filter(status.eq("submitted"))
+            .filter(server_type.eq(ServerTypeEnum::AWS))
             .filter(sent_at.lt(Utc::now().naive_utc() - Duration::minutes(stale_duration_minutes)))
             .filter(attempts.le(3))
             .order(sent_at.asc())
