@@ -121,19 +121,19 @@ pub struct ServerResponse {
 
 impl From<Server> for ServerResponse {
     fn from(server: Server) -> Self {
-        // let safe_aws = server.aws_credentials.map(|creds| secure_server_response(creds));
+        let safe_aws = server.aws_credentials.map(|creds| secure_server_response(creds));
 
         Self {
             id: server.id,
             active: server.active,
             host: server.host,
             smtp_username: server.smtp_username,
-            smtp_password: "*************".to_string(),
+            smtp_password: server.smtp_password,
             namespace_id: server.namespace_id,
             tls_type: server.tls_type,
             port: server.port,
             server_type: server.server_type,
-            aws_credentials: server.aws_credentials,
+            aws_credentials: safe_aws,
             created_at: server.created_at,
             updated_at: server.updated_at,
             default_from_email: server.default_from_email,
