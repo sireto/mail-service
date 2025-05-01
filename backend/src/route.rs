@@ -1,5 +1,4 @@
 use axum::Router;
-use axum::routing::get;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -10,7 +9,6 @@ use crate::handlers::{
     campaign as campaign,
     campaign_sender as campaign_sender,
     bounce_logs_handler,
-    healthcheck_handler,
 };
 use crate::routes::healthcheck_route::healthcheck_routes;
 use crate::servers::servers_handler as servers;

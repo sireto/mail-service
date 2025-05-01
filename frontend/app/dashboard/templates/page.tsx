@@ -18,7 +18,7 @@ const Page = () => {
     }
 
     if (isLoading) {
-        return <div> Loading... </div>
+        return <div> Template data is loading... </div>
     }
     
     return (
