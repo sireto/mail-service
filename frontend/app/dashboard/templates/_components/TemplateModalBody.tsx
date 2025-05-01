@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { DialogTitle, DialogDescription, DialogHeader } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { AddTemplateFormSchemaDTO } from "@/lib/type";
@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button";
 import { ScanEye } from "lucide-react";
 import Modal from "@/components/Modal";
 import PreviewFrame from "./PreviewFrame";
-import Editor from '@monaco-editor/react';
+import { Editor, useMonaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
-
+import xmlFormat from 'xml-formatter';
 
 interface TemplateModalBodyProps {
     modalTitle: string;
@@ -33,6 +33,44 @@ const TemplateModalBody = ({
     const mjml = value.raw_mjml_content.trim();
     
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+    const monaco = useMonaco();
+
+    useEffect(() => {
+        if (monaco) {
+            if (!monaco.languages.getLanguages().find(lang => lang.id === 'mjml')) {
+                monaco.languages.register({ id: 'mjml' });
+                monaco.languages.setMonarchTokensProvider('mjml', {
+                    tokenizer: {
+                        root: [
+                            [/<mjml[-a-zA-Z]*>/, 'tag'],
+                            [/<\/mjml[-a-zA-Z]*>/, 'tag'],
+                            [/<[^>]+>/, 'tag'],
+                            [/[^<]+/, 'string'],
+                        ],
+                    },
+                });
+                monaco.languages.setLanguageConfiguration('mjml', {
+                    autoClosingPairs: [
+                        { open: '<', close: '>' },
+                        { open: '"', close: '"' },
+                        { open: "'", close: "'" },
+                    ],
+                    surroundingPairs: [
+                        { open: '<', close: '>' },
+                        { open: '"', close: '"' },
+                        { open: "'", close: "'" },
+                    ],
+                });
+            }
+            monaco.languages.registerDocumentFormattingEditProvider('mjml', {
+                provideDocumentFormattingEdits(model, options, token) {
+                    const text = model.getValue();
+                    const formatted = xmlFormat(text, { collapseContent: false });
+                    return [{ range: model.getFullModelRange(), text: formatted }];
+                },
+            });
+        }
+    }, [monaco]);
 
     return (
         <>
@@ -99,7 +137,7 @@ const TemplateModalBody = ({
                                 <FormControl className="relative">
                                     <Editor
                                         height={400}
-                                        defaultLanguage="xml"
+                                        defaultLanguage="mjml"
                                         value={field.value}
                                         options={{
                                             wordWrap: 'on',
@@ -109,6 +147,7 @@ const TemplateModalBody = ({
                                         onMount={(editor) => {
                                             editorRef.current = editor;
                                         }}
+                                        
                                         onChange={(value) => field.onChange(value)}
                                         className={fieldState.invalid ? "border-red-400 focus-visible:ring-red-500" : ""}
                                         />
