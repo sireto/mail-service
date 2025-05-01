@@ -1,4 +1,5 @@
 import { usePreviewTemplateMutation } from '@/app/services/TemplateApi';
+import LoadingComponent from '@/components/common/Loading';
 import { Button } from '@/components/ui/button'
 import { DialogClose, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import React, { useEffect } from 'react'
@@ -16,7 +17,10 @@ const PreviewFrame =  ({ mjml, modalTitle, modalDescription }: { mjml: string, m
     return <div>There was an error previewing the template...</div>
   }
   if(isLoading) {
-    return <div className='w-full h-full flex items-center justify-center'>Parsing the template...</div>
+    return <div className='w-full h-full flex items-center justify-center flex-col'>
+      <LoadingComponent />
+      <span>Parsing the template...</span>
+    </div>
   } 
 
   return (

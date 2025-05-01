@@ -128,7 +128,7 @@ impl From<Server> for ServerResponse {
             active: server.active,
             host: server.host,
             smtp_username: server.smtp_username,
-            smtp_password: server.smtp_password,
+            smtp_password: "***********".to_string(), // Masked password...
             namespace_id: server.namespace_id,
             tls_type: server.tls_type,
             port: server.port,
