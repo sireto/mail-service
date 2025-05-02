@@ -4,7 +4,7 @@
 
 The Mail Service is a comprehensive email management platform designed to simplify and enhance bulk mailing operations for organizations. This service streamlines the process of creating, managing, and sending email campaigns at scale. It comes equipped with features to design reusable email templates, manage contact lists, and gain valuable insights into email performance through detailed analytics. By leveraging reliable email delivery services like Amazon SES and SMTP server, this platform ensures seamless, scalable, and efficient communication with subscribers.
 
-![mail_service_img](https://github.com/user-attachments/assets/7e959e14-f2c9-4733-ad53-344a4b288b97)
+![mail_service_img](https://github.com/user-attachments/assets/2a71f828-a17e-4114-b1ee-350f8c409b93)
 
 ## Features and Scope
 
