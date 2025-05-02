@@ -74,15 +74,15 @@ async fn main() {
     }
 
     // Worker for retrying submitted but not delivered mails...
-    {
-        let mail_service = Arc::clone(&mail_service);
-        let server_service = Arc::clone(&server_service);
-        tokio::spawn(async move {
-            if let Err(err) = mail_service.process_submitted_mails(server_service.into()).await.map_err(|err| AppError::InternalServerError(Some(format!("Mail retry worker error: {:?}", err.to_string())))) {
-                eprintln!("Error occurred in mail retry worker: {:?}", err);
-            }
-        });
-    }
+    // {
+    //     let mail_service = Arc::clone(&mail_service);
+    //     let server_service = Arc::clone(&server_service);
+    //     tokio::spawn(async move {
+    //         if let Err(err) = mail_service.process_submitted_mails(server_service.into()).await.map_err(|err| AppError::InternalServerError(Some(format!("Mail retry worker error: {:?}", err.to_string())))) {
+    //             eprintln!("Error occurred in mail retry worker: {:?}", err);
+    //         }
+    //     });
+    // }
 
     // Address configuration
     let addr = env::var("SERVER_ADDRESS").unwrap_or_else(|_| "0.0.0.0:8000".to_string());

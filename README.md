@@ -4,42 +4,6 @@
 
 The Mail Service is a comprehensive email management platform designed to simplify and enhance bulk mailing operations for organizations. This service streamlines the process of creating, managing, and sending email campaigns at scale. It comes equipped with features to design reusable email templates, manage contact lists, and gain valuable insights into email performance through detailed analytics. By leveraging reliable email delivery services like Amazon SES and SMTP server, this platform ensures seamless, scalable, and efficient communication with subscribers.
 
-## Features and Scope
-
-**Email Campaign Management:**
-
-- **Draft, Send, and Schedule:** Easily create campaigns and schedule them for later delivery or send immediately to a targeted audience.
-- **Bulk and Individual Emails:** Whether sending to a large audience or just a single contact, the platform accommodates both.
-
-**Contact Management:**
-
-- **Contact Handling:** Add, edit, and organize subscriber lists to ensure accurate targeting for email campaigns.
-
-**Template Management:**
-
-- **Dynamic Template Creation:** Design and customize reusable email templates to match your campaign's tone.
-- **HTML and Plain Text Support:** Flexibility to craft visually appealing HTML emails or simple plain text messages.
-
-**Integration with Email Delivery Services:**
-
-- **Seamless Integration:** Reliably send emails through third-party services like Amazon SES, eliminating the need for building or maintaining an SMTP server.
-
-**Analytics and Reporting:**
-
-- **Performance Tracking:** Monitor email campaign performance with metrics like open rates, click-through rates, and delivery statuses.
-- **Visual Reports:** Generate detailed, easy-to-interpret visual reports to track campaign trends and outcomes over time.
-
-**Dashboard:**
-
-- **Unified Interface:** Manage all aspects of your campaigns, from templates to analytics, in one user-friendly dashboard.
-
-**Efficient Template Utilization**
-- Save time and maintain consistency by creating, editing, and reusing pre-designed email templates tailored for bulk email campaigns.
-
-## Limitations
-
-- **SMTP Infrastructure:** This service includes the an SMTP server implementation. However, emails sent via the SMTP server are not tracked for opens, clicks, bounces, or delivery status.
-
 ## Running with Docker
 The latest images are available at: [here](https://github.com/sireto/mail-service).
 
@@ -48,21 +12,65 @@ Or, you can also run the docker-compose.yml file of the root by setting up your 
 docker compose up -d
 ```
 
-### Frontend image
-The latest frontend image is available at: [here](ghcr.io/sireto/mail-service-frontend:3cb2544983c38e85581d8c0b330d66a4751e1683)
-
-You can visit the above link or download pull the image using the following cmd:
+Here is the sample docker-compose.yml file:
 ```bash
-docker pull ghcr.io/sireto/mail-service-frontend:3cb2544983c38e85581d8c0b330d66a4751e1683
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres_mailservice
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mail_service
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    image: ghcr.io/sireto/mail-service-backend:nightly
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres_mailservice:5432/mail_service
+      AWS_ACCESS_KEY_ID: <AWS_ACCESS_KEY_ID>
+      AWS_SECRET_ACCESS_KEY: <AWS_SECRET_ACCESS_KEY>
+      AWS_SES_CONFIGURATION_SET_NAME: <AWS_SES_CONFIGURATION_SET_NAME>
+      ORIGINS: http://localhost:3000,http://172.31.0.6:3600
+
+  webapp:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_BASE_URL: http://localhost:8000/api
+    depends_on:
+      - postgres
+      - api
+    environment:
+      NEXT_PUBLIC_NAMESPACE_ID: e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82
+
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:
 ```
 
-### Backend image
-The latest backend image is available at: [here](ghcr.io/sireto/mail-service-backend:nightly)
+## Features and Scope
+- **Email Campaign Management**
+- **Contact Management**
+- **Template Management**
+- **Integration with Email Delivery Services**
+- **Analytics and Reporting**
+- **Dashboard**
+- **Efficient Template Utilization**
 
-You can visit the above link or download pull the image using the following cmd:
-```bash
-docker pull ghcr.io/sireto/mail-service-backend:nightly
-```
+## Limitations
+
+- **SMTP Infrastructure:** This service includes the an SMTP server implementation. However, emails sent via the SMTP server are not tracked for opens, clicks, bounces, or delivery status.
 
 ## Developers
 Mail-service is free and open-source software licensed under Apache 2.0 License. If you're interested in contributing, please refer to the [Developer README](https://github.com/sireto/mail-service/blob/develop/DEVELOPER.md) for setup instructions and [Contribution README](https://github.com/sireto/mail-service/blob/develop/CONTRIBUTING.md) contribution guidelines.
