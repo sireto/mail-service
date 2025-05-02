@@ -6,6 +6,7 @@ import DataTable from "@/components/DataTable";
 import { useParams } from "next/navigation";
 import columns from "@/app/dashboard/contacts/[id]/mails/_columns";
 import { User } from "lucide-react";
+import Link from "next/link";
 
 const page = () => {
   const { id } : { id: string } = useParams();
@@ -40,9 +41,9 @@ const page = () => {
       </div>
       {/* breadcrumb */}
       <div className="flex items-center gap-x-2 my-4 text-gray-500">
-        <span className="">Dashboard</span>
+        <Link href={'/dashboard/'} className="hover:underline">Dashboard</Link>
         <span>/</span>
-        <span>Contacts</span>
+        <Link href={'/dashboard/contacts'} className="hover:underline">Contacts</Link>
         <span>/</span>
         <span>{contact?.first_name} {contact?.last_name}</span>
         <span>/</span>
