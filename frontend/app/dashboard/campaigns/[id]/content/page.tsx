@@ -10,16 +10,16 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Save, ClipboardX } from 'lucide-react';
-import { useGetTemplateByIdQuery, useGetTemplatesQuery, useUpdateTemplateMutation } from '@/app/services/TemplateApi';
+import { useGetTemplateByIdQuery, useUpdateTemplateMutation } from '@/app/services/TemplateApi';
 import { useParams, useRouter } from 'next/navigation';
 import { useGetCampaignByIdQuery } from '@/app/services/CampaignApi';
 
 
 const Page = () => {
   const { id } = useParams<{ id: string }>();
-  const { data: currentCampaign, error, isLoading } = useGetCampaignByIdQuery(id);
-  const { data: currentTemplate, error: templateError, isLoading: templateLoading } = useGetTemplateByIdQuery(currentCampaign?.template_id ?? '');
-    const [updateTemplate, { isLoading: isUpdating, error: updateError }] = useUpdateTemplateMutation();
+  const { data: currentCampaign } = useGetCampaignByIdQuery(id);
+  const { data: currentTemplate } = useGetTemplateByIdQuery(currentCampaign?.template_id ?? '');
+    const [updateTemplate] = useUpdateTemplateMutation();
     const router = useRouter();
 
   const form = useForm<z.infer<typeof AddTemplateFormSchemaDTO>>({
@@ -37,7 +37,7 @@ const Page = () => {
                 raw_mjml_content: currentTemplate.content_html
             })
         }
-    }, [currentTemplate]);
+    }, [currentTemplate, form]);
     
 
   const editTemplate = async (value: z.infer<typeof AddTemplateFormSchemaDTO>) => {

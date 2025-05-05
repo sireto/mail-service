@@ -17,9 +17,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Server } from "@/lib/type/server";
+import { AddCampaignSenderSchema } from "./AddCampaignSender";
+import { z } from "zod";
+
+type AddCampaignSenderSchemaType = z.infer<typeof AddCampaignSenderSchema>;
 
 interface CampaignSenderFieldsProps {
-  form: UseFormReturn<any>;
+  form: UseFormReturn<AddCampaignSenderSchemaType>;
   servers?: Server[];
   isLoadingServers?: boolean;
   onFieldChange?: () => void;

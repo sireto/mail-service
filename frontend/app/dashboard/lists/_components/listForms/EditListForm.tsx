@@ -1,5 +1,5 @@
 'use client'
-/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import React, { useEffect, useRef } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -39,7 +39,7 @@ const EditListForm = ({ listId }: { listId: string }) => {
                 form.setValue("description", list.description);
             }
         }
-    }, [data]);
+    }, [data, form, listId]);
 
     if (updateError) {
         return <div>There was an error updating the list...</div>

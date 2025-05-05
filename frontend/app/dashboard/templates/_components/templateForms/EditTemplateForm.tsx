@@ -1,5 +1,5 @@
 'use client'
-/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import React, { useEffect, useRef } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,7 +36,7 @@ const EditTemplateForm = ({ templateId }: { templateId: string }) => {
                 form.setValue("raw_mjml_content", template.content_html);
             }
         }
-    }, [data]);
+    }, [data, form, templateId]);
 
     if (updateError) {
         return <div>There was an error updating the template...</div>

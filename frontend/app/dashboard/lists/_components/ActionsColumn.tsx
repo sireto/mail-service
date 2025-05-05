@@ -6,9 +6,10 @@ import { Edit3, Trash2 } from 'lucide-react';
 import React from 'react'
 import ConfirmationPopup from '@/components/common/ConfirmationPopup';
 import { Button } from '@/components/ui/button';
+import { List } from '@/lib/type/list';
 
 interface ActionsColumnProps {
-    row: Row<any>,
+    row: Row<List>,
     namespaceId: string,
 };
 
@@ -18,7 +19,7 @@ const ActionsColumn = ({
 }: ActionsColumnProps) => {
     const listId = row.original.id;
     
-    const [ deleteList, { isLoading: isDeleting, error: deletionError } ] = useDeleteListMutation();
+    const [ deleteList, { error: deletionError } ] = useDeleteListMutation();
 
     const deleteListHandler = async (id: string) => {
         if (deletionError) {

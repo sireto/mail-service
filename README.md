@@ -70,7 +70,7 @@ volumes:
 
 ## Limitations
 
-- **SMTP Infrastructure:** This service includes the an SMTP server implementation. However, emails sent via the SMTP server are not tracked for opens, clicks, bounces, or delivery status.
+- **SMTP Infrastructure:** This service includes the SMTP server implementation. However, emails sent via the SMTP server are not tracked for opens, clicks, bounces, or delivery status.
 
 ## Developers
 Mail-service is free and open-source software licensed under Apache 2.0 License. If you're interested in contributing, please refer to the [Developer README](https://github.com/sireto/mail-service/blob/develop/DEVELOPER.md) for setup instructions and [Contribution README](https://github.com/sireto/mail-service/blob/develop/CONTRIBUTING.md) contribution guidelines.

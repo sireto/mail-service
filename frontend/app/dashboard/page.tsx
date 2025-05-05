@@ -5,8 +5,8 @@ import DataTable from "@/components/DataTable";
 import columns from "@/app/dashboard/campaigns/[id]/analytics/_columns";
 
 function Dashboard() {
-  const { data: mails, isLoading, error } = useGetMailsQuery({});
-  const [deleteMail, { isLoading: isDeleting, error: deletionError }] =
+  const { data: mails } = useGetMailsQuery({});
+  const [deleteMail, { error: deletionError }] =
     useDeleteMailMutation();
 
   const deleteMailHandler = async (id: string) => {

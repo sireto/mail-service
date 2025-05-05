@@ -63,7 +63,7 @@ const TemplateModalBody = ({
                 });
             }
             monaco.languages.registerDocumentFormattingEditProvider('mjml', {
-                provideDocumentFormattingEdits(model, options, token) {
+                provideDocumentFormattingEdits(model) {
                     const text = model.getValue();
                     const formatted = xmlFormat(text, { collapseContent: false });
                     return [{ range: model.getFullModelRange(), text: formatted }];

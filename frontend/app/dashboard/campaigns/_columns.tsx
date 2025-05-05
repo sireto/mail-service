@@ -7,11 +7,12 @@ import Link from "next/link";
 import ActionsColumn from "./_components/ActionsColumn";
 import { ListDTO } from "@/lib/type";
 import { z } from "zod";
+import { Campaign } from "@/lib/type/campaign";
 
 export const columns = (
   deleteCampaignHandler: (id: string) => void,
   startCampaignHandler: (id: string) => void
-): ColumnDef<any>[] => [
+): ColumnDef<Campaign>[] => [
   {
     accessorKey: "campaign_name",
     header: "Name",

@@ -6,6 +6,10 @@ import { formatDateWithoutDay } from '@/lib/utils';
 import ActionsColumn from '@/app/dashboard/campaigns/[id]/analytics/_components/ActionsColumn';
 import ToolTip from '@/components/common/ToolTip';
 import TemplateName from './components/TemplateName';
+import { MailDTO } from '@/lib/type';
+import { z } from 'zod';
+
+type Mail = z.infer<typeof MailDTO>;
 
 const statusTagStyleMap = {
     draft: 'bg-gray-100 text-gray-800',
@@ -18,7 +22,7 @@ const statusTagStyleMap = {
 
 export const columns = (
     deleteMailHandler: (id: string) => void,
-): ColumnDef<any>[] => [
+): ColumnDef<Mail>[] => [
     {
         accessorKey: "template",
         header: "Template",

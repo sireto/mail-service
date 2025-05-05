@@ -3,9 +3,10 @@ import { Row } from '@tanstack/react-table';
 import { Trash2 } from 'lucide-react';
 import ConfirmationPopup from '@/components/common/ConfirmationPopup';
 import { Button } from '@/components/ui/button';
+import { Mail } from '@/lib/type/mail';
 
 interface ActionsColumnProps {
-    row: Row<any>,
+    row: Row<Mail>,
     deleteMailHandler: (id: string) => void,
 };
 

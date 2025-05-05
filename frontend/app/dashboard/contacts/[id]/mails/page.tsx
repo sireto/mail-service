@@ -8,11 +8,11 @@ import columns from "@/app/dashboard/contacts/[id]/mails/_columns";
 import { User } from "lucide-react";
 import Link from "next/link";
 
-const page = () => {
+const Page = () => {
   const { id } : { id: string } = useParams();
   const { data: mails, isLoading } = useGetMailsForContactQuery(id);
-  const { data: contact, isLoading: isContactLoading } = useGetContactByIdQuery(id);
-  const [deleteMail, { isLoading: isDeleting, error: deletionError }] = useDeleteMailMutation();
+  const { data: contact } = useGetContactByIdQuery(id);
+  const [deleteMail, { error: deletionError }] = useDeleteMailMutation();
 
   const deleteMailHandler = async (id: string) => {
     if (deletionError) {
@@ -61,4 +61,4 @@ const page = () => {
   )
 }
 
-export default page
+export default Page

@@ -7,13 +7,14 @@ import ActionsColumn from '@/app/dashboard/campaigns/[id]/analytics/_components/
 import ToolTip from '@/components/common/ToolTip';
 import CampaignName from './_components/CampaignName';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Mail } from '@/lib/type/mail';
 
 
 export const columns = (
     selectedBounces: Record<string, boolean>,
     setSelectedBounces: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
     deleteMailHandler: (id: string) => void,
-): ColumnDef<any>[] => [
+): ColumnDef<Mail>[] => [
     {
         id: "select",
         enableSorting: false,

@@ -4,9 +4,10 @@ import { Edit3, Trash2, Rocket } from 'lucide-react';
 import Link from 'next/link';
 import ConfirmationPopup from '@/components/common/ConfirmationPopup';
 import { Button } from '@/components/ui/button';
+import { Campaign } from '@/lib/type/campaign';
 
 interface ActionsColumnProps {
-    row: Row<any>,
+    row: Row<Campaign>,
     startCampaignHandler: (id: string) => void,
     deleteCampaignHandler: (id: string) => void,
 };

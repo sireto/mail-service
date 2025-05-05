@@ -1,7 +1,7 @@
 "use client";
 
 import { AddCampaignFormSchemaDTO } from "@/lib/type";
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -9,7 +9,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useCreateCampaignMutation,
   useGetCampaignByIdQuery,
-  useGetCampaignsQuery,
   useUpdateCampaignMutation,
 } from "@/app/services/CampaignApi";
 import { Save } from "lucide-react";
@@ -36,12 +35,10 @@ const Page = () => {
 
   const {
     data: campaignData,
-    error,
-    isLoading,
   } = useGetCampaignByIdQuery(id, { skip: !isEditing });
-  const [createCampaign, { isLoading: isCreating, error: creationError }] =
+  const [createCampaign] =
     useCreateCampaignMutation();
-  const [updateCampaign, { isLoading: isUpdating, error: updateError }] =
+  const [updateCampaign] =
     useUpdateCampaignMutation();
 
   const {
@@ -77,7 +74,7 @@ const Page = () => {
         list_ids: campaignData.lists.map((list) => list.id),
       });
     }
-  }, [campaignData, isEditing, isTemplateLoading, isSenderLoading]);
+  }, [campaignData, isEditing, isTemplateLoading, isSenderLoading, form, campaignSenders, templates]);
 
   const saveCampaignChanges = async (
     value: z.infer<typeof AddCampaignFormSchemaDTO>
@@ -91,8 +88,6 @@ const Page = () => {
         scheduled_at: "2023-01-01T00:00:00Z", // Ensure this is in the correct format,
         list_ids: value.list_ids,
       };
-
-      console.warn("IS EDITING WITH VALUE ===> ", updatedCampaign);
 
       const updatedCampaignData = {
         campaignId: id,

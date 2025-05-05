@@ -2,7 +2,7 @@
 
 import DataTable from "@/components/DataTable";
 import { Button } from "@/components/ui/button";
-import { useState, useMemo, Suspense } from "react";
+import { useState, Suspense } from "react";
 import {
   useGetContactsQuery,
   useDeleteContactMutation,

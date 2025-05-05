@@ -8,7 +8,7 @@ import { AddCampaignSender } from "./_components/AddCampaignSender";
 
 const CampaignSenderPage = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { data: senders, error, isLoading } = useGetCampaignSendersQuery();
+  const { data: senders, isLoading } = useGetCampaignSendersQuery();
 
   if (isLoading) {
     return <div>Loading...</div>;

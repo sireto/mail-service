@@ -6,6 +6,7 @@ import { formatDateWithoutDay } from '@/lib/utils';
 import Link from 'next/link';
 import ActionsColumn from './_components/ActionsColumn';
 import ToolTip from '@/components/common/ToolTip';
+import { Mail } from '@/lib/type/mail';
 
 const statusTagStyleMap = {
     draft: 'bg-gray-100 text-gray-800',
@@ -18,7 +19,7 @@ const statusTagStyleMap = {
 
 export const columns = (
     deleteMailHandler: (id: string) => void,
-): ColumnDef<any>[] => [
+): ColumnDef<Mail>[] => [
     {
         accessorKey: "email",
         header: "Email",

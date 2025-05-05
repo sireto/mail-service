@@ -15,19 +15,16 @@ import {
 import {
   AddCampaignFormSchemaDTO,
   CampaignSenderDTO,
-  ListDTO,
   TemplateDTO,
 } from "@/lib/type";
 import { Input } from "@/components/ui/input";
-import React, { useState, useEffect, useRef, Dispatch, SetStateAction } from "react";
+import React, { useRef } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
-import { useGetTemplatesQuery } from "@/app/services/TemplateApi";
 import { ClipboardX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useGetListsQuery } from "@/app/services/ListApi";
 import DropdownItemList from "./DropdownItemList";
-import { useGetCampaignSendersQuery } from "@/app/services/CampaignSenderApi";
 import { MultiSelect } from "@/components/common/Multiselect";
 
 type Template = z.infer<typeof TemplateDTO>;
@@ -44,12 +41,6 @@ interface CampaignFormProps {
 type SenderItem = {
   id: string;
   name: string;
-};
-
-type List = z.infer<typeof ListDTO>;
-type MultiSelectItemType = {
-  label: string;
-  value: string;
 };
 
 const namespaceId: string | undefined = process.env.NEXT_PUBLIC_NAMESPACE_ID;
@@ -115,7 +106,7 @@ const CampaignForm = (props: CampaignFormProps) => {
         <FormField
           control={form.control}
           name="campaign_senders"
-          render={({ field, fieldState }) => (
+          render={({ field }) => (
             <FormItem>
               <FormLabel className="font-bold text-black">Sender</FormLabel>
               <FormControl>
@@ -141,7 +132,7 @@ const CampaignForm = (props: CampaignFormProps) => {
         <FormField
           control={form.control}
           name="template_id"
-          render={({ field, fieldState }) => (
+          render={({ field }) => (
             <FormItem>
               <FormLabel className="font-bold text-black">Template</FormLabel>
               <FormControl>
@@ -166,7 +157,7 @@ const CampaignForm = (props: CampaignFormProps) => {
         <FormField
           control={form.control}
           name="list_ids"
-          render={({ field, fieldState }) => {
+          render={({ field }) => {
             return (
               <FormItem className="flex-1">
                 <FormLabel className="font-bold text-black">Lists</FormLabel>

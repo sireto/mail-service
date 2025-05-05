@@ -8,11 +8,10 @@ import columns from './_columns';
 import { useDeleteMailMutation, useGetBouncedMailQuery } from '@/app/services/MailApi';
 import ConfirmationPopup from '@/components/common/ConfirmationPopup';
 
-const page = () => {
-    const { data: bouncedMails, error, isLoading } = useGetBouncedMailQuery();
+const Page = () => {
+    const { data: bouncedMails } = useGetBouncedMailQuery();
     const [
         deleteMail,
-        { isLoading: isDeleting, error: deletionError },
     ] = useDeleteMailMutation();
 
     const [selectedBounces, setSelectedBounces] = useState<Record<string, boolean>>({});
@@ -79,4 +78,4 @@ const page = () => {
   )
 }
 
-export default page
+export default Page

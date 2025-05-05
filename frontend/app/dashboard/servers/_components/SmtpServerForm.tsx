@@ -11,6 +11,7 @@ import {
   UseFormTrigger,
   Control,
   FieldErrors,
+  UseFormSetValue,
 } from "react-hook-form";
 import {
   Select,
@@ -28,7 +29,7 @@ interface SmtpServerFormProps {
   control: Control<Server>;
   trigger: UseFormTrigger<Server>;
   watch: UseFormWatch<Server>;
-  setValue: any;
+  setValue: UseFormSetValue<Server>;
 }
 
 export default function SmtpServerForm({
@@ -40,10 +41,6 @@ export default function SmtpServerForm({
   watch,
 }: SmtpServerFormProps) {
   const { handlePortChange } = usePortControls(watch, setValue, trigger);
-  const currentPort = watch("port");
-  const currentDefaultFromEmail = watch("default_from_email");
-
-  // console.warn("THE DEFAULT from email ===> ", currentDefaultFromEmail);
 
   return (
     <>
