@@ -161,6 +161,7 @@ pub async fn send_templated_email(
         Some(bcc_list.clone()),
         &payload.subject,
         &parsed_html,
+        None,
     )
     .await?;
 

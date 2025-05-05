@@ -9,6 +9,9 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::servers::servers_services::{ServerServiceTrait, ServerService};
+use crate::services::mail_service::MailService;
+use crate::utils::server_utils::secure_server_response;
+
 
 use serde::Serialize;
 
@@ -197,6 +200,9 @@ pub async fn get_mails_from_server(
         status_reason: mail.reason,
         mail_message: mail.mail_message,
         campaign_id: mail.campaign_id,
+        scheduled_at: mail.scheduled_at,
+        attempts: mail.attempts,
+        last_error: mail.last_error,
     }).collect();
 
     Ok(Json(mails_response))

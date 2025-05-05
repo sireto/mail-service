@@ -4,6 +4,7 @@ use utoipa::ToSchema;
 use diesel::{pg::Pg, prelude::*};
 use uuid::Uuid;
 
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 
 enum MailStatus {
@@ -27,6 +28,9 @@ pub struct Mail {
     pub open: Option<DateTime<Utc>>,
     pub clicks: i32,
     pub server_id: Option<Uuid>,
+    pub scheduled_at: DateTime<Utc>,
+    pub attempts: i32,
+    pub last_error: Option<String>,
 }
 
 #[derive(Queryable, QueryableByName, ToSchema )]
@@ -62,6 +66,15 @@ pub struct MailWithDetails {
     #[diesel(sql_type = diesel::sql_types::Integer)]
     pub clicks: i32,
 
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub scheduled_at: DateTime<Utc>,
+
+    #[diesel(sql_type = diesel::sql_types::Integer)]
+    pub attempts: i32,
+
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    pub last_error: Option<String>,
+
     #[diesel(sql_type = diesel::sql_types::Text)]
     pub email: String,  // This comes from contacts.email
 
@@ -95,6 +108,11 @@ pub struct GetMailResponse {
     pub clicks: i32,
     pub status: String,
     pub status_reason: Option<String>,
+
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub scheduled_at: DateTime<Utc>,
+    pub attempts: i32,
+    pub last_error: Option<String>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq, Insertable)]
@@ -182,6 +200,11 @@ pub struct UpdateMailRequest {
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub open: Option<DateTime<Utc>>,
     pub clicks: Option<i32>,
+    
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub scheduled_at: DateTime<Utc>,
+    pub attempts: i32,
+    pub last_error: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -203,6 +226,29 @@ pub struct UpdateMailResponse {
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub open: Option<DateTime<Utc>>,
     pub clicks: i32,
+
+    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    pub scheduled_at: DateTime<Utc>,
+    pub attempts: i32,
+    pub last_error: Option<String>,
+}
+
+impl From<Mail> for UpdateMailResponse {
+    fn from(mail: Mail) -> Self {
+        Self {
+            id: mail.id,
+            mail_message: mail.mail_message,
+            template_id: mail.template_id,
+            campaign_id: mail.campaign_id,
+            status: Some(mail.status),
+            updated_at: chrono::Utc::now(),
+            open: mail.open,
+            clicks: mail.clicks,
+            scheduled_at: mail.scheduled_at,
+            attempts: mail.attempts,
+            last_error: mail.last_error,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

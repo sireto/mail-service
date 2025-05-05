@@ -130,7 +130,21 @@ export default function SmtpServerForm({
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid md:grid-cols-[2fr,1fr,1fr] gap-4">
+        <div className="space-y-2">
+          <Label>Default From Email</Label>
+            <Input
+              {...register("default_from_email", {
+                onChange: () => trigger("default_from_email"),
+              })}
+              placeholder="from.email@test.io"
+            />
+            {errors.default_from_email && (
+              <span className="text-sm text-destructive">
+                {errors.default_from_email.message}
+              </span>
+            )}
+        </div>
         <div className="space-y-2">
           <Label>TLS Configuration</Label>
           <Controller
@@ -156,16 +170,17 @@ export default function SmtpServerForm({
           )}
         </div>
         <div className="space-y-2">
-        <Label>Default From Email</Label>
+          <Label>Rate Limit</Label>
           <Input
-            {...register("default_from_email", {
-              onChange: () => trigger("default_from_email"),
+            {...register("rate_limit", {
+              onChange: () => trigger("rate_limit"),
+              valueAsNumber: true,
             })}
-            placeholder="from.email@test.io"
+            placeholder="30"
           />
-          {errors.default_from_email && (
+          {errors.rate_limit && (
             <span className="text-sm text-destructive">
-              {errors.default_from_email.message}
+              {errors.rate_limit.message}
             </span>
           )}
         </div>

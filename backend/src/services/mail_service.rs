@@ -1,8 +1,10 @@
-use crate::{models::mail::{DeleteMailResponse, MailWithDetails, NewMail}, repositories::mail_repository::{ MailRepository, MailRepositoryImpl }};
+use crate::{models::mail::{DeleteMailResponse, MailWithDetails, NewMail}, repositories::mail_repository::MailRepository, services::campaign_service::send_single_email};
+use crate::servers::servers_services::{ ServerService, ServerServiceTrait };
 use crate::services::contact_service as contact_service;
 use chrono::{DateTime, Utc};
+use tokio::time::{interval, Duration};
 use uuid::Uuid;
-use std::sync::Arc;
+use std::{collections::HashMap, num::NonZeroU32, sync::Arc, time::Instant};
 use crate::models::mail::{
     Mail,
     CreateMailRequest,
@@ -10,161 +12,219 @@ use crate::models::mail::{
     UpdateMailResponse
 };
 use crate::error::AppError;
+use governor::{Quota, RateLimiter, clock::DefaultClock, state::{ InMemoryState, NotKeyed }, middleware::NoOpMiddleware};
+use crate::servers::servers_model::ServerTypeEnum;
+use async_trait::async_trait;
+use mockall::{ automock, predicate::* };
 
+
+/// a structure to hold the server state along with its rate limiter and the server_type to decide from what server (either AWS or SMTP) to send the email...
+#[derive(Debug)]
+pub struct ServerState {
+    pub limiter: RateLimiter<NotKeyed, InMemoryState, DefaultClock, NoOpMiddleware>,
+    pub server_type: ServerTypeEnum,
+}
+
+#[automock]
+#[async_trait]
+pub trait MailServiceTrait {
+    async fn create_mail(&self, payload: CreateMailRequest) -> Result<Vec<Mail>, AppError>;
+    async fn get_all_mails(&self, campaign_ids: Option<Uuid>, from: Option<DateTime<Utc>>, to: Option<DateTime<Utc>>) -> Result<Vec<MailWithDetails>, AppError>;
+    async fn update_mail(&self, mail_id: String, payload: UpdateMailRequest) -> Result<UpdateMailResponse, AppError>;
+    async fn update_mail_status(&self, mail_id: String, new_status: &str) -> Result<UpdateMailResponse, AppError>;
+    async fn delete_mail(&self, mail_id: String) -> Result<DeleteMailResponse, AppError>;
+    async fn increment_mail_clicks(&self, mail_id: String) -> Result<UpdateMailResponse, AppError>;
+    async fn get_mails_by_contact(&self, contact_id: Uuid) -> Result<Vec<MailWithDetails>, AppError>;
+    async fn fetch_queued_mails(&self) -> Result<Vec<MailWithDetails>, AppError>;
+    async fn process_mails(
+        &self,
+        server_service: Arc<ServerService>,
+    ) -> Result<(), AppError>;
+}
+
+#[derive(Clone)]
 pub struct MailService {
     repository: Arc<dyn MailRepository + Send + Sync>
 }
 
+#[automock]
 impl MailService {
     pub fn new(repository: Arc<dyn MailRepository + Send + Sync>) -> Self {
         Self { repository }
     }
+}
 
-    pub async fn create_mail(&self, payload: NewMail) -> Result<Mail, diesel::result::Error> {
-        self.repository.create_mail(payload).await
+#[async_trait]
+impl MailServiceTrait for MailService {
+    /// a function to add new mail into the record when the mail_send is triggered...
+    async fn create_mail(&self, payload: CreateMailRequest) -> Result<Vec<Mail>, AppError> {    
+        let mut responses = Vec::new(); // Vec<CreateMailResponse>;
+        for email in payload.email {
+            let contact = contact_service::get_contact_by_email(email).await?;
+
+            let new_mail = NewMail {
+                id: payload.id.clone(),
+                mail_message: payload.mail_message.clone(),
+                contact_id: contact.id,
+                template_id: payload.template_id,
+                campaign_id: payload.campaign_id,
+                server_id: payload.server_id,
+                sent_at: payload.sent_at,
+                status: payload.status.clone(),
+            };
+            let response = self.repository.create_mail(new_mail).await?;
+
+            responses.push(response);
+        }
+
+        Ok(responses)
     }
 
-    pub async fn get_all_mails(&self, campaign_ids: Option<Uuid>, from: Option<DateTime<Utc>>, to: Option<DateTime<Utc>>) -> Result<Vec<MailWithDetails>, diesel::result::Error> {
-        self.repository.get_all_mails(campaign_ids, from, to).await
+    /// a function to get all mails from the record...
+    async fn get_all_mails(
+        &self,
+        campaign_ids: Option<Uuid>,
+        from: Option<DateTime<Utc>>,
+        to: Option<DateTime<Utc>>
+    ) -> Result<Vec<MailWithDetails>, AppError> {    
+        let response = self.repository.get_all_mails(campaign_ids, from, to).await?;
+
+        Ok(response)
     }
 
-    pub async fn update_mail(&self, mail_id: String, payload: UpdateMailRequest) -> Result<Mail, diesel::result::Error> {
-        self.repository.update_mail(mail_id, payload).await
+    /// a function to update mail in the record...
+    async fn update_mail(&self, mail_id: String, payload: UpdateMailRequest) -> Result<UpdateMailResponse, AppError> {
+        let response = self.repository.update_mail(mail_id, payload).await?;
+
+        let updated_mail_response: UpdateMailResponse = response.into();
+
+        Ok(updated_mail_response)
     }
 
-    pub async fn update_mail_status(&self, mail_id: String, new_status: &str) -> Result<Mail, diesel::result::Error> {
-        self.repository.update_mail_status(mail_id, new_status).await
+    /// a function to update mail status...
+    async fn update_mail_status(&self, mail_id: String, new_status: &str) -> Result<UpdateMailResponse, AppError> {
+        let response = self.repository.update_mail_status(mail_id, new_status).await?;
+
+        let updated_mail_response: UpdateMailResponse = response.into();
+
+        Ok(updated_mail_response)
     }
 
-    pub async fn delete_mail(&self, mail_id: String) -> Result<Mail, diesel::result::Error> {
-        self.repository.delete_mail(mail_id).await
+    /// a function to delete mail from the db relation...
+    async fn delete_mail(&self, mail_id: String) -> Result<DeleteMailResponse, AppError> {
+        let response = self.repository.delete_mail(mail_id).await?;
+
+        Ok(DeleteMailResponse {
+            id: response.id,
+            status: Some(response.status),
+            contact_id: Some(response.contact_id),
+        })
     }
 
-    pub async fn increment_mail_clicks(&self, mail_id: String) -> Result<Mail, diesel::result::Error> {
-        self.repository.increment_mail_clicks(mail_id).await
+    async fn increment_mail_clicks(&self, mail_id: String) -> Result<UpdateMailResponse, AppError> {
+        let response = self.repository.increment_mail_clicks(mail_id).await?;
+
+        let updated_mail_response: UpdateMailResponse = response.into();
+
+        Ok(updated_mail_response)
     }
 
-    pub async fn get_mails_by_contact(&self, contact_id: Uuid) -> Result<Vec<MailWithDetails>, diesel::result::Error> {
-        self.repository.get_mails_by_contact(contact_id).await
+    async fn get_mails_by_contact(&self, contact_id: Uuid) -> Result<Vec<MailWithDetails>, AppError> {
+        let response = self.repository.get_mails_by_contact(contact_id).await?;
+
+        Ok(response)
+    }
+
+    async fn fetch_queued_mails(&self) -> Result<Vec<MailWithDetails>, AppError> {
+        let response = self.repository.get_queued_mails().await?;
+
+        Ok(response)
+    }
+
+    /// Process queued mails with per-server rate limiting using the governor crate...
+    async fn process_mails(
+        &self,
+        server_service: Arc<ServerService>,
+    ) -> Result<(), AppError> {
+        // Create a rate limiter for each server...
+        let mut limiters: HashMap<Uuid, ServerState> = HashMap::new();
+        for server in server_service.get_all_servers().await? {
+            // rate_limit defines max tokens per second
+            let per_sec = NonZeroU32::new(server.rate_limit as u32)
+                .unwrap_or_else(|| NonZeroU32::new(1).unwrap());
+            let quota = Quota::per_second(per_sec);
+
+            let limiter = RateLimiter::direct(quota);
+
+            let server_state = ServerState {
+                limiter,
+                server_type: server.server_type,
+            };
+
+            limiters.insert(server.id, server_state);
+        }
+
+        // run the process in a loop each second...
+        let mut ticker = interval(Duration::from_secs(5));
+        loop {
+            ticker.tick().await;
+
+
+            let mails = self.fetch_queued_mails().await?;
+
+            if mails.is_empty() {
+                println!("No queued mails to process");
+                continue;
+            }
+            for mail in mails {
+                let sid = match mail.server_id {
+                    Some(id) => id,
+                    None => continue,
+                };
+
+                if let Some(server_state) = limiters.get(&sid) {
+                    println!("[Server {:?}] waiting for token to send mail {} to {}", sid, mail.id, mail.email);
+                    let start = Instant::now();
+                    // try by adding the until_ready() to the limiter...
+                    server_state.limiter.until_ready().await;
+                    let waited = start.elapsed();
+                    println!("[Server {:?}] waited {:?} before sending mail {}", sid, waited, mail.id);
+                    let email = mail.email.clone();
+
+                    // create n background task to send the email bound by server rate limit...
+                    tokio::spawn(
+                        send_single_email(
+                            server_state.server_type,
+                            mail.id.clone(),
+                            mail.campaign_id.unwrap(),
+                            sid,
+                            email,
+                            mail.mail_message.clone(),
+                            format!("Hello {}", mail.email),
+                        )
+                    );
+
+                    // Update status on success
+                    self.repository.update_mail_status(mail.id, "submitted").await?;
+                }
+            }
+        }
     }
 }
 
-/// a function to add new mail into the record when the mail_send is triggered...
-pub async fn create_mail(payload: CreateMailRequest) -> Result<Vec<Mail>, AppError> {
-    let mail_repository = Arc::new(MailRepositoryImpl);
-    let mail_service = MailService::new(mail_repository);
-    
-    let mut responses = Vec::new(); // Vec<CreateMailResponse>;
-    for email in payload.email {
-        let contact = contact_service::get_contact_by_email(email).await?;
-
-        let new_mail = NewMail {
-            id: payload.id.clone(),
-            mail_message: payload.mail_message.clone(),
-            contact_id: contact.id,
-            template_id: payload.template_id,
-            campaign_id: payload.campaign_id,
-            server_id: payload.server_id,
-            sent_at: payload.sent_at,
-            status: payload.status.clone(),
-        };
-        let response = mail_service.create_mail(new_mail).await?;
-
-        responses.push(response);
+/// Process exactly one batch of queued mails (no loop or ticker).
+/// the function for testing...
+pub async fn process_one_batch(
+    servers: &HashMap<Uuid, ServerState>,   // server details...
+    fetch: impl Fn() -> Vec<MailWithDetails> + Send + Sync, // fetch all the mailDetails...
+    send: impl Fn(&MailWithDetails) + Send + Sync,  // send the emails...
+    update: impl Fn(String) + Send + Sync,  // update the mail status...
+) {
+    for mail in fetch() {
+        if let Some(state) = servers.get(&mail.server_id.unwrap()) {
+            state.limiter.until_ready().await;
+            send(&mail);
+            update(mail.id.clone());
+        }
     }
-
-    Ok(responses)
-}
-
-/// a function to get all mails from the record...
-pub async fn get_all_mails(
-    campaign_ids: Option<Uuid>,
-    from: Option<DateTime<Utc>>,
-    to: Option<DateTime<Utc>>
-) -> Result<Vec<MailWithDetails>, AppError> {
-    let mail_repository = Arc::new(MailRepositoryImpl);
-    let mail_service = MailService::new(mail_repository);
-    
-    let response = mail_service.get_all_mails(campaign_ids, from, to).await?;
-
-    Ok(response)
-}
-
-/// a function to update mail in the record...
-pub async fn update_mail(mail_id: String, payload: UpdateMailRequest) -> Result<UpdateMailResponse, AppError> {
-    let mail_repository = Arc::new(MailRepositoryImpl);
-    let mail_service = MailService::new(mail_repository);
-
-    let response = mail_service.update_mail(mail_id, payload).await?;
-
-    Ok(UpdateMailResponse {
-        id: response.id,
-        mail_message: response.mail_message,
-        template_id: response.template_id,
-        campaign_id: response.campaign_id,
-        status: Some(response.status),
-        updated_at: chrono::Utc::now(),
-        open: response.open,
-        clicks: response.clicks,
-    })
-}
-
-/// a function to update mail status...
-pub async fn update_mail_status(mail_id: String, new_status: String) -> Result<UpdateMailResponse, AppError> {
-    let mail_repository = Arc::new(MailRepositoryImpl);
-    let mail_service = MailService::new(mail_repository);
-
-    let response = mail_service.update_mail_status(mail_id, &new_status).await?;
-
-    Ok(UpdateMailResponse {
-        id: response.id,
-        mail_message: response.mail_message,
-        template_id: response.template_id,
-        campaign_id: response.campaign_id,
-        status: Some(response.status),
-        updated_at: chrono::Utc::now(),
-        open: response.open,
-        clicks: response.clicks,
-    })
-}
-
-/// a function to delete mail from the db relation...
-pub async fn delete_mail(mail_id: String) -> Result<DeleteMailResponse, AppError> {
-    let mail_repository = Arc::new(MailRepositoryImpl);
-    let mail_service = MailService::new(mail_repository);
-
-    let response = mail_service.delete_mail(mail_id).await?;
-
-    Ok(DeleteMailResponse {
-        id: response.id,
-        status: Some(response.status),
-        contact_id: Some(response.contact_id),
-    })
-}
-
-pub async fn increment_mail_clicks(mail_id: String) -> Result<UpdateMailResponse, AppError> {
-    let mail_repository = Arc::new(MailRepositoryImpl);
-    let mail_service = MailService::new(mail_repository);
-
-    let response = mail_service.increment_mail_clicks(mail_id).await?;
-
-    Ok(UpdateMailResponse {
-        id: response.id,
-        mail_message: response.mail_message,
-        template_id: response.template_id,
-        campaign_id: response.campaign_id,
-        status: Some(response.status),
-        updated_at: chrono::Utc::now(),
-        open: response.open,
-        clicks: response.clicks,
-    })
-}
-
-pub async fn get_mails_by_contact(contact_id: Uuid) -> Result<Vec<MailWithDetails>, AppError> {
-    let mail_repository = Arc::new(MailRepositoryImpl);
-    let mail_service = MailService::new(mail_repository);
-
-    let response = mail_service.get_mails_by_contact(contact_id).await?;
-
-    Ok(response)
 }

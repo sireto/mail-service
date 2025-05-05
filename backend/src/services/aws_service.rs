@@ -1,4 +1,4 @@
-use aws_sdk_sesv2::{error::SdkError, operation::send_email::SendEmailOutput, types::{Body, Content, Destination, EmailContent, Message, SuppressionListReason }, Client };
+use aws_sdk_sesv2::{error::SdkError, operation::send_email::SendEmailOutput, types::{Body, Content, Destination, EmailContent, Message, MessageHeader, SuppressionListReason }, Client };
 use aws_config::{BehaviorVersion, Region};
 
 use std::{env, error::Error, sync::Arc};
@@ -46,7 +46,8 @@ pub async fn send_mail(
     cc: Option<Vec<String>>,
     bcc: Option<Vec<String>>, 
     subject: &str, 
-    html_data: &str
+    html_data: &str,
+    mail_id: Option<&str>
 ) -> Result<SendEmailOutput, SdkError<aws_sdk_sesv2::operation::send_email::SendEmailError>> {
     let mut destination = Destination::builder().build();
     destination.to_addresses = Some(to.clone());
@@ -92,16 +93,26 @@ pub async fn send_mail(
 
     let msg = Message::builder()
         .subject(subject_content)
+        .set_headers(Some(vec![
+            MessageHeader::builder()
+                .name("mailId")
+                .value(mail_id.unwrap())
+                .build()?
+        ]))
         .body(body)
         .build();
 
     let email_content = EmailContent::builder().simple(msg).build();
+
+    let configuration_set_name = env::var("AWS_SES_CONFIGURATION_SET_NAME")
+    .expect("You must have env of configuration set name for open and click rates tracking named: AWS_SES_CONFIGURATION_SET_NAME");
 
     let result = client
         .send_email()
         .from_email_address(from)
         .destination(destination)
         .content(email_content)
+        .set_configuration_set_name(Some(configuration_set_name))
         .send()
         .await;
 

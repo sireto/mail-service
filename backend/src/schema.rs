@@ -100,6 +100,9 @@ diesel::table! {
         open -> Nullable<Timestamptz>,
         clicks -> Int4,
         server_id -> Nullable<Uuid>,
+        scheduled_at -> Timestamptz,
+        attempts -> Int4,
+        last_error -> Nullable<Text>,
     }
 }
 
@@ -131,6 +134,7 @@ diesel::table! {
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         default_from_email -> Varchar,
+        rate_limit -> Int4,
     }
 }
 

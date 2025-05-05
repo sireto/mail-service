@@ -14,4 +14,6 @@ export interface Server {
   smtp_username?: string;
   smtp_password?: string;
   aws_credentials?: AwsCredentials;
+  default_email?: string;
+  rate_limit?: number;
 }

@@ -17,6 +17,7 @@ import {
   FieldErrors,
 } from "react-hook-form";
 import { Server } from "@/lib/type";
+import serverRegions from "../_constants/server";
 
 interface AwsServerFormProps {
   register: UseFormRegister<Server>;
@@ -78,40 +79,13 @@ export default function AwsServerForm({
                   <SelectValue placeholder="Select Region" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="us-east-1">
-                    US East (N. Virginia)
-                  </SelectItem>
-                  <SelectItem value="us-east-2">US East (Ohio)</SelectItem>
-                  <SelectItem value="us-west-1">
-                    US West (N. California)
-                  </SelectItem>
-                  <SelectItem value="us-west-2">US West (Oregon)</SelectItem>
-                  <SelectItem value="ap-south-1">
-                    Asia Pacific (Mumbai)
-                  </SelectItem>
-                  <SelectItem value="ap-northeast-2">
-                    Asia Pacific (Seoul)
-                  </SelectItem>
-                  <SelectItem value="ap-southeast-1">
-                    Asia Pacific (Singapore)
-                  </SelectItem>
-                  <SelectItem value="ap-southeast-2">
-                    Asia Pacific (Sydney)
-                  </SelectItem>
-                  <SelectItem value="ap-northeast-1">
-                    Asia Pacific (Tokyo)
-                  </SelectItem>
-                  <SelectItem value="ca-central-1">Canada (Central)</SelectItem>
-                  <SelectItem value="eu-central-1">
-                    Europe (Frankfurt)
-                  </SelectItem>
-                  <SelectItem value="eu-west-1">Europe (Ireland)</SelectItem>
-                  <SelectItem value="eu-west-2">Europe (London)</SelectItem>
-                  <SelectItem value="eu-west-3">Europe (Paris)</SelectItem>
-                  <SelectItem value="eu-north-1">Europe (Stockholm)</SelectItem>
-                  <SelectItem value="sa-east-1">
-                    South America (São Paulo)
-                  </SelectItem>
+                  {
+                    serverRegions.map(region => (
+                      <SelectItem key={region.label} value={region.value}>
+                        { region.label }
+                      </SelectItem>
+                    ))
+                  }
                 </SelectContent>
               </Select>
             )}
@@ -131,20 +105,37 @@ export default function AwsServerForm({
           />
         </div>
       </div>
-
-      <div className="space-y-2">
-        <Label>Default From Email</Label>
+      
+      <div className="grid md:grid-cols-[2fr,1fr] gap-4">
+        <div className="space-y-2">
+          <Label>Default From Email</Label>
+            <Input
+              {...register("default_from_email", {
+                onChange: () => trigger("default_from_email"),
+              })}
+              placeholder="from.email@test.io"
+            />
+            {errors.default_from_email && (
+              <span className="text-sm text-destructive">
+                {errors.default_from_email.message}
+              </span>
+            )}
+        </div>
+        <div className="space-y-2">
+          <Label>Rate Limit</Label>
           <Input
-            {...register("default_from_email", {
-              onChange: () => trigger("default_from_email"),
+            {...register("rate_limit", {
+              onChange: () => trigger("rate_limit"),
+              valueAsNumber: true,
             })}
-            placeholder="from.email@test.io"
+            placeholder="30"
           />
-          {errors.default_from_email && (
+          {errors.rate_limit && (
             <span className="text-sm text-destructive">
-              {errors.default_from_email.message}
+              {errors.rate_limit.message}
             </span>
           )}
+        </div>
       </div>
     </>
   );

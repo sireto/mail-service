@@ -1,8 +1,9 @@
+use axum::http::status::StatusCode;
 use chrono::{ DateTime, NaiveDateTime, Utc };
 use serde_json::Value;
 use serde::{ Serialize, Deserialize };
 use utoipa::{openapi::schema, ToSchema};
-use diesel::prelude::*;
+use diesel::{prelude::*, sql_types::Integer};
 use uuid::Uuid;
 use crate::models::list::ListResponse;
 
@@ -143,4 +144,11 @@ pub struct CampaignSendResponse {
     pub campaign_id: String,
     pub total_recipients: usize,
     pub status: String,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
+pub struct AddMailToQueueResponse {
+    #[schema(value_type = u16, example = 200)]
+    pub status: u16,
+    pub message: String,
 }

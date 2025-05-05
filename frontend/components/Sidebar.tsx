@@ -74,15 +74,15 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         </button>
       )}
 
-      <nav className="flex flex-col space-y-1 p-4 pt-16 md:pt-4">
+      <nav className="flex flex-col space-y-1 py-16 md:pt-4">
         {sidebarItems.map((item, index) => (
-          <div key={index}>
+          <div key={index} className="pl-2">
             {item.subItems ? (
               <div className="flex flex-col">
                 <button
                   onClick={() => toggleExpand(item.name)}
                   className={cn(
-                    "flex items-center justify-between px-4 py-2 rounded-md text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition w-full",
+                    "flex items-center justify-between px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition w-full",
                     normalizedPathname.startsWith(item.href)
                       ? "text-blue-600 font-medium"
                       : ""
@@ -100,7 +100,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                         key={subIndex}
                         href={subItem.href}
                         className={cn(
-                          "flex items-center space-x-3 px-4 py-2 rounded-md text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition",
+                          "flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition ml-2",
                           normalizedPathname === subItem.href
                             ? "text-blue-600 font-medium border-r-4 border-blue-600"
                             : ""
@@ -117,7 +117,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               <Link
                 href={item.href}
                 className={cn(
-                  "flex items-center space-x-3 px-4 py-2 rounded-md text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition",
+                  "flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition",
                   normalizedPathname === item.href
                     ? "text-blue-600 font-medium border-r-4 border-blue-600"
                     : ""

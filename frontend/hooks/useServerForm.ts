@@ -41,6 +41,8 @@ export function useServerForm(server: Partial<Server>) {
         region: "ap-southeast-1",
         session_token: null,
       },
+      default_from_email: server.default_from_email ?? "",
+      rate_limit: server.rate_limit ?? 30,
     },
     mode: "all",
     reValidateMode: "onChange",
@@ -86,6 +88,8 @@ export function useServerForm(server: Partial<Server>) {
           region: server.aws_credentials?.region || "ap-southeast-1",
           session_token: server.aws_credentials?.session_token || null,
         },
+        default_from_email: server.default_from_email ?? "",
+        rate_limit: server.rate_limit ?? 30,
       });
     }
   }, [server, reset]);
@@ -112,6 +116,8 @@ export function useServerForm(server: Partial<Server>) {
             region: data.aws_credentials?.region || "ap-southeast-1",
             session_token: data.aws_credentials?.session_token || null,
           },
+          default_from_email: server.default_from_email ?? "",
+          rate_limit: server.rate_limit ?? 30,
         };
       } else {
         // If SMTP, set default values for AWS fields

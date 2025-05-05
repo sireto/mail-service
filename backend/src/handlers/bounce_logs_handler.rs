@@ -4,19 +4,24 @@ use std::sync::Arc;
 
 use crate::{error::AppError, models::{bounce_logs::
     { 
-        Message, CreateBounceLogRequest, CreateBounceLogResponse, GetBounceLogResponse, SnsNotification
-    }, mail::UpdateMailRequest}, repositories::{contact::ContactRepositoryImpl, mail_repository::MailRepositoryImpl}, services::{bounce_logs_service, contact_service::ContactService, mail_service::{self, MailService}}
+        CreateBounceLogRequest, CreateBounceLogResponse, GetBounceLogResponse, Message, SnsNotification
+    }, mail::UpdateMailRequest}, repositories::{contact::ContactRepositoryImpl, mail_repository::MailRepositoryImpl}, services::{bounce_logs_service, contact_service::ContactService, mail_service::{self, MailService, MailServiceTrait}}
 };
 
 use axum::{
-    extract:: Path, Json, http::StatusCode
+    extract:: Path, Json, http::StatusCode, Extension
 };
 use uuid::Uuid;
+use crate::utils::bounce_logs::search_header_from_header_list;
 
 enum MailStatus {
     Draft,
-    Pending,
-    Sent,
+    Scheduled,
+    Queued,
+    Processing, // this status might not be necessary...
+    Submitted,
+    Delivered,
+    Failed,
     Bounced,
 }
 
@@ -24,8 +29,12 @@ impl MailStatus {
     pub fn as_str(&self) -> &'static str {
         match self {
             MailStatus::Draft => "draft",
-            MailStatus::Pending => "pending",
-            MailStatus::Sent => "sent",
+            MailStatus::Scheduled => "scheduled",
+            MailStatus::Queued => "queued",
+            MailStatus::Processing => "processing",
+            MailStatus::Submitted => "submitted",
+            MailStatus::Delivered => "delivered",
+            MailStatus::Failed => "failed",
             MailStatus::Bounced => "bounced",
         }
     }
@@ -33,8 +42,12 @@ impl MailStatus {
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "draft" => Some(MailStatus::Draft),
-            "pending" => Some(MailStatus::Pending),
-            "sent" => Some(MailStatus::Sent),
+            "scheduled" => Some(MailStatus::Scheduled),
+            "queued" => Some(MailStatus::Queued),
+            "processing" => Some(MailStatus::Processing),
+            "submitted" => Some(MailStatus::Submitted),
+            "delivered" => Some(MailStatus::Delivered),
+            "failed" => Some(MailStatus::Failed),
             "bounced" => Some(MailStatus::Bounced),
             _ => None,
         }
@@ -50,11 +63,9 @@ impl MailStatus {
     )
 )]
 pub async fn handle_sns_notification (
+    Extension(mail_service): Extension<Arc<MailService>>,
     payload: Json<SnsNotification>,
 ) -> Result<(), AppError> {
-    let mail_repository = Arc::new(MailRepositoryImpl);
-    let mail_service = MailService::new(mail_repository);
-
      // automate the subscription confirmation...
      if payload.notification_type == "SubscriptionConfirmation" {
         // subscribe to the public api endpoint...
@@ -74,12 +85,13 @@ pub async fn handle_sns_notification (
             .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
         if sns_event.notification_type.is_none() {
-            if let Some(event_type) = sns_event.event_type {
-                let mail_id = sns_event.mail.mail_id;
+            if let Some(event_type) = sns_event.event_type.as_ref() {
+                let mail_id = search_header_from_header_list(&sns_event, "mailId")
+                .ok_or_else(|| AppError::NotFoundError(Some("mailId not found in SNS event".to_string())))?;
 
                 match event_type.as_str() {
                     "Open" => {
-                        mail_service.update_mail(mail_id, UpdateMailRequest {
+                        mail_service.update_mail(mail_id,UpdateMailRequest {
                             open: Some(chrono::Utc::now()),
                             ..Default::default()
                         }).await?;
@@ -100,17 +112,19 @@ pub async fn handle_sns_notification (
 
         match sns_event.notification_type.as_ref().unwrap().as_str() {
             "Bounce" => {
-                if let Some(bounce) = sns_event.bounce {
-                    let recipients = bounce.bounced_recipients;
+                if let Some(bounce) = sns_event.bounce.as_ref() {
+                    let recipients = &bounce.bounced_recipients;
 
                     let status = MailStatus::Bounced;
-                    let mail_id = sns_event.mail.mail_id.clone();
-                    let _ = mail_service.update_mail_status(mail_id, status.as_str()).await;
+                    let mail_id = search_header_from_header_list(&sns_event, "mailId")
+                    .ok_or_else(|| AppError::NotFoundError(Some("mailId not found in SNS event".to_string())))?;
+
+                    let _ = mail_service.update_mail_status(mail_id.clone(), status.as_str()).await;
 
                     for recp in recipients {
                         let contact_repository = Arc::new(ContactRepositoryImpl);
                         let contact_service = ContactService::new(contact_repository);
-                        let contact = contact_service.get_contact_by_email(recp.email_address).await;
+                        let contact = contact_service.get_contact_by_email(recp.email_address.clone()).await;
 
                         let new_bounce = CreateBounceLogRequest {
                             contact_id: contact.unwrap().id,
@@ -119,7 +133,7 @@ pub async fn handle_sns_notification (
                             kind: bounce.bounce_type.clone(),
                             campaign_id: None,
                             reason: bounce.bounce_sub_type.clone(),
-                            mail_id: sns_event.mail.mail_id.clone(),
+                            mail_id: mail_id.clone(),
                         };
 
                         // Add the bounce to the DB
@@ -128,10 +142,13 @@ pub async fn handle_sns_notification (
                 }
             }
             "Delivery" => {
-                if let Some(delivery) = sns_event.delivery {
-                    let status = MailStatus::Sent;
+                if let Some(delivery) = sns_event.delivery.as_ref() {
+                    let status = MailStatus::Delivered;
 
-                    let _ = mail_service.update_mail_status(sns_event.mail.mail_id, status.as_str()).await;
+                    let mail_id = search_header_from_header_list(&sns_event, "mailId")
+                    .ok_or_else(|| AppError::NotFoundError(Some("mailId not found in SNS event".to_string())))?;
+
+                    let _ = mail_service.update_mail_status(mail_id, status.as_str()).await;
                 }
             }
             _ => {

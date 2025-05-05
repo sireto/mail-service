@@ -52,6 +52,7 @@ pub struct Server {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub default_from_email: String,
+    pub rate_limit: i32
 }
 // Create DTOs
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq)]
@@ -86,6 +87,9 @@ pub struct ServerRequest {
     
     #[schema(example = "from.email@test.io")]
     pub default_from_email: String,
+
+    #[schema(example = 30)]
+    pub rate_limit: i32
 }
 
 // Get DTO
@@ -111,11 +115,13 @@ pub struct ServerResponse {
     pub updated_at: DateTime<Utc>,
     #[schema(example = "from.email@test.io")]
     pub default_from_email: String,
+    #[schema(example = 30)]
+    pub rate_limit: i32
 }
 
 impl From<Server> for ServerResponse {
     fn from(server: Server) -> Self {
-        let safe_aws = server.aws_credentials.map(|creds| secure_server_response(creds));
+        // let safe_aws = server.aws_credentials.map(|creds| secure_server_response(creds));
 
         Self {
             id: server.id,
@@ -127,10 +133,11 @@ impl From<Server> for ServerResponse {
             tls_type: server.tls_type,
             port: server.port,
             server_type: server.server_type,
-            aws_credentials: safe_aws,
+            aws_credentials: server.aws_credentials,
             created_at: server.created_at,
             updated_at: server.updated_at,
             default_from_email: server.default_from_email,
+            rate_limit: server.rate_limit,
         }
     }
 }
