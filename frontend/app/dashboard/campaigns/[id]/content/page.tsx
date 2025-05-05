@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { AddTemplateFormSchemaDTO } from '@/lib/type';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@/components/ui/input';
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -21,16 +21,24 @@ const Page = () => {
   const { data: currentTemplate, error: templateError, isLoading: templateLoading } = useGetTemplateByIdQuery(currentCampaign?.template_id ?? '');
     const [updateTemplate, { isLoading: isUpdating, error: updateError }] = useUpdateTemplateMutation();
     const router = useRouter();
-    
-  
 
   const form = useForm<z.infer<typeof AddTemplateFormSchemaDTO>>({
          resolver: zodResolver(AddTemplateFormSchemaDTO),
          defaultValues: {
-             name: currentTemplate?.name ?? "",
-             raw_mjml_content: currentTemplate?.content_html ?? "<mjml><mj-body>Hi, {{name}}</mj-body></mjml>",
+             name: "",
+             raw_mjml_content: "",
          }
      });
+
+    useEffect(() => {
+        if (currentTemplate) {
+            form.reset({
+                name: currentTemplate.name,
+                raw_mjml_content: currentTemplate.content_html
+            })
+        }
+    }, [currentTemplate]);
+    
 
   const editTemplate = async (value: z.infer<typeof AddTemplateFormSchemaDTO>) => {
     const updatedTemplate = {

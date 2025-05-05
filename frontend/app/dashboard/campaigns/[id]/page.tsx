@@ -61,7 +61,6 @@ const Page = () => {
   );
 
   useEffect(() => {
-    console.warn("THE template id ====> ", campaignData?.template_id, "The campaign_sender id =====> ", campaignData?.campaign_senders);
     if (
         isEditing && 
         campaignData &&
@@ -78,8 +77,6 @@ const Page = () => {
         list_ids: campaignData.lists.map((list) => list.id),
       });
     }
-
-    console.warn("THE FORM STATE ===> ", form.getValues());
   }, [campaignData, isEditing, isTemplateLoading, isSenderLoading]);
 
   const saveCampaignChanges = async (
