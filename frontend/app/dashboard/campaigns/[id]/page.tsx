@@ -1,7 +1,7 @@
 "use client";
 
 import { AddCampaignFormSchemaDTO } from "@/lib/type";
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
