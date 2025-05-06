@@ -42,7 +42,7 @@
     "lucide-react": "^0.474.0",
     "mjml": "^4.15.3",
     "monaco-editor": "^0.52.2",
-    "next": "15.1.6",
+    "next": "15.2.4",
     "react": "^19.0.0",
     "react-confetti": "^6.2.2",
     "react-day-picker": "8.10.1",
