@@ -262,5 +262,6 @@ pub async fn get_mails_by_contact_id(
         scheduled_at: mail.scheduled_at,
         attempts: mail.attempts,
         last_error: mail.last_error,
+        from_name: mail.from_name,
     }).collect()))
 }

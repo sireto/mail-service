@@ -1,6 +1,6 @@
 'use client'
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import React from 'react';
+
+import React, { useRef } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -13,8 +13,8 @@ import { AddListFormSchemaDTO } from '@/lib/type';
 import { useCreateListMutation } from '@/app/services/ListApi';
 import ListModalBody from '@/app/dashboard/lists/_components/ListModalBody';
 
-const namespaceId = "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
 
+const namespaceId = "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
 
 
 const AddListForm = () => {
@@ -27,16 +27,12 @@ const AddListForm = () => {
         }
     });
 
-    // const { refetch } = useGetListsQuery(namespaceId);
     const [createList, { isLoading: isCreating, error: createError }] = useCreateListMutation();
+    const closeRef = useRef<HTMLButtonElement>(null);
 
     if (createError) {
         return <div>There was an error creating list...</div>
     }
-
-    // if (isCreating) {
-    //     return <div>Creating template...</div>
-    // }
 
     async function addNewList(value: z.infer<typeof AddListFormSchemaDTO>) {
         console.log(value);
@@ -49,6 +45,7 @@ const AddListForm = () => {
 
         await createList(newList);
         form.reset();
+        closeRef.current?.click();
     }
 
   return (
@@ -62,6 +59,10 @@ const AddListForm = () => {
                     <Button type="button" variant={"outline"}>Close</Button>
                 </DialogClose>
                 <Button type="submit" disabled={isCreating}>Create</Button>
+                {/* hidden button to close dialog */}
+                <DialogClose asChild>
+                    <button ref={closeRef} className="hidden" />
+                </DialogClose>
             </DialogFooter>}
         />
   )

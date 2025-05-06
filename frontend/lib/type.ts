@@ -224,6 +224,7 @@ export const MailDTO = z.object({
   clicks: z.number(),
   status: z.string(),
   status_reason: z.string().nullable(),
+  from_name: z.string().nullable(),
 });
 
 // send transactional mail request DTO...

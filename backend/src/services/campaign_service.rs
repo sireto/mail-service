@@ -1,4 +1,4 @@
-use crate::{error::AppError, models::{campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse, AddMailToQueueResponse}, campaign_lists::NewListInCampaign, mail::CreateMailRequest}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, campaign_lists_repo::{CampaignListRepository, CampaignListRepositoryImpl}, list_contact_repo::ListContactRepositoryImpl, mail_repository::{ MailRepository, MailRepositoryImpl}}, servers::{servers_handler::get_server_by_id, servers_model::{Server, ServerTypeEnum}, servers_repo::{self, ServerRepoImpl}, servers_services::{self, ServerService, ServerServiceTrait}}, utils::contact_lists_functions::{get_unique_contacts_from_campaign, populate_contact_template}};
+use crate::{error::AppError, models::{campaign::{CampaignSendResponse, DeleteCampaignResponse, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse, AddMailToQueueResponse}, campaign_lists::NewListInCampaign, mail::CreateMailRequest}, repositories::{campaign::{self, CampaginRepositoryImpl, CampaignRepository}, campaign_lists_repo::{CampaignListRepository, CampaignListRepositoryImpl}, list_contact_repo::ListContactRepositoryImpl, mail_repository::{ MailRepository, MailRepositoryImpl}},  servers::{servers_handler::get_server_by_id, servers_model::{Server, ServerTypeEnum}, servers_repo::{self, ServerRepoImpl}, servers_services::{self, ServerService, ServerServiceTrait}}, utils::contact_lists_functions::{get_unique_contacts_from_campaign, populate_contact_template}};
 use uuid::Uuid;
 use std::{collections::HashSet, sync::Arc, env};
 use axum::http::StatusCode;
@@ -483,13 +483,15 @@ pub async fn send_single_email (
     let mail_repo = Arc::new(MailRepositoryImpl);
     let mail_service = mail_service::MailService::new(mail_repo);
 
+    let from_email = format!("{} <{}>", campaign_sender_response.from_name, sender_email);
+
     let _result = match server_type {
         ServerTypeEnum::AWS => {
             let client = aws_service::create_aws_client_db(&server_id.to_string()).await;
 
-            aws_service::send_mail(
+            let response = aws_service::send_mail(
                 client, 
-                &sender_email, 
+                &from_email, 
                 vec![email], 
                 None, 
                 None, 
@@ -497,11 +499,14 @@ pub async fn send_single_email (
                 &message,
                 Some(&mail_id),
             ).await.map_err(|err| AppError::InternalServerError(Some(format!("{:?}", err))))?;
+
+            println!("THe response from the aws ====> {:?}", response);
         },
         ServerTypeEnum::SMTP => {
+            println!("Sending email via SMTP");
             server_service.send_mail_with_smtp(
                 server_id,
-                &sender_email,
+                &from_email,
                 vec![email],
                 None,
                 None,

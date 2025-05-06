@@ -4,6 +4,8 @@ import Modal from '@/components/Modal';
 import { Row } from '@tanstack/react-table';
 import { Edit3, Trash2 } from 'lucide-react';
 import React from 'react'
+import ConfirmationPopup from '@/components/common/ConfirmationPopup';
+import { Button } from '@/components/ui/button';
 
 interface ActionsColumnProps {
     row: Row<any>,
@@ -28,7 +30,6 @@ const ActionsColumn = ({
     
     return (
         <div className='flex space-x-4 text-primary items-center'>
-                {/* <button className='transition-all duration-300 ease-in-out hover:scale-105'><Edit3 size={16} /></button> */}
                 <Modal 
                     triggerButton={<Edit3 
                         size={20} 
@@ -39,12 +40,17 @@ const ActionsColumn = ({
                     dialogTitle={"Edit Template"}
                     dialogDescription={"Edit your template"}
                 />
-                <button 
-                    className='transition-all duration-300 ease-in-out hover:scale-105'
-                    onClick={() => deleteListHandler(listId)}
-                    >
-                    <Trash2 strokeWidth={1.5} size={20} className='text-red-400 hover:text-red-500' />
-            </button>
+                <ConfirmationPopup
+                    title="Are you sure to delete this list?"
+                    message="The list will be deleted permanently."
+                    onConfirm={() => deleteListHandler(listId)}
+                    popupTriggerButton  = {
+                        <Trash2 strokeWidth={1.5} size={20} className='text-red-400 hover:text-red-500 transition-all duration-300 ease-in-out hover:scale-105 cursor-pointer' />
+                    }
+                    confirmButton = {
+                        <Button variant={"danger"}>Delete</Button>
+                    }
+                />
         </div>
     );
 }

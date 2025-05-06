@@ -1,6 +1,6 @@
 'use client'
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -16,6 +16,7 @@ import TemplateModalBody from '@/app/dashboard/templates/_components/TemplateMod
 const EditTemplateForm = ({ templateId }: { templateId: string }) => {
     const { data } = useGetTemplatesQuery();
     const [updateTemplate, { isLoading: isUpdating, error: updateError }] = useUpdateTemplateMutation();
+    const closeRef = useRef<HTMLButtonElement>(null);
     
     const form = useForm<z.infer<typeof AddTemplateFormSchemaDTO>>({
         resolver: zodResolver(AddTemplateFormSchemaDTO),
@@ -57,6 +58,7 @@ const EditTemplateForm = ({ templateId }: { templateId: string }) => {
             updatedTemplate
         });
         form.reset();
+        closeRef.current?.click();
     }
 
     return (
@@ -71,6 +73,9 @@ const EditTemplateForm = ({ templateId }: { templateId: string }) => {
                     <Button type="button" variant={"outline"}>Close</Button>
                 </DialogClose>
                 <Button type="submit" disabled={isUpdating}>Save</Button>
+                <DialogClose asChild>
+                    <button ref={closeRef} className="hidden" />
+                </DialogClose>
             </DialogFooter>}
         />
       )

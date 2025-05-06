@@ -9,6 +9,8 @@ use crate::servers::servers_model::{
 use crate::schema::contacts::dsl as contacts_dsl;
 use crate::schema::bounce_logs::dsl as bounce_logs_dsl;
 use uuid::Uuid;
+use diesel::dsl::sql;
+use diesel::sql_types::{ Nullable, Text };
 use mockall::{automock, predicate::*};
 use async_trait::async_trait;
 
@@ -125,6 +127,7 @@ impl ServerRepo for ServerRepoImpl {
                 last_error,
                 contacts_dsl::email,
                 bounce_logs_dsl::reason.nullable(),
+                sql::<Nullable<Text>>("NULL")
             ))
             .load::<MailWithDetails>(&mut conn)
     }

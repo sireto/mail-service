@@ -36,7 +36,13 @@ pub trait MailServiceTrait {
     async fn increment_mail_clicks(&self, mail_id: String) -> Result<UpdateMailResponse, AppError>;
     async fn get_mails_by_contact(&self, contact_id: Uuid) -> Result<Vec<MailWithDetails>, AppError>;
     async fn fetch_queued_mails(&self) -> Result<Vec<MailWithDetails>, AppError>;
+    async fn fetch_bounced_mails(&self) -> Result<Vec<MailWithDetails>, AppError>;
+    async fn fetch_stale_submitted_mails(&self) -> Result<Vec<MailWithDetails>, AppError>;
     async fn process_mails(
+        &self,
+        server_service: Arc<ServerService>,
+    ) -> Result<(), AppError>;
+    async fn process_submitted_mails(
         &self,
         server_service: Arc<ServerService>,
     ) -> Result<(), AppError>;
@@ -136,7 +142,19 @@ impl MailServiceTrait for MailService {
     }
 
     async fn fetch_queued_mails(&self) -> Result<Vec<MailWithDetails>, AppError> {
-        let response = self.repository.get_queued_mails().await?;
+        let response = self.repository.get_mails_by_status("queued", true).await?;
+
+        Ok(response)
+    }
+
+    async fn fetch_bounced_mails(&self) -> Result<Vec<MailWithDetails>, AppError> {
+        let response = self.repository.get_mails_by_status("bounced", false).await?;
+
+        Ok(response)
+    }
+
+    async fn fetch_stale_submitted_mails(&self) -> Result<Vec<MailWithDetails>, AppError> {
+        let response = self.repository.get_stale_submitted_mails().await?;
 
         Ok(response)
     }
@@ -210,6 +228,64 @@ impl MailServiceTrait for MailService {
             }
         }
     }
+
+    /// A process to handle stale submitted mails...
+    /// This function will retry sending mails that are stuck in the submitted state...
+    async fn process_submitted_mails(
+        &self,
+        server_service: Arc<ServerService>,
+    ) -> Result<(), AppError> {
+        let mut ticker = interval(Duration::from_secs(600)); // Retry every 10 minutes or longer...
+        loop {
+            ticker.tick().await;
+    
+            let mails = self.repository.get_stale_submitted_mails().await?;
+    
+            if mails.is_empty() {
+                println!("No submitted mails to retry");
+                continue;
+            }
+    
+            for mail in mails {
+                if mail.attempts >= 3 {
+                    println!("Mail {} exceeded max retry attempts, marking as failed. No more retries will be done for this mail", mail.id);
+                    self.repository.update_mail_status(mail.id, "failed").await?;
+                    continue;
+                }
+
+                let sid = match mail.server_id {
+                    Some(id) => id,
+                    None => continue,
+                };
+
+                let server = server_service.get_server_by_id(&sid.to_string()).await?;
+    
+                println!("Retrying submitted mail {}", mail.id);
+    
+                // Retry send (optionally with exponential backoff)
+                let result = send_single_email(
+                    server.server_type,
+                    mail.id.clone(),
+                    mail.campaign_id.unwrap(),
+                    sid,
+                    mail.email.clone(),
+                    mail.mail_message.clone(),
+                    format!("Hello {}", mail.email),
+                ).await;
+    
+                if result.is_ok() {
+                    println!("Mail {} retried successfully", mail.id);
+                    self.repository.update_mail_attempts(mail.id).await?;
+                } else {
+                    println!("Mail {} retry failed", mail.id);
+                    self.repository.udpate_mail_last_try_error(
+                        mail.id, 
+                        "Several retries to send mail failed",
+                    ).await?;
+                }
+            }
+        }
+    } 
 }
 
 /// Process exactly one batch of queued mails (no loop or ticker).

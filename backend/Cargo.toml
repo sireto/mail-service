@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 axum = "0.8.1"
-tokio = { version = "1.43.0", features = ["full"] }
+tokio = { version = "1.43.1", features = ["full"] }
 dotenv = "0.15.0"
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 serde = { version = "1.0.217", features = ["derive"] }
@@ -27,7 +27,7 @@ diesel_migrations = "2.2.0"
 uuid = { version = "1.12.1", features = ["serde", "v4" ] }
 
 utoipa = { version = "5.3.1", features = ["axum_extras"] }
-utoipa-swagger-ui = {version = "9.0.0", features=["axum"] }
+utoipa-swagger-ui = {version = "9.0.1", features=["axum"] }
 url = "2.5.4"
 
 warp = "0.3.7"
@@ -36,15 +36,14 @@ thiserror = "2"
 anyhow = "1.0.95"
 mockall = "0.13.1"
 async-trait = "0.1.85"
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.12.15", features = ["json"] }
 
 diesel-derive-enum = {version= "2.1.0", features=["postgres"] }
 
-multipart = "0.18.0"
 axum-extra = { version = "0.10.0", features = ["multipart"] }
 csv = "1.3.1"
 
-lettre = "0.11.14"
+lettre = "0.11.15"
 tokenbucket = "0.1.6"
 governor = "0.10.0"
 

@@ -64,11 +64,16 @@ export const mailApi = createApi({
                     console.error("Error deleting mail: ", error);
                 }
             }
-        })
+        }),
+        getBouncedMail: builder.query<Mail[], void>({
+            query: () => '/bounce',
+            providesTags: ['Mail']
+        }),
     })
 });
 
 export const { 
     useGetMailsQuery,
-    useDeleteMailMutation
+    useDeleteMailMutation,
+    useGetBouncedMailQuery
 } = mailApi;

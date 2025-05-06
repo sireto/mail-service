@@ -1,7 +1,7 @@
 "use client";
 
 import { AddCampaignFormSchemaDTO } from "@/lib/type";
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -16,6 +16,8 @@ import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CampaignForm from "./_components/CampaignForm";
 import SendTestMailForm from "./_components/SendTestMailForm";
+import { useGetTemplatesQuery } from "@/app/services/TemplateApi";
+import { useGetCampaignSendersQuery } from "@/app/services/CampaignSenderApi";
 
 const Page = () => {
   const { id } = useParams<{ id: string }>();
@@ -42,8 +44,32 @@ const Page = () => {
   const [updateCampaign, { isLoading: isUpdating, error: updateError }] =
     useUpdateCampaignMutation();
 
+  const {
+    data: templates,
+    isLoading: isTemplateLoading
+  } = useGetTemplatesQuery(
+    undefined,
+    { refetchOnMountOrArgChange: true }
+  );
+
+  const {
+    data: campaignSenders,
+    isLoading: isSenderLoading,
+  } = useGetCampaignSendersQuery(
+    undefined,
+    { refetchOnMountOrArgChange: true }
+  );
+
   useEffect(() => {
-    if (isEditing && campaignData) {
+    console.warn("THE template id ====> ", campaignData?.template_id, "The campaign_sender id =====> ", campaignData?.campaign_senders);
+    if (
+        isEditing && 
+        campaignData &&
+        !isTemplateLoading &&
+        !isSenderLoading &&
+        templates && 
+        campaignSenders
+      ) {
       form.reset({
         campaign_name: campaignData.campaign_name,
         campaign_senders: campaignData.campaign_senders,
@@ -54,7 +80,7 @@ const Page = () => {
     }
 
     console.warn("THE FORM STATE ===> ", form.getValues());
-  }, [campaignData, isEditing]);
+  }, [campaignData, isEditing, isTemplateLoading, isSenderLoading]);
 
   const saveCampaignChanges = async (
     value: z.infer<typeof AddCampaignFormSchemaDTO>
@@ -110,6 +136,8 @@ const Page = () => {
             <span>Save Changes</span>
           </Button>
         }
+        templates={templates}
+        senders={campaignSenders}
       />
       <hr className="lg:hidden" />
       <SendTestMailForm templateId={form.getValues("template_id")} />

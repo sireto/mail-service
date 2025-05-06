@@ -19,7 +19,7 @@ import {
   TemplateDTO,
 } from "@/lib/type";
 import { Input } from "@/components/ui/input";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Dispatch, SetStateAction } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 import { useGetTemplatesQuery } from "@/app/services/TemplateApi";
@@ -30,10 +30,15 @@ import DropdownItemList from "./DropdownItemList";
 import { useGetCampaignSendersQuery } from "@/app/services/CampaignSenderApi";
 import { MultiSelect } from "@/components/common/Multiselect";
 
+type Template = z.infer<typeof TemplateDTO>;
+type Sender = z.infer<typeof CampaignSenderDTO>;
+
 interface CampaignFormProps {
   form: UseFormReturn<z.infer<typeof AddCampaignFormSchemaDTO>>;
   submitHandler: (value: z.infer<typeof AddCampaignFormSchemaDTO>) => void;
   triggerButton: React.ReactNode;
+  templates: Template[] | undefined,
+  senders: Sender[] | undefined,
 }
 
 type SenderItem = {
@@ -41,7 +46,6 @@ type SenderItem = {
   name: string;
 };
 
-type Template = z.infer<typeof TemplateDTO>;
 type List = z.infer<typeof ListDTO>;
 type MultiSelectItemType = {
   label: string;
@@ -51,18 +55,12 @@ type MultiSelectItemType = {
 const namespaceId: string | undefined = process.env.NEXT_PUBLIC_NAMESPACE_ID;
 
 const CampaignForm = (props: CampaignFormProps) => {
-  const { form, submitHandler, triggerButton } = props;
-  // const [ contactLists, setContactLists ] = useState<MultiSelectItemType[]>([]);
+  const { form, submitHandler, triggerButton, templates, senders: campaignSenders } = props;
 
-  const { data: templates, error, isLoading } = useGetTemplatesQuery();
   const { data: lists } = useGetListsQuery(
     namespaceId || "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82"
   );
-  const {
-    data: campaignSenders,
-    error: senderError,
-    isLoading: senderLoading,
-  } = useGetCampaignSendersQuery();
+
   const multiSelectRef = useRef(null);
 
   const contactLists =
@@ -76,23 +74,9 @@ const CampaignForm = (props: CampaignFormProps) => {
     name: `${sender.from_name} <${sender.from_email}>`,
   }));
 
-  if (error) {
-    return <div>There was an error fetching templates...</div>;
-  }
-
-  // useEffect(() => {
-  //   console.warn("THE LISTS ARE REFETCHING ===> ", lists);
-
-  // }, [lists]);
-
-  // useEffect(() => {
-  //   if (lists) {
-  //       const updatedValues = form.getValues("list_ids")?.filter(id =>
-  //           lists.some(list => list.id === id)
-  //       ) || [];
-  //       form.setValue("list_ids", updatedValues);
-  //   }
-  // }, [lists, form]);
+  // if (error) {
+  //   return <div>There was an error fetching templates...</div>;
+  // }
 
   return (
     <Form {...form}>
@@ -135,12 +119,9 @@ const CampaignForm = (props: CampaignFormProps) => {
             <FormItem>
               <FormLabel className="font-bold text-black">Sender</FormLabel>
               <FormControl>
-                {/* <Input
-                    placeholder="Enter sender email"
-                    {...field}
-                    className={fieldState.invalid ? "border-red-400 focus-visible:ring-red-500" : ""}
-                  /> */}
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select
+                  value={field.value}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select the campaign sender" />
                   </SelectTrigger>
@@ -164,7 +145,9 @@ const CampaignForm = (props: CampaignFormProps) => {
             <FormItem>
               <FormLabel className="font-bold text-black">Template</FormLabel>
               <FormControl>
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select
+                  value = {field.value}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select your Template" />
                   </SelectTrigger>
@@ -179,27 +162,6 @@ const CampaignForm = (props: CampaignFormProps) => {
             </FormItem>
           )}
         />
-
-        {/* <FormField
-            control={form.control}
-            name="list_id"
-            render={({ field, fieldState }) => (
-              <FormItem>
-                <FormLabel className="font-bold text-black">Lists</FormLabel>
-                <FormControl>
-                <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select your Lists" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <DropdownItemList<List> items={lists} />
-                    </SelectContent>
-                </Select>
-                </FormControl>
-                <FormMessage>{form.formState.errors.list_id?.message}</FormMessage>
-              </FormItem>
-            )}
-          /> */}
 
         <FormField
           control={form.control}
