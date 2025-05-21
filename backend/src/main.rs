@@ -1,24 +1,19 @@
-use axum::error_handling::HandleErrorLayer;
-use axum::handler::HandlerService;
 use axum::middleware;
-use axum::response::Response;
-use axum::BoxError;
 use backend::error::AppError;
 use backend::repositories::mail_repository;
 use backend::route::create_router;
 use backend::services::mail_service::{self, MailServiceTrait};
 use backend::servers::{ servers_repo, servers_services };
 use diesel::PgConnection;
-use diesel::Connection; // Import the Connection trait
+use diesel::Connection;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use dotenv::dotenv;
 
 use axum::http::{
     header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
-    HeaderValue, Method, status::StatusCode, Request
+    HeaderValue, Method
 };
 use tower_http::cors::CorsLayer;
-use std::convert::Infallible;
 use std::{env, net::SocketAddr, sync::Arc};
 use backend::middleware::error_handling_middleware;
 
@@ -72,17 +67,6 @@ async fn main() {
             }
         });
     }
-
-    // Worker for retrying submitted but not delivered mails...
-    // {
-    //     let mail_service = Arc::clone(&mail_service);
-    //     let server_service = Arc::clone(&server_service);
-    //     tokio::spawn(async move {
-    //         if let Err(err) = mail_service.process_submitted_mails(server_service.into()).await.map_err(|err| AppError::InternalServerError(Some(format!("Mail retry worker error: {:?}", err.to_string())))) {
-    //             eprintln!("Error occurred in mail retry worker: {:?}", err);
-    //         }
-    //     });
-    // }
 
     // Address configuration
     let addr = env::var("SERVER_ADDRESS").unwrap_or_else(|_| "0.0.0.0:8000".to_string());

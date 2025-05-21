@@ -57,7 +57,7 @@ impl ListContactRepository for ListContactRepositoryImpl {
 
  async fn delete_contacts_from_list(
     &self,
-    listId: Uuid,
+    list_uuid: Uuid,
     contact_ids: Vec<Uuid>,
 ) -> Result<usize, diesel::result::Error> {
     use crate::schema::list_contacts::dsl::*;
@@ -65,7 +65,7 @@ impl ListContactRepository for ListContactRepositoryImpl {
 
     diesel::delete(
         list_contacts
-            .filter(list_id.eq(listId))
+            .filter(list_id.eq(list_uuid))
             .filter(contact_id.eq_any(contact_ids))
     )
     .execute(&mut conn)

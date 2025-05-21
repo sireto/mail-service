@@ -68,12 +68,6 @@ impl CampaignListRepository for CampaignListRepositoryImpl {
         use crate::schema::campaign_lists::dsl::*;
         let mut conn = get_connection_pool().await;
 
-        // Query to fetch list_ids for the given campaign_id
-        // campaign_lists
-        //     .filter(campaign_id.eq(id))
-        //     .select(list_id)
-        //     .load::<Uuid>(&mut conn)
-
         let result = campaign_lists
             .filter(campaign_id.eq(c_id))
             .inner_join(lists.on(list_id.eq(id)))

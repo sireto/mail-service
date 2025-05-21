@@ -11,7 +11,7 @@ import Modal from "@/components/Modal";
 import PreviewFrame from "./PreviewFrame";
 import { Editor, useMonaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
-import xmlFormat from 'xml-formatter';
+import xmlFormat from 'xml-formatter'
 
 interface TemplateModalBodyProps {
     modalTitle: string;

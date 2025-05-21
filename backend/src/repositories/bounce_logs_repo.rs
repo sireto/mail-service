@@ -3,8 +3,7 @@ use crate::schema::bounce_logs::dsl::*;
 use diesel::prelude::*;
 use crate::models::bounce_logs::{
     BounceLog,
-    CreateBounceLogRequest,
-    CreateBounceLogResponse
+    CreateBounceLogRequest
 };
 use uuid::Uuid;
 use mockall::{ automock, predicate::* };

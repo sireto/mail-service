@@ -8,8 +8,6 @@ use crate::repositories::list_contact_repo::{ListContactRepository, ListContactR
 use crate::repositories::contact::ContactRepository;
 
 
-// use anyhow::{anyhow, Result};
-
 pub struct ListContactService {
     repository: Arc<dyn ListContactRepository + Send + Sync>
 }

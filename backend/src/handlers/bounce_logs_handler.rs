@@ -1,5 +1,3 @@
-// https://f2d0-2400-74e0-0-6aae-be17-ceca-c77e-bb91.ngrok-free.app
-
 use std::sync::Arc;
 
 use crate::{error::AppError, models::{bounce_logs::

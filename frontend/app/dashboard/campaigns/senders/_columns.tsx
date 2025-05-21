@@ -47,7 +47,14 @@ const CampaignSenderActions = ({ senderData }: CampaignSenderActionsProps) => {
   );
 };
 
-export const columns: ColumnDef<CampaignSenderActionsProps>[] = [
+export const columns: ColumnDef<{
+  id: string;
+  created_at: string;
+  updated_at: string;
+  server_id: string;
+  from_name: string;
+  from_email: string;
+}>[] = [
   {
     accessorKey: "from_name",
     header: "From Name",

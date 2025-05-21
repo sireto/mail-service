@@ -78,9 +78,6 @@ pub struct SnsNotification {
     pub message: String, // Actual bounce data in JSON string format...
     #[serde(rename = "MessageId")]
     pub message_id: String,
-    // #[serde(rename = "SubscribeURL")]
-    // pub subscribe_url: String,
-
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]

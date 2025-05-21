@@ -182,31 +182,3 @@ impl ContactRepository for ContactRepositoryImpl {
         result
     }
 }
-
-// #[automock]
-// pub async fn create_contact (
-//     payload: CreateContactRequest
-// ) -> Result<Contact, diesel::result::Error> {
-//     let mut conn = get_connection_pool().await;
-
-//     diesel::insert_into(contacts)
-//         .values(&payload)
-//         .returning(Contact::as_returning())
-//         .get_result::<Contact>(&mut conn)
-// }
-
-// pub async fn get_all_contacts() -> Result<Vec<Contact>, diesel::result::Error> {
-//     let mut conn = get_connection_pool().await;
-    
-//     contacts
-//         .select((
-//             id,
-//             first_name,
-//             last_name,
-//             email,
-//             attribute,
-//             created_at,
-//             updated_at,
-//         ))
-//         .load::<Contact>(&mut conn)
-// }
