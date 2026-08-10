@@ -16,8 +16,8 @@ use uuid::Uuid;
 use axum::{extract::Path, http::StatusCode, Json};
 
 #[utoipa::path(
-    post, 
-    path="/api/campaigns", 
+    post,
+    path="/api/campaigns",
     responses(
         (status=200, description="Create a campaign", body= CreateCampaignRequest),
         (status=404)

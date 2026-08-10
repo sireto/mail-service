@@ -11,10 +11,10 @@ use axum::{extract::Path, http::status::StatusCode, Json};
 use uuid::Uuid;
 
 #[utoipa::path(
-    post, 
-    path = "/api/list", 
+    post,
+    path = "/api/list",
     responses(
-        (status=200, description = "Create a new list", body=CreateListResponse), 
+        (status=200, description = "Create a new list", body=CreateListResponse),
         (status = 404)
     )
 )]
@@ -31,10 +31,10 @@ pub async fn create_list(Json(payload): Json<CreateListRequest>) -> Result<Json<
 }
 
 #[utoipa::path(
-    get, 
-    path = "/api/list/namespaces/{namespace_id}/list", 
+    get,
+    path = "/api/list/namespaces/{namespace_id}/list",
     responses(
-        (status=200, description="List of lists", body=Vec<ListResponse>), 
+        (status=200, description="List of lists", body=Vec<ListResponse>),
         (status= 404)
     )
 )]
@@ -49,10 +49,10 @@ pub async fn get_lists(Path(namespace_id): Path<String>) -> Result<Json<Vec<List
 }
 
 #[utoipa::path(
-    get, 
-    path = "/api/list/namespaces/{namespace_id}/list/{list_id}", 
+    get,
+    path = "/api/list/namespaces/{namespace_id}/list/{list_id}",
     responses(
-        (status = 200, description = "Get List By ID", body=ListResponse), 
+        (status = 200, description = "Get List By ID", body=ListResponse),
         (status =404)
     )
 )]
@@ -71,11 +71,11 @@ pub async fn get_list_by_id(
 }
 
 #[utoipa::path(
-    patch, 
-    path = "/api/list/namespaces/{namespace_id}/list/{list_id}", 
+    patch,
+    path = "/api/list/namespaces/{namespace_id}/list/{list_id}",
     params(
         ("list_id", Path, description ="Id of the lsit to update")
-    ), 
+    ),
     responses(
         (status = 200, description = "List updated successfully", body = UpdatedListResponse),
         (status = 400, description = "Bad request"),
