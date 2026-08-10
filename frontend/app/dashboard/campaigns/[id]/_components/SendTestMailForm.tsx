@@ -22,7 +22,7 @@ const SendTestMailForm = ({
       defaultValues: { email: "" },
     })
 
-    const [ sendTemplatedMail, { isLoading: isSending, error: sendError }] = useSendTemplatedEmailMutation();
+    const [ sendTemplatedMail ] = useSendTemplatedEmailMutation();
 
     // onSubmit handler
     const onSubmit = (data: z.infer<typeof SendTestMailFormDTO>) => {

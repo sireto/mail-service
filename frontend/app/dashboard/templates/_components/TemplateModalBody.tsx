@@ -11,7 +11,7 @@ import Modal from "@/components/Modal";
 import PreviewFrame from "./PreviewFrame";
 import { Editor, useMonaco } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
-import xmlFormat from 'xml-formatter';
+import xmlFormat from 'xml-formatter'
 
 interface TemplateModalBodyProps {
     modalTitle: string;
@@ -63,7 +63,7 @@ const TemplateModalBody = ({
                 });
             }
             monaco.languages.registerDocumentFormattingEditProvider('mjml', {
-                provideDocumentFormattingEdits(model, options, token) {
+                provideDocumentFormattingEdits(model) {
                     const text = model.getValue();
                     const formatted = xmlFormat(text, { collapseContent: false });
                     return [{ range: model.getFullModelRange(), text: formatted }];

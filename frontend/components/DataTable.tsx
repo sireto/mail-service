@@ -19,7 +19,7 @@ import {
 interface DataTableProps<TData, TValue> {
   data: TData[];
   columns: ColumnDef<TData, TValue>[];
-  fallback: String;
+  fallback: string;
   isLoading?: boolean;
 }
 

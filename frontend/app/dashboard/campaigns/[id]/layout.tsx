@@ -21,7 +21,7 @@ export default function NewLayout({
   const pathname = usePathname();
   const isEditing = id !== "new"; // if not new this Page is opened in the editing mode...
 
-  const { data: campaignData, error, isLoading } = useGetCampaignByIdQuery(id);
+  const { data: campaignData } = useGetCampaignByIdQuery(id);
   
   return (
     <div className="w-full max-w-6xl lg:p-6 no-scrollbar">

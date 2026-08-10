@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Meta, StoryObj } from "@storybook/react";
 import ServerCard from "@/app/dashboard/servers/_components/ServerCard";
 import ReduxProvider from "@/providers/redux-provider";

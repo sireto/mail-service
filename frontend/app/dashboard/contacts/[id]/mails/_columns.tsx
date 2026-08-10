@@ -6,17 +6,23 @@ import { formatDateWithoutDay } from '@/lib/utils';
 import ActionsColumn from '@/app/dashboard/campaigns/[id]/analytics/_components/ActionsColumn';
 import ToolTip from '@/components/common/ToolTip';
 import TemplateName from './components/TemplateName';
+import { MailDTO } from '@/lib/type';
+import { z } from 'zod';
+
+type Mail = z.infer<typeof MailDTO>;
 
 const statusTagStyleMap = {
     draft: 'bg-gray-100 text-gray-800',
     queued: 'bg-yellow-100 text-yellow-800',
-    delivered: 'bg-blue-100 text-blue-800',
+    submitted: 'bg-blue-100 text-blue-800',
+    delivered: 'bg-green-100 text-green-800',
     bounced: 'bg-red-100 text-red-800',
+    failed: 'border border-red-800 text-red-800',
 }
 
 export const columns = (
     deleteMailHandler: (id: string) => void,
-): ColumnDef<any>[] => [
+): ColumnDef<Mail>[] => [
     {
         accessorKey: "template",
         header: "Template",

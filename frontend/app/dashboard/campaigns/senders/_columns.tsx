@@ -47,7 +47,14 @@ const CampaignSenderActions = ({ senderData }: CampaignSenderActionsProps) => {
   );
 };
 
-export const columns: ColumnDef<any>[] = [
+export const columns: ColumnDef<{
+  id: string;
+  created_at: string;
+  updated_at: string;
+  server_id: string;
+  from_name: string;
+  from_email: string;
+}>[] = [
   {
     accessorKey: "from_name",
     header: "From Name",
@@ -72,7 +79,9 @@ export const columns: ColumnDef<any>[] = [
     id: "actions",
     enableSorting: false,
     header: () => "Actions",
-    cell: ({ row }) => <CampaignSenderActions senderData={row.original} />,
+    cell: ({ row }) => (
+      <CampaignSenderActions senderData={row.original as unknown as CampaignSenderActionsProps["senderData"]} />
+    ),
   },
 ];
 

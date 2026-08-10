@@ -5,11 +5,6 @@ import {
     DialogTrigger, 
 } from './ui/dialog';
 
-type TriggerLabel = {
-  label: string;
-  icon: React.JSX.Element;
-};
-
 interface ModalProps {
     triggerButton: React.ReactNode,
     dialogBody: React.ReactNode,
@@ -19,9 +14,7 @@ interface ModalProps {
 }
 
 const Modal = (props: ModalProps) => {
-  /* eslint-disable @typescript-eslint/no-unused-vars */
-  const { triggerButton, dialogBody, dialogTitle, dialogDescription, classname = "" } = props;
-  /* eslint-disable @typescript-eslint/no-unused-vars */
+  const { triggerButton, dialogBody, classname = "" } = props;
 
   return (
     <Dialog>

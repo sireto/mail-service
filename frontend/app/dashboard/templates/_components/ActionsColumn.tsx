@@ -7,16 +7,17 @@ import React from 'react';
 import ConfirmationPopup from '@/components/common/ConfirmationPopup';
 import { Button } from '@/components/ui/button';
 import PreviewFrame from './PreviewFrame';
+import { Template } from '@/lib/type/template';
 
 
 interface ActionsColumnProps {
-    row: Row<any>,
+    row: Row<Template>,
 };
 
 const ActionsColumn = ({ row }: ActionsColumnProps) => {
     const templateId = row.original.id;
     
-    const [ deleteTemplate, { isLoading: isDeleting, error: deletionError } ] = useDeleteTemplateMutation();
+    const [ deleteTemplate, { error: deletionError } ] = useDeleteTemplateMutation();
     const mjml = row.original.content_html.trim();
 
     const deleteTemplateHandler = async (id: string) => {

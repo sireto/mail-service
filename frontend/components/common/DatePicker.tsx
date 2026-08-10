@@ -7,11 +7,12 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '../ui/
 import { format } from 'date-fns';
 import { Calendar } from '../ui/calendar';
 import { UseFormReturn } from 'react-hook-form';
+import { SearchCampaignAnalytics } from '@/app/dashboard/campaigns/[id]/analytics/page';
 
 interface DatePickerProps {
-    form: UseFormReturn<any>,
+    form: UseFormReturn<SearchCampaignAnalytics>,
     label: string,
-    fieldName: string,
+    fieldName: "campaigns" | "from" | "to" | `campaigns.${number}`,
     placeholder: string,
 }
 
@@ -39,7 +40,7 @@ const DatePicker = ({
                     )}
                     >
                     {field.value ? (
-                        format(field.value, "PPP")
+                        field.value instanceof Date ? format(field.value, "PPP") : ""
                     ) : (
                         <span>{placeholder}</span>
                     )}
@@ -51,7 +52,7 @@ const DatePicker = ({
                 <Calendar
                     mode="single"
                     className='bg-white border border-secondary rounded-md' 
-                    selected={field.value ? new Date(field.value) : undefined}
+                    selected={field.value && typeof field.value === 'string' ? new Date(field.value) : field.value instanceof Date ? field.value : undefined}
                     onSelect={field.onChange}
                     disabled={(date) =>
                     date > new Date() || date < new Date("1900-01-01")

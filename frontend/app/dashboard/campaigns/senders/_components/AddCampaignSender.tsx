@@ -16,7 +16,7 @@ import { CampaignSenderFields } from "./CampaignSenderFields";
 import { Server } from "@/lib/type/server";
 
 // Schema for adding a campaign sender
-const AddCampaignSenderSchema = EditCampaignSenderFormSchemaDTO.extend({
+export const AddCampaignSenderSchema = EditCampaignSenderFormSchemaDTO.extend({
   server_id: z.string().uuid("Invalid server ID"),
 });
 

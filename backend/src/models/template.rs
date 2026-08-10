@@ -1,12 +1,9 @@
-/**
- * The following model was the schema for the template table in the prisma-client-rust which was in the backend/src/schema.rs file...
- */
-
-use chrono::{ DateTime, NaiveDateTime, Utc };
+use chrono::{ DateTime, Utc };
 use serde_json::Value;
-
 use serde::{ Serialize, Deserialize };
 use utoipa::ToSchema;
+use diesel::prelude::*;
+use uuid::Uuid;
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq)]
 #[derive(Queryable, Selectable, Insertable)]
@@ -56,54 +53,6 @@ pub struct GetTemplateResponse{
     pub updated_at: DateTime<Utc>,
 }
 
-// #[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
-// pub struct UpdateTemplateRequest {
-//     pub name: Option<String>,
-//     pub template_data: Option<Value>,
-//     pub content_plaintext: Option<String>,
-//     pub content_html: Option<String>,
-// }
-
-
-// the following might change...
-// #[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
-// pub struct UpdateTemplateResponse {
-//     pub id: String,
-//     pub name: String,
-
-//     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
-//     pub updated_at: DateTime<Utc>,
-// }
-
-// #[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
-// pub struct DeleteTemplateResponse {
-//     pub id: Uuid,
-//     pub name: String,
-//     pub updated_at: NaiveDateTime,
-// }
-
-/*
-    <==== Here the following models are for the diesel ORM... ======>
-*/
-use diesel::prelude::*;
-use crate::schema::templates;
-// use diesel::pg::sql_types::Uuid;
-use uuid::Uuid;
-
-// #[derive(Queryable, Selectable)]
-// #[diesel(table_name = templates)]
-// #[diesel(check_for_backend(diesel::pg::Pg))]
-// pub struct Template {
-//     pub id: Uuid,
-//     pub namespace_id: Uuid,
-//     pub name: String,
-//     pub template_data: Value,
-//     pub content_plaintext: Option<String>,
-//     pub content_html: String,
-//     pub created_at: NaiveDateTime,
-//     pub updated_at: NaiveDateTime,
-// }
-
 #[derive(Debug, Queryable, Selectable, Identifiable, Clone, PartialEq)]
 #[diesel(table_name = crate::schema::templates)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -149,7 +98,7 @@ pub struct DeleteTemplateResponse {
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Queryable, Clone, PartialEq)]
 pub struct SendMailRequest {
-    pub receiver: Option<String>,   // this should be a list of emails seperated by commas or the list name for now (later to be changed to the list_id)...
+    pub receiver: Option<String>,   // string that may be a single email or emails separated by comma...
     pub cc: Option<String>,
     pub bcc: Option<String>,
     pub from: String, 

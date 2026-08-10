@@ -8,9 +8,7 @@ import {
   Home,
   List,
   Users,
-  Settings,
   Rocket,
-  User,
   LayoutPanelTop,
   Server,
   X,
@@ -41,8 +39,6 @@ const sidebarItems = [
     ],
   },
   { name: "Servers", href: "/dashboard/servers", icon: Server },
-  // { name: "Users", href: "/dashboard/users", icon: User },
-  // { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 interface SidebarProps {

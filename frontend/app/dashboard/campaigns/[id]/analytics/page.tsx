@@ -3,7 +3,7 @@
 import { useDeleteMailMutation, useGetMailsQuery } from '@/app/services/MailApi';
 import DataTable from '@/components/DataTable';
 import columns from './_columns';
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
@@ -21,11 +21,13 @@ const SearchCampaignAnalyticsDTO = z.object({
     to: z.union([z.string().nonempty("To date is required"), z.date()])
 });
 
+export type SearchCampaignAnalytics = z.infer<typeof SearchCampaignAnalyticsDTO>;
+
 
 const Page = () => {
     const { id } = useParams(); // Get campaign ID from URL parameters
     
-    const [ deleteMail, { isLoading: isDeleting, error: deletionError }] = useDeleteMailMutation();
+    const [ deleteMail, { error: deletionError }] = useDeleteMailMutation();
     const [isGraphView, setIsGraphView] = useState(false);
 
     const today = new Date();
@@ -57,13 +59,11 @@ const Page = () => {
         { skip: !form.formState.isValid || (form.formState.isDirty && !datesChanged)  }
     );
 
-    const multiSelectRef = useRef(null);
-
     if (error) {
         return <div>There was an error fetching campaign mails data...</div>
     }
 
-    const searchHandler = async (value: any) => {
+    const searchHandler = async (value: SearchCampaignAnalytics) => {
         const { campaigns, from, to } = value;
 
         setSearchParams({

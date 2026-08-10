@@ -5,10 +5,11 @@ import { ColumnDef } from "@tanstack/react-table";
 import { formatDate } from "@/lib/utils";
 import ActionsColumn from "./_components/ActionsColumn";
 import Link from "next/link";
+import { List } from "@/lib/type/list";
 
 const namespaceId = "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
 
-export const columns: ColumnDef<any>[] = [
+export const columns: ColumnDef<List>[] = [
   {
     accessorKey: "name",
     header: "Name",

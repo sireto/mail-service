@@ -9,7 +9,7 @@ const PreviewFrame =  ({ mjml, modalTitle, modalDescription }: { mjml: string, m
   const [previewTemplate, {data, error, isLoading}] = usePreviewTemplateMutation();
   useEffect(() => {
     previewTemplate({mjml});
-  }, [mjml]);
+  }, [mjml, previewTemplate]);
 
   const resultHtml = data;
 

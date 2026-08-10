@@ -4,9 +4,10 @@ import React from 'react'
 import { ColumnDef } from '@tanstack/react-table';
 import { formatDate } from '@/lib/utils';
 import ActionsColumn from './_components/ActionsColumn';
+import { Template } from '@/lib/type/template';
 
 
-export const columns: ColumnDef<any>[] = [
+export const columns: ColumnDef<Template>[] = [
     {
         accessorKey: "name",
         header: "Name",
