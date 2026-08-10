@@ -1,7 +1,7 @@
 // data access layer for templates...
 use crate::models::template::{CreateTemplateRequest, Template, UpdateTemplateRequest};
 use crate::schema::templates::dsl::*;
-use crate::{appState::DbPooledConnection, GLOBAL_APP_STATE};
+use crate::{app_state::DbPooledConnection, GLOBAL_APP_STATE};
 use async_trait::async_trait;
 use diesel::prelude::*;
 use mockall::automock;

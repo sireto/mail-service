@@ -17,6 +17,14 @@ Click the "Fork" button at the top right of this page to create your own copy.
 4. Make Your Changes
     Implement your feature or bug fix. Be sure to follow the existing code style and naming conventions.
 
+    Install the repository pre-commit hook once after cloning:
+
+    ```bash
+    ./install-hooks.sh
+    ```
+
+    It runs Rust formatting and compilation checks for staged `backend/` changes and frontend formatting and lint checks for staged `frontend/` changes.
+
 5. Test Your Changes
     Run the relevant tests (cargo test, yarn storybook) and ensure everything passes.
 

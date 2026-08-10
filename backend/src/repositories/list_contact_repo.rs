@@ -1,7 +1,7 @@
 use crate::models::contact::Contact;
 use crate::models::list_contacts::NewContactInList;
 use crate::schema::list_contacts;
-use crate::{appState::DbPooledConnection, GLOBAL_APP_STATE};
+use crate::{app_state::DbPooledConnection, GLOBAL_APP_STATE};
 use diesel::prelude::*;
 use uuid::Uuid;
 

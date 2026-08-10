@@ -6,7 +6,7 @@ use crate::schema::contacts::dsl as contacts_dsl;
 use crate::schema::mails::dsl::*;
 use crate::schema::servers::{dsl as servers_dsl, server_type};
 use crate::servers::servers_model::ServerTypeEnum;
-use crate::{appState::DbPooledConnection, GLOBAL_APP_STATE};
+use crate::{app_state::DbPooledConnection, GLOBAL_APP_STATE};
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
 use diesel::dsl::sql;

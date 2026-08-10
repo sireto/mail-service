@@ -55,7 +55,7 @@ pub struct GetTemplateResponse {
 #[derive(Debug, Queryable, Selectable, Identifiable, Clone, PartialEq)]
 #[diesel(table_name = crate::schema::templates)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-#[primary_key(id)]
+#[diesel(primary_key(id))]
 pub struct Template {
     pub id: Uuid,
     pub namespace_id: Uuid,

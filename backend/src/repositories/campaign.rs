@@ -1,6 +1,6 @@
 use crate::models::campaign::{Campaign, CreateCampaignRequest, UpdateCampaignRequest};
 use crate::schema::campaigns::dsl::*;
-use crate::{appState::DbPooledConnection, GLOBAL_APP_STATE};
+use crate::{app_state::DbPooledConnection, GLOBAL_APP_STATE};
 use async_trait::async_trait;
 use diesel::prelude::*;
 use mockall::{automock, predicate::*};
