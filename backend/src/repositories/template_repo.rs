@@ -42,7 +42,7 @@ impl TemplateRepository for TemplateRespositoryImpl {
     async fn get_all_templates(&self) -> Result<Vec<Template>, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
 
-        templates 
+        templates
             .select((
                 id,
                 namespace_id,

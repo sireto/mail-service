@@ -22,10 +22,10 @@ struct SmtpCheckResponse {
 }
 
 #[utoipa::path(
-    post, 
-    path="/api/servers", 
+    post,
+    path="/api/servers",
     responses(
-        (status=200, description = "Create a contact", body= ServerRequest), 
+        (status=200, description = "Create a contact", body= ServerRequest),
         (status=404)
     )
 )]
@@ -41,8 +41,8 @@ pub async fn create_server(
 }
 
 #[utoipa::path(
-    get, 
-    path="/api/servers", 
+    get,
+    path="/api/servers",
     responses(
         (status=200, description = "Get all servers", body = ServerResponse),
         (status=400)
@@ -69,8 +69,8 @@ pub async fn get_servers(
 }
 
 #[utoipa::path(
-    get, 
-    path="/api/servers/{server_id}", 
+    get,
+    path="/api/servers/{server_id}",
     responses(
         (status=200, description = "Get server by ID", body = ServerResponse),
         (status=400, description = "Invalid server ID format"),
@@ -92,8 +92,8 @@ pub async fn get_server_by_id(
 }
 
 #[utoipa::path(
-    patch, 
-    path="/api/servers/{server_id}", 
+    patch,
+    path="/api/servers/{server_id}",
     request_body = ServerRequest,
     responses(
         (status=200, description = "Update server", body = ServerResponse),
@@ -115,8 +115,8 @@ pub async fn update_server(
 }
 
 #[utoipa::path(
-    delete, 
-    path="/api/servers/{server_id}", 
+    delete,
+    path="/api/servers/{server_id}",
     responses(
         (status=204, description = "Delete server"),
         (status=400, description = "Invalid server ID format"),
@@ -136,10 +136,10 @@ pub async fn delete_server(
 }
 
 #[utoipa::path(
-    post, 
-    path="/api/servers/check-smtp", 
+    post,
+    path="/api/servers/check-smtp",
     responses(
-        (status=200, description = "Check SMTP Credentials", body= SmtpCheckResponse), 
+        (status=200, description = "Check SMTP Credentials", body= SmtpCheckResponse),
         (status=404)
     )
 )]
