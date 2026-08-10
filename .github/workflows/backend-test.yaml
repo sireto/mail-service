@@ -2,35 +2,40 @@ name: Run Backend Tests
 
 on:
   push:
-      branches: [develop, main, 32-feat/test-CI]
+    branches: [develop, main]
+
   pull_request:
-      types: [opened, synchronize, reopened]
-      branches:
-        - develop
+    types: [opened, synchronize, reopened]
+    branches:
+      - develop
 
 jobs:
-  test: 
-      name: Run Backend Tests
-      runs-on: ubuntu-latest
+  test:
+    name: Run Backend Tests
+    runs-on: ubuntu-latest
 
-      permissions:
-        actions: read
-        contents: read
-    
-      steps:
-          - name: Checkout code
-            uses: actions/checkout@v2
+    permissions:
+      actions: read
+      contents: read
 
-          - name: Set up Rust
-            uses: moonrepo/setup-rust@v1
-            with:
-              channel: 1.83.0   # rustc version
-          
-          - name: Install dependencies
-            run: cargo build
-            working-directory: backend
-            
-          - name: Run tests
-            run: cargo test
-            working-directory: backend
-        
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: moonrepo/setup-rust@v1
+        with:
+          channel: 1.97.0
+
+      - name: Show Rust version
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: Install dependencies
+        run: cargo build
+        working-directory: backend
+
+      - name: Run tests
+        run: cargo test
+        working-directory: backend
