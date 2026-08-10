@@ -99,7 +99,8 @@ pub struct DeleteCampaignSenderResponse {
 #[derive(Serialize, Debug, Default, Deserialize, ToSchema, Queryable)]
 pub struct ValidateEmailIdentityRequest {
     pub email: String,
-    pub serverId: String, // Optional if you need to use different SES configurations
+    #[serde(rename = "serverId")]
+    pub server_id: String, // Matches the existing frontend request field name.
 }
 
 #[derive(Serialize, Debug, Default, Deserialize, ToSchema, Queryable)]

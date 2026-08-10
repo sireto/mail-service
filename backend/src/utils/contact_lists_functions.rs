@@ -59,11 +59,9 @@ pub async fn populate_contact_template(
 
     // Use contact attributes as template data
     let mut context = Context::new();
-    if let Some(attrs) = &contact.attribute {
-        if let Value::Object(map) = attrs {
-            for (key, value) in map {
-                context.insert(key, &value.to_string());
-            }
+    if let Some(Value::Object(map)) = &contact.attribute {
+        for (key, value) in map {
+            context.insert(key, &value.to_string());
         }
     }
 
@@ -74,7 +72,7 @@ pub async fn populate_contact_template(
 
     let rendered = tera.render("campaign_template", &context)?;
     let parsed_template = mrml::parse(&rendered)?;
-    let html_output = parsed_template.render(&mrml::prelude::render::Options::default())?;
+    let html_output = parsed_template.render(&mrml::prelude::render::RenderOptions::default())?;
 
     Ok(html_output)
 }
@@ -83,9 +81,9 @@ pub async fn populate_contact_template(
 pub fn parse_csv_data(
     data: &[u8],
     delimiter: &str,
-    mode: &str,
-    status: &str,
-    overwrite: bool,
+    _mode: &str,
+    _status: &str,
+    _overwrite: bool,
 ) -> Result<Vec<CreateContactRequest>, String> {
     let mut reader = csv::ReaderBuilder::new()
         .delimiter(delimiter.as_bytes()[0])

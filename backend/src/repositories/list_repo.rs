@@ -1,6 +1,6 @@
 use crate::models::list::{CreateListRequest, List, UpdateListRequest};
 use crate::schema::lists::dsl::*;
-use crate::{appState::DbPooledConnection, GLOBAL_APP_STATE};
+use crate::{app_state::DbPooledConnection, GLOBAL_APP_STATE};
 use diesel::prelude::*;
 use uuid::Uuid;
 

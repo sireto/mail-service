@@ -26,7 +26,7 @@ pub struct CreateListResponse {
 #[derive(Debug, Queryable, Selectable, Identifiable, Clone)]
 #[diesel(table_name = crate::schema::lists)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-#[primary_key(id)]
+#[diesel(primary_key(id))]
 pub struct List {
     pub id: Uuid,
     pub namespace_id: Uuid,

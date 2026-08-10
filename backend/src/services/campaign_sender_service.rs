@@ -251,7 +251,7 @@ pub async fn send_test_email(payload: SendTestEmailRequest) -> Result<SendTestEm
     if server.server_type == ServerTypeEnum::AWS {
         let validation_result = validate_email_identity(ValidateEmailIdentityRequest {
             email: payload.from_email.clone(),
-            serverId: payload.server_id.clone(),
+            server_id: payload.server_id.clone(),
         })
         .await;
 

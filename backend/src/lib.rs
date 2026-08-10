@@ -1,4 +1,4 @@
-use appState::DbPooledConnection;
+use app_state::DbPooledConnection;
 use diesel::{
     prelude::*,
     r2d2::{ConnectionManager, Pool},
@@ -67,7 +67,7 @@ pub mod servers {
 }
 pub mod tests;
 
-pub mod appState;
+pub mod app_state;
 pub mod error;
 pub mod route;
 pub mod schema;
@@ -81,7 +81,7 @@ pub mod utils {
 }
 pub mod middleware;
 
-use crate::appState::AppState;
+use crate::app_state::AppState;
 use once_cell::sync::Lazy;
 use std::sync::Arc;
 
@@ -96,12 +96,10 @@ pub fn establish_connection() -> Pool<ConnectionManager<PgConnection>> {
 
     let manager = ConnectionManager::<PgConnection>::new(database_url);
 
-    let pool = Pool::builder()
+    Pool::builder()
         .test_on_check_out(true)
         .build(manager)
-        .expect("Could not build connection pool");
-
-    pool
+        .expect("Could not build connection pool")
 }
 
 pub static GLOBAL_APP_STATE: Lazy<Arc<AppState>> = Lazy::new(|| {

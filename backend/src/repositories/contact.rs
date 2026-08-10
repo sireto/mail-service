@@ -2,7 +2,7 @@ use crate::models::contact::{Contact, CreateContactRequest, UpdateContactRequest
 use crate::models::list::List;
 use crate::models::list_contacts::ListContact;
 use crate::schema::contacts::dsl::*;
-use crate::{appState::DbPooledConnection, GLOBAL_APP_STATE};
+use crate::{app_state::DbPooledConnection, GLOBAL_APP_STATE};
 use async_trait::async_trait;
 use diesel::dsl::now;
 use diesel::prelude::*;

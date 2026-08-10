@@ -18,9 +18,15 @@ pub enum AppError {
     #[error("Bad request: {0:?}")]
     BadRequestError(Option<String>),
     #[error("AWS SES error: {0}")]
-    AwsSesError(#[from] SdkError<SendEmailError>),
+    AwsSesError(Box<SdkError<SendEmailError>>),
     #[error("SMTP error: {0}")]
     SmtpError(#[from] SmtpError),
+}
+
+impl From<SdkError<SendEmailError>> for AppError {
+    fn from(error: SdkError<SendEmailError>) -> Self {
+        Self::AwsSesError(Box::new(error))
+    }
 }
 
 impl IntoResponse for AppError {

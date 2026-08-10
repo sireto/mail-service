@@ -7,7 +7,7 @@ use uuid::Uuid;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::{appState::DbPooledConnection, GLOBAL_APP_STATE};
+use crate::{app_state::DbPooledConnection, GLOBAL_APP_STATE};
 
 pub async fn get_connection_pool() -> DbPooledConnection {
     GLOBAL_APP_STATE
@@ -29,10 +29,10 @@ impl ContactInList {
 }
 
 #[derive(Queryable, Identifiable, Associations, Debug)]
-#[primary_key(list_id, contact_id)]
-#[table_name = "list_contacts"]
-#[belongs_to(Contact)] // relationship with Contact
-#[belongs_to(List)] //relationship with List
+#[diesel(primary_key(list_id, contact_id))]
+#[diesel(table_name = list_contacts)]
+#[diesel(belongs_to(Contact))] // relationship with Contact
+#[diesel(belongs_to(List))] //relationship with List
 pub struct ContactInList {
     pub list_id: Uuid,
     pub contact_id: Uuid,

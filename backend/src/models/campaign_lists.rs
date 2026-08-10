@@ -8,10 +8,10 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Queryable, Identifiable, Associations, Debug)]
-#[primary_key(campaign_id, list_id)]
-#[table_name = "campaign_lists"]
-#[belongs_to(Campaign)] // relationship with Contact
-#[belongs_to(List)] //relationship with List
+#[diesel(primary_key(campaign_id, list_id))]
+#[diesel(table_name = campaign_lists)]
+#[diesel(belongs_to(Campaign))] // relationship with Contact
+#[diesel(belongs_to(List))] //relationship with List
 pub struct ListInCampaign {
     pub campaign_id: Uuid,
     pub list_id: Uuid,
