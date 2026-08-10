@@ -62,7 +62,7 @@ const ContactsPageContent = () => {
 
   const handleBulkDelete = async () => {
     const contactIds = Object.keys(selectedContacts).filter(
-      (id) => selectedContacts[id]
+      (id) => selectedContacts[id],
     );
     if (contactIds.length === 0) return;
 
@@ -76,7 +76,7 @@ const ContactsPageContent = () => {
 
   const handleExport = () => {
     const selectedData = contacts?.filter(
-      (contact) => selectedContacts[contact.id]
+      (contact) => selectedContacts[contact.id],
     );
     if (!selectedData?.length) return;
 
@@ -96,7 +96,7 @@ const ContactsPageContent = () => {
     handleDeleteContact,
     lists,
     selectedContacts,
-    setSelectedContacts
+    setSelectedContacts,
   ) as unknown as ColumnDef<Contact, unknown>[];
 
   if (isError) {

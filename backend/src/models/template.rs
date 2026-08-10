@@ -1,12 +1,11 @@
-use chrono::{ DateTime, Utc };
-use serde_json::Value;
-use serde::{ Serialize, Deserialize };
-use utoipa::ToSchema;
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq)]
-#[derive(Queryable, Selectable, Insertable)]
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq, Queryable, Selectable, Insertable)]
 #[diesel(table_name = crate::schema::templates)]
 pub struct CreateTemplateRequest {
     pub name: String,
@@ -22,7 +21,7 @@ pub struct CreateTemplateResponse {
     pub id: String,
     pub name: String,
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
-    pub created_at: DateTime<Utc>
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
@@ -40,15 +39,15 @@ pub struct TemplateResponse {
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
-pub struct GetTemplateResponse{
-    pub id: String, 
-    pub name: String, 
-    pub namespace_id: String, 
-    pub template_data: Value, 
-    pub content_plaintext: Option<String>, 
-    pub content_html: String, 
+pub struct GetTemplateResponse {
+    pub id: String,
+    pub name: String,
+    pub namespace_id: String,
+    pub template_data: Value,
+    pub content_plaintext: Option<String>,
+    pub content_html: String,
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
-    pub created_at: DateTime<Utc>, 
+    pub created_at: DateTime<Utc>,
     #[schema(value_type = String, example="2023-01-10T00:00:00Z")]
     pub updated_at: DateTime<Utc>,
 }
@@ -56,7 +55,7 @@ pub struct GetTemplateResponse{
 #[derive(Debug, Queryable, Selectable, Identifiable, Clone, PartialEq)]
 #[diesel(table_name = crate::schema::templates)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-#[primary_key(id)] 
+#[primary_key(id)]
 pub struct Template {
     pub id: Uuid,
     pub namespace_id: Uuid,
@@ -84,7 +83,7 @@ pub struct UpdateTemplateResponse {
     pub name: String,
 
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
-    pub updated_at: DateTime<Utc>
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Queryable)]
@@ -98,11 +97,11 @@ pub struct DeleteTemplateResponse {
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Queryable, Clone, PartialEq)]
 pub struct SendMailRequest {
-    pub receiver: Option<String>,   // string that may be a single email or emails separated by comma...
+    pub receiver: Option<String>, // string that may be a single email or emails separated by comma...
     pub cc: Option<String>,
     pub bcc: Option<String>,
-    pub from: String, 
-    pub subject: String,   
+    pub from: String,
+    pub subject: String,
 
     #[schema(value_type = String, example = "{\"name\": \"John Doe\"}")]
     pub template_data: String,

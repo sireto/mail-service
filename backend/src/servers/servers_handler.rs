@@ -1,21 +1,21 @@
-use crate::{error::AppError, servers::servers_model::{SendMailFromServerRequest, SendMailFromServerResponse, ServerRequest, ServerResponse}};
-use axum::{
-    extract::Extension, response::IntoResponse, Json, http::StatusCode
-};
-use utoipa::ToSchema;
 use crate::models::mail::GetMailResponse;
+use crate::{
+    error::AppError,
+    servers::servers_model::{SendMailFromServerRequest, SendMailFromServerResponse, ServerRequest, ServerResponse},
+};
+use axum::{extract::Extension, http::StatusCode, response::IntoResponse, Json};
+use utoipa::ToSchema;
 
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::servers::servers_services::{ServerServiceTrait, ServerService};
+use crate::servers::servers_services::{ServerService, ServerServiceTrait};
 use crate::services::mail_service::MailService;
 use crate::utils::server_utils::secure_server_response;
 
-
 use serde::Serialize;
 
-#[derive(Serialize ,ToSchema)]
+#[derive(Serialize, ToSchema)]
 struct SmtpCheckResponse {
     success: bool,
     message: String,
@@ -29,7 +29,10 @@ struct SmtpCheckResponse {
         (status=404)
     )
 )]
-pub async fn create_server(Extension(server_service): Extension<Arc<ServerService>>, Json(payload): Json<ServerRequest>)->Result<Json<ServerResponse>, AppError> {
+pub async fn create_server(
+    Extension(server_service): Extension<Arc<ServerService>>,
+    Json(payload): Json<ServerRequest>,
+) -> Result<Json<ServerResponse>, AppError> {
     let created_server = server_service.create_server(payload).await?;
 
     let server_response: ServerResponse = created_server.into();
@@ -46,15 +49,21 @@ pub async fn create_server(Extension(server_service): Extension<Arc<ServerServic
     )
 )]
 pub async fn get_servers(
-    Extension(server_service): Extension<Arc<ServerService>>
+    Extension(server_service): Extension<Arc<ServerService>>,
 ) -> Result<Json<Vec<ServerResponse>>, AppError> {
-    let servers = server_service.get_all_servers().await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
-    
-    let response: Vec<ServerResponse> = servers.into_iter().map(|server| {
-        let server_response: ServerResponse = server.into();
+    let servers = server_service
+        .get_all_servers()
+        .await
+        .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
-        return server_response;
-    }).collect(); 
+    let response: Vec<ServerResponse> = servers
+        .into_iter()
+        .map(|server| {
+            let server_response: ServerResponse = server.into();
+
+            return server_response;
+        })
+        .collect();
 
     Ok(Json(response))
 }
@@ -70,9 +79,12 @@ pub async fn get_servers(
 )]
 pub async fn get_server_by_id(
     Extension(server_service): Extension<Arc<ServerService>>,
-    server_id: axum::extract::Path<String>, 
+    server_id: axum::extract::Path<String>,
 ) -> Result<Json<ServerResponse>, AppError> {
-    let server = server_service.get_server_by_id(&server_id).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+    let server = server_service
+        .get_server_by_id(&server_id)
+        .await
+        .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     let server_response: ServerResponse = server.into();
 
@@ -92,10 +104,9 @@ pub async fn get_server_by_id(
 )]
 pub async fn update_server(
     Extension(server_service): Extension<Arc<ServerService>>,
-    server_id: axum::extract::Path<String>, 
-    Json(payload): Json<ServerRequest>
+    server_id: axum::extract::Path<String>,
+    Json(payload): Json<ServerRequest>,
 ) -> Result<Json<ServerResponse>, AppError> {
-    
     let updated_server = server_service.update_server(&server_id, payload).await?;
 
     let server_response: ServerResponse = updated_server.into();
@@ -114,9 +125,12 @@ pub async fn update_server(
 )]
 pub async fn delete_server(
     Extension(server_service): Extension<Arc<ServerService>>,
-    server_id: axum::extract::Path<String>, 
+    server_id: axum::extract::Path<String>,
 ) -> Result<StatusCode, AppError> {
-    server_service.delete_server(&server_id).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+    server_service
+        .delete_server(&server_id)
+        .await
+        .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -131,7 +145,7 @@ pub async fn delete_server(
 )]
 pub async fn check_credentials(
     Extension(server_service): Extension<Arc<ServerService>>,
-    Json(payload): Json<ServerRequest>
+    Json(payload): Json<ServerRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     server_service.check_credentials(payload).await?;
 
@@ -156,10 +170,13 @@ pub async fn check_credentials(
 pub async fn send_mail_from_server(
     Extension(server_service): Extension<Arc<ServerService>>,
     server_id: axum::extract::Path<String>,
-    Json(payload): Json<SendMailFromServerRequest> 
+    Json(payload): Json<SendMailFromServerRequest>,
 ) -> Result<Json<SendMailFromServerResponse>, AppError> {
     let template_id = payload.template_id;
-    let mail = server_service.send_mail_from_server(&server_id, template_id, payload.receiver.unwrap()).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+    let mail = server_service
+        .send_mail_from_server(&server_id, template_id, payload.receiver.unwrap())
+        .await
+        .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     Ok(Json(SendMailFromServerResponse {
         id: mail.id,
@@ -185,26 +202,33 @@ pub async fn get_mails_from_server(
     Extension(server_service): Extension<Arc<ServerService>>,
     server_id: axum::extract::Path<String>,
 ) -> Result<Json<Vec<GetMailResponse>>, AppError> {
-    let server_uuid = Uuid::parse_str(&server_id).map_err(|_| AppError::BadRequestError(Some("Invalid server ID format".to_string())))?;
+    let server_uuid = Uuid::parse_str(&server_id)
+        .map_err(|_| AppError::BadRequestError(Some("Invalid server ID format".to_string())))?;
 
-    let mails = server_service.get_mails_by_server_id(server_uuid).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
-    let mails_response: Vec<GetMailResponse> = mails.into_iter().map(|mail| GetMailResponse {
-        id: mail.id,
-        template_id: mail.template_id,
-        server_id: mail.server_id,
-        sent_at: mail.sent_at,
-        status: mail.status,
-        open: mail.open,
-        clicks: mail.clicks,
-        email: mail.email,
-        status_reason: mail.reason,
-        mail_message: mail.mail_message,
-        campaign_id: mail.campaign_id,
-        scheduled_at: mail.scheduled_at,
-        attempts: mail.attempts,
-        last_error: mail.last_error,
-        from_name: mail.from_name,
-    }).collect();
+    let mails = server_service
+        .get_mails_by_server_id(server_uuid)
+        .await
+        .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+    let mails_response: Vec<GetMailResponse> = mails
+        .into_iter()
+        .map(|mail| GetMailResponse {
+            id: mail.id,
+            template_id: mail.template_id,
+            server_id: mail.server_id,
+            sent_at: mail.sent_at,
+            status: mail.status,
+            open: mail.open,
+            clicks: mail.clicks,
+            email: mail.email,
+            status_reason: mail.reason,
+            mail_message: mail.mail_message,
+            campaign_id: mail.campaign_id,
+            scheduled_at: mail.scheduled_at,
+            attempts: mail.attempts,
+            last_error: mail.last_error,
+            from_name: mail.from_name,
+        })
+        .collect();
 
     Ok(Json(mails_response))
 }

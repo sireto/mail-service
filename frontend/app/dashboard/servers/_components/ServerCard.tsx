@@ -219,8 +219,8 @@ export default function ServerCard({ server, onCancel }: ServerCardProps) {
                   {isTesting
                     ? "Testing..."
                     : server.id
-                    ? "Test and Update"
-                    : "Test and Create"}
+                      ? "Test and Update"
+                      : "Test and Create"}
                 </Button>
               </>
             )}

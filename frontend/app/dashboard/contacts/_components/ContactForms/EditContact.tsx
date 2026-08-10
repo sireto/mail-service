@@ -74,11 +74,11 @@ const EditContact: React.FC<EditContactProps> = ({
       const listIds = values.listIds ?? [];
 
       const listsToAdd = listIds.filter(
-        (listId) => !currentListIds.includes(listId)
+        (listId) => !currentListIds.includes(listId),
       );
 
       const listsToRemove = currentListIds.filter(
-        (listId) => !listIds.includes(listId)
+        (listId) => !listIds.includes(listId),
       );
 
       for (const listId of listsToAdd) {

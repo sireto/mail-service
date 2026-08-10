@@ -4,7 +4,7 @@ import { Server } from "@/lib/type";
 export function usePortControls(
   watch: UseFormWatch<Server>,
   setValue: UseFormSetValue<Server>,
-  trigger: UseFormTrigger<Server>
+  trigger: UseFormTrigger<Server>,
 ) {
   const currentPort = watch("port");
 

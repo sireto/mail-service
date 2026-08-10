@@ -1,13 +1,15 @@
 use crate::models::mail::{
-    CreateMailRequest, CreateMailResponse, DeleteMailResponse, GetMailResponse, MailQuery, UpdateMailRequest, UpdateMailResponse
+    CreateMailRequest, CreateMailResponse, DeleteMailResponse, GetMailResponse, MailQuery, UpdateMailRequest,
+    UpdateMailResponse,
 };
 use crate::services::mail_service::{MailService, MailServiceTrait};
 
-use std::sync::Arc;
-use axum::{
-    extract:: { Extension, Path, Query }, Json
-};
 use crate::error::AppError;
+use axum::{
+    extract::{Extension, Path, Query},
+    Json,
+};
+use std::sync::Arc;
 
 #[utoipa::path(
     post,
@@ -24,7 +26,6 @@ pub async fn add_mail(
     let created_mail = mail_service.create_mail(payload).await?;
 
     let mut responses = Vec::new();
-
 
     for mail in created_mail {
         responses.push(CreateMailResponse {
@@ -51,13 +52,11 @@ pub async fn add_mail(
 )]
 pub async fn get_all_mails(
     Extension(mail_service): Extension<Arc<MailService>>,
-    query: Query<MailQuery>
+    query: Query<MailQuery>,
 ) -> Result<Json<Vec<GetMailResponse>>, AppError> {
-    let all_mails = mail_service.get_all_mails(
-        query.campaign_ids,
-        query.from,
-        query.to
-    ).await?;
+    let all_mails = mail_service
+        .get_all_mails(query.campaign_ids, query.from, query.to)
+        .await?;
 
     let mut responses = Vec::new();
 
@@ -84,7 +83,6 @@ pub async fn get_all_mails(
         });
     });
     Ok(Json(responses))
-
 }
 
 #[utoipa::path(
@@ -121,7 +119,6 @@ pub async fn delete_mail(
 
     Ok(Json(deleted_mail))
 }
-
 
 #[utoipa::path(
     get,
@@ -161,5 +158,4 @@ pub async fn get_bounced_mails(
         });
     });
     Ok(Json(responses))
-
 }

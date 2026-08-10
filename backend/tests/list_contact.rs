@@ -1,11 +1,9 @@
-use std::sync::Arc;
 use backend::models::list_contacts::NewContactInList;
 use backend::repositories::list_contact_repo::MockListContactRepository;
 use backend::services::list_service::ListContactService;
-use uuid::Uuid;
 use mockall::predicate::*;
-
-
+use std::sync::Arc;
+use uuid::Uuid;
 
 #[tokio::test]
 async fn test_add_contacts_to_list() {
@@ -50,8 +48,6 @@ async fn test_add_contacts_to_list() {
     assert_eq!(added_contacts[1].contact_id, contact_ids[1]);
 }
 
-
-
 #[tokio::test]
 async fn test_delete_contacts_from_list() {
     // Directly create a mock repository (without Mutex)
@@ -74,12 +70,12 @@ async fn test_delete_contacts_from_list() {
     let contact_service = ListContactService::new(Arc::new(mock_repo));
 
     // Call the method under test
-    let result = contact_service.delete_contacts_from_list(list_id, contact_ids.clone()).await;
+    let result = contact_service
+        .delete_contacts_from_list(list_id, contact_ids.clone())
+        .await;
 
     // Assertions
     assert!(result.is_ok()); // Ensure it returned Ok
     let deleted_count = result.unwrap();
     assert_eq!(deleted_count, expected_deleted_count); // Verify the number of deleted contacts
 }
-
-

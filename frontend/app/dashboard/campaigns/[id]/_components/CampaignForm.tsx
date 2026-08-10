@@ -34,8 +34,8 @@ interface CampaignFormProps {
   form: UseFormReturn<z.infer<typeof AddCampaignFormSchemaDTO>>;
   submitHandler: (value: z.infer<typeof AddCampaignFormSchemaDTO>) => void;
   triggerButton: React.ReactNode;
-  templates: Template[] | undefined,
-  senders: Sender[] | undefined,
+  templates: Template[] | undefined;
+  senders: Sender[] | undefined;
 }
 
 type SenderItem = {
@@ -46,10 +46,16 @@ type SenderItem = {
 const namespaceId: string | undefined = process.env.NEXT_PUBLIC_NAMESPACE_ID;
 
 const CampaignForm = (props: CampaignFormProps) => {
-  const { form, submitHandler, triggerButton, templates, senders: campaignSenders } = props;
+  const {
+    form,
+    submitHandler,
+    triggerButton,
+    templates,
+    senders: campaignSenders,
+  } = props;
 
   const { data: lists } = useGetListsQuery(
-    namespaceId || "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82"
+    namespaceId || "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82",
   );
 
   const multiSelectRef = useRef(null);
@@ -110,9 +116,7 @@ const CampaignForm = (props: CampaignFormProps) => {
             <FormItem>
               <FormLabel className="font-bold text-black">Sender</FormLabel>
               <FormControl>
-                <Select
-                  value={field.value}
-                >
+                <Select value={field.value}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select the campaign sender" />
                   </SelectTrigger>
@@ -136,9 +140,7 @@ const CampaignForm = (props: CampaignFormProps) => {
             <FormItem>
               <FormLabel className="font-bold text-black">Template</FormLabel>
               <FormControl>
-                <Select
-                  value = {field.value}
-                >
+                <Select value={field.value}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select your Template" />
                   </SelectTrigger>

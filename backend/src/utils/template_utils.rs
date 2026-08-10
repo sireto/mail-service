@@ -1,6 +1,6 @@
 use crate::utils::email_utils;
 
-pub fn merge_receipients (r1: String, r2: String, r3: String) -> Vec<String> {
+pub fn merge_receipients(r1: String, r2: String, r3: String) -> Vec<String> {
     let receivers = email_utils::enumerate_list(r1);
     let ccs = email_utils::enumerate_list(r2);
     let bccs = email_utils::enumerate_list(r3);

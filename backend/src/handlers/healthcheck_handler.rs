@@ -1,5 +1,5 @@
-use axum::{ Json, http::status::StatusCode };
-use serde::{ Serialize, Deserialize };
+use axum::{http::status::StatusCode, Json};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct HealthCheckResponse {
@@ -11,10 +11,13 @@ pub struct HealthCheckResponse {
 }
 
 pub async fn check_health() -> (StatusCode, Json<HealthCheckResponse>) {
-    (StatusCode::OK, Json(HealthCheckResponse {
-        status_code: StatusCode::OK.as_u16(),
-        data: "Ok".to_string(),
-        message: "healthy".to_string(),
-        success: true,
-    }))
+    (
+        StatusCode::OK,
+        Json(HealthCheckResponse {
+            status_code: StatusCode::OK.as_u16(),
+            data: "Ok".to_string(),
+            message: "healthy".to_string(),
+            success: true,
+        }),
+    )
 }

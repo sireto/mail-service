@@ -6,8 +6,7 @@ import columns from "@/app/dashboard/campaigns/[id]/analytics/_columns";
 
 function Dashboard() {
   const { data: mails } = useGetMailsQuery({});
-  const [deleteMail, { error: deletionError }] =
-    useDeleteMailMutation();
+  const [deleteMail, { error: deletionError }] = useDeleteMailMutation();
 
   const deleteMailHandler = async (id: string) => {
     if (deletionError) {

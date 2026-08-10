@@ -80,7 +80,11 @@ export const columns: ColumnDef<{
     enableSorting: false,
     header: () => "Actions",
     cell: ({ row }) => (
-      <CampaignSenderActions senderData={row.original as unknown as CampaignSenderActionsProps["senderData"]} />
+      <CampaignSenderActions
+        senderData={
+          row.original as unknown as CampaignSenderActionsProps["senderData"]
+        }
+      />
     ),
   },
 ];

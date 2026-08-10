@@ -1,22 +1,18 @@
-import { useGetCampaignByIdQuery } from '@/app/services/CampaignApi'
-import React from 'react'
+import { useGetCampaignByIdQuery } from "@/app/services/CampaignApi";
+import React from "react";
 
-const CampaignName = ({ id }: {
-    id: string
-}) => {
-    const { data: campaign, error, isLoading } = useGetCampaignByIdQuery(id);
-    
-    if (error) {
-        return <span>There was an error fetching the campaign...</span>
-    }
+const CampaignName = ({ id }: { id: string }) => {
+  const { data: campaign, error, isLoading } = useGetCampaignByIdQuery(id);
 
-    if (isLoading) {
-        return <span>Loading...</span>
-    }
+  if (error) {
+    return <span>There was an error fetching the campaign...</span>;
+  }
 
-    return (
-      <span>{ campaign?.campaign_name }</span>
-    )
-}
+  if (isLoading) {
+    return <span>Loading...</span>;
+  }
 
-export default CampaignName
+  return <span>{campaign?.campaign_name}</span>;
+};
+
+export default CampaignName;

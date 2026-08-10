@@ -15,8 +15,8 @@ const eslintConfig = [
     rules: {
       "@typescript-eslint/no-unused-vars": "off", // Ignore unused variables
       "@typescript-eslint/no-explicit-any": "off", // Allow use of "any"
-    }
-  }
+    },
+  },
 ];
 
 export default eslintConfig;

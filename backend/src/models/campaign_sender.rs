@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
+use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use diesel::prelude::*;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable)]
@@ -16,8 +16,7 @@ pub struct CampaignSender {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq)]
-#[derive(Insertable)]
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq, Insertable)]
 #[diesel(table_name = crate::schema::campaign_senders)]
 pub struct CreateCampaignSenderRequest {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]

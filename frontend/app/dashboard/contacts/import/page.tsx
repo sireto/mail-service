@@ -119,7 +119,7 @@ export default function ImportPage() {
       }
 
       const result = (await importContacts(
-        formData
+        formData,
       ).unwrap()) as ImportResponse;
 
       toast({

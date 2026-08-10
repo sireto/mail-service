@@ -26,7 +26,7 @@ export const AddTemplateFormSchemaDTO = z.object({
       },
       {
         message: "MJML content must be wrapped in the <mjml> tags.",
-      }
+      },
     ),
 });
 

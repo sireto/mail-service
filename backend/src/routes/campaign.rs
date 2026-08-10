@@ -1,12 +1,12 @@
 use axum::{
-    routing::{
-        get,
-        post,
-        patch,
-        delete
-    }, Router };
+    routing::{delete, get, patch, post},
+    Router,
+};
 
-use crate::handlers::campaign::{create_campaign, delete_campaign, get_all_campaigns, get_campaign_by_id, update_campaign, send_campaign_email, send_campaign_email_smtp};
+use crate::handlers::campaign::{
+    create_campaign, delete_campaign, get_all_campaigns, get_campaign_by_id, send_campaign_email,
+    send_campaign_email_smtp, update_campaign,
+};
 
 pub fn campaign_routes() -> Router {
     Router::new()
@@ -17,5 +17,4 @@ pub fn campaign_routes() -> Router {
         .route("/{campaign_id}", delete(delete_campaign))
         .route("/{campaign_id}/send", post(send_campaign_email))
         .route("/{campaign_id}/send/smtp", post(send_campaign_email_smtp))
-
 }

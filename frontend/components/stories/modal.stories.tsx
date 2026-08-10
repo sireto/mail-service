@@ -5,28 +5,34 @@ import { Button } from "../ui/button";
 import { Plus } from "lucide-react";
 import { DialogFooter, DialogClose } from "../ui/dialog";
 
-const MockDialogBody = <div>
+const MockDialogBody = (
+  <div>
     <div>Modal content</div>
     <DialogFooter>
-      <DialogClose className='mt-2 md:mt-0' asChild>
-          <Button type="button" variant={"outline"}>Close</Button>
+      <DialogClose className="mt-2 md:mt-0" asChild>
+        <Button type="button" variant={"outline"}>
+          Close
+        </Button>
       </DialogClose>
-      <Button type="submit" >Create</Button>
+      <Button type="submit">Create</Button>
     </DialogFooter>
-</div>;
+  </div>
+);
 
 const mockModal = {
   triggerBody: "Story modal",
   dialogBody: MockDialogBody,
-  triggerButton: <Button variant={"default"}>
-          <>
-              <Plus size={24} />
-              <span className='ml-1'>Open Modal</span>
-          </>
-      </Button>,
+  triggerButton: (
+    <Button variant={"default"}>
+      <>
+        <Plus size={24} />
+        <span className="ml-1">Open Modal</span>
+      </>
+    </Button>
+  ),
   dialogTitle: "Story modal title",
   dialogDescription: "Story modal description",
-}
+};
 
 const meta: Meta<typeof Modal> = {
   title: "Components/Modal",
@@ -40,8 +46,8 @@ const meta: Meta<typeof Modal> = {
       <ReduxProvider>
         <Story />
       </ReduxProvider>
-    )
-  ]
+    ),
+  ],
 };
 
 export default meta;
@@ -53,6 +59,6 @@ export const Default: Story = {
     dialogBody: mockModal.dialogBody,
     triggerButton: mockModal.triggerButton,
     dialogTitle: mockModal.dialogTitle,
-    dialogDescription: mockModal.dialogDescription
-  }
+    dialogDescription: mockModal.dialogDescription,
+  },
 };

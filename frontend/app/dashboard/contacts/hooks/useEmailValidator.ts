@@ -5,7 +5,7 @@ import { useLazyCheckEmailQuery } from "@/app/services/ContactApi";
 import { ContactFormSchema } from "@/lib/type/contact";
 
 export const useEmailValidation = (
-  form: UseFormReturn<z.infer<typeof ContactFormSchema>>
+  form: UseFormReturn<z.infer<typeof ContactFormSchema>>,
 ) => {
   const [triggerCheckEmail] = useLazyCheckEmailQuery();
 

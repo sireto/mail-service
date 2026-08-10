@@ -1,9 +1,12 @@
-use std::{sync::{Arc, Mutex}, time::Duration, collections::HashMap};
+use chrono::Utc;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 use tokio::time::Instant;
 use uuid::Uuid;
-use chrono::Utc;
 
-use backend::{models::mail::{Mail, MailWithDetails}, services::mail_service::MailServiceTrait};
 use backend::repositories::mail_repository::MockMailRepository;
 use backend::servers::{
     servers_model::{Server, ServerTypeEnum, TlsTypeEnum},
@@ -11,7 +14,10 @@ use backend::servers::{
     servers_services::ServerService,
 };
 use backend::services::mail_service::MailService;
-
+use backend::{
+    models::mail::{Mail, MailWithDetails},
+    services::mail_service::MailServiceTrait,
+};
 
 #[tokio::test]
 async fn test_process_mails_rate_limiting() {
@@ -45,9 +51,9 @@ async fn test_process_mails_rate_limiting() {
     // every call to get_queued_mails returns our single pending mail...
     mock_mail_repo
         .expect_get_mails_by_status()
-        .returning(move |status_arg, _ | {
+        .returning(move |status_arg, _| {
             if status_arg == "queued" {
-                Ok(vec![ MailWithDetails {
+                Ok(vec![MailWithDetails {
                     id: mail_id.clone(),
                     mail_message: "hi".into(),
                     template_id: None,
@@ -110,11 +116,7 @@ async fn test_process_mails_rate_limiting() {
 
     // assert we got at least two updates, each ≥1s apart...
     let sent = times.lock().unwrap();
-    assert!(
-        sent.len() >= 2, 
-        "sent.len()={}", 
-        sent.len()
-    );
+    assert!(sent.len() >= 2, "sent.len()={}", sent.len());
     assert!(
         sent.len() <= 10,
         "Expected at most 10 mails sent, but got {}",
@@ -122,10 +124,6 @@ async fn test_process_mails_rate_limiting() {
     );
     for window in sent.windows(2) {
         let delta = window[1] - window[0];
-        assert!(
-            delta >= Duration::from_secs(1),
-            "two sends too close: {:?}",
-            delta
-        );
+        assert!(delta >= Duration::from_secs(1), "two sends too close: {:?}", delta);
     }
 }

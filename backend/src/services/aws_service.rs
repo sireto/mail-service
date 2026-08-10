@@ -1,13 +1,19 @@
-use aws_sdk_sesv2::{error::SdkError, operation::send_email::SendEmailOutput, types::{Body, Content, Destination, EmailContent, Message, MessageHeader, SuppressionListReason }, Client };
 use aws_config::{BehaviorVersion, Region};
+use aws_sdk_sesv2::{
+    error::SdkError,
+    operation::send_email::SendEmailOutput,
+    types::{Body, Content, Destination, EmailContent, Message, MessageHeader, SuppressionListReason},
+    Client,
+};
 
-use std::{env, error::Error, sync::Arc};
 use aws_sdk_sesv2::config::Credentials;
+use std::{env, error::Error, sync::Arc};
 
-use crate::servers::{servers_repo, servers_services::{self, ServerServiceTrait}};
+use crate::servers::{
+    servers_repo,
+    servers_services::{self, ServerServiceTrait},
+};
 pub async fn create_aws_client() -> Client {
-
-    
     // Fetch IAM credentials from environment variables or any other source
     let access_key_id = env::var("AWS_ACCESS_KEY_ID").expect("AWS_ACCESS_KEY_ID not set");
     let secret_access_key = env::var("AWS_SECRET_ACCESS_KEY").expect("AWS_SECRET_ACCESS_KEY not set");
@@ -18,7 +24,7 @@ pub async fn create_aws_client() -> Client {
         &access_key_id,
         &secret_access_key,
         session_token,
-        None, 
+        None,
         "custom_credentials",
     );
 
@@ -40,14 +46,14 @@ pub async fn create_aws_client() -> Client {
  * a function to send mail using the AWS SES service...
  */
 pub async fn send_mail(
-    client: Client, 
-    from: &str, 
+    client: Client,
+    from: &str,
     to: Vec<String>,
     cc: Option<Vec<String>>,
-    bcc: Option<Vec<String>>, 
-    subject: &str, 
+    bcc: Option<Vec<String>>,
+    subject: &str,
     html_data: &str,
-    mail_id: Option<&str>
+    mail_id: Option<&str>,
 ) -> Result<SendEmailOutput, SdkError<aws_sdk_sesv2::operation::send_email::SendEmailError>> {
     let mut destination = Destination::builder().build();
     destination.to_addresses = Some(to.clone());
@@ -93,12 +99,10 @@ pub async fn send_mail(
 
     let msg = Message::builder()
         .subject(subject_content)
-        .set_headers(Some(vec![
-            MessageHeader::builder()
-                .name("mailId")
-                .value(mail_id.unwrap())
-                .build()?
-        ]))
+        .set_headers(Some(vec![MessageHeader::builder()
+            .name("mailId")
+            .value(mail_id.unwrap())
+            .build()?]))
         .body(body)
         .build();
 
@@ -119,7 +123,7 @@ pub async fn send_mail(
     result
 }
 
-//Currnetly this is not being used 
+//Currnetly this is not being used
 pub async fn send_bulk_email(
     client: &aws_sdk_sesv2::Client,
     from_email: &str,
@@ -137,14 +141,20 @@ pub async fn send_bulk_email(
 }
 
 /// a function to get the recent aws bounces...
-pub async fn get_recent_bounces(client: &Client) -> Result<(), SdkError<aws_sdk_sesv2::operation::send_email::SendEmailError>> {
-    let response = client.list_suppressed_destinations().reasons(SuppressionListReason::Bounce).send().await;
+pub async fn get_recent_bounces(
+    client: &Client,
+) -> Result<(), SdkError<aws_sdk_sesv2::operation::send_email::SendEmailError>> {
+    let response = client
+        .list_suppressed_destinations()
+        .reasons(SuppressionListReason::Bounce)
+        .send()
+        .await;
 
     match response {
         Ok(result) => {
             // Handle the Option<&[SuppressedDestinationSummary]>
             let suppressed_list = result.suppressed_destination_summaries();
-            
+
             for suppressed in suppressed_list {
                 println!("Suppressed Email: {:?}", suppressed.email_address);
             }
@@ -172,15 +182,15 @@ pub async fn create_aws_client_db(server_id: &str) -> Client {
         if let Some(key) = aws_creds.get("access_key_id") {
             access_key_id = key.as_str().unwrap_or("").trim_matches('"').to_string();
         }
-        
+
         if let Some(secret) = aws_creds.get("secret_access_key") {
             secret_access_key = secret.as_str().unwrap_or("").trim_matches('"').to_string();
         }
         if let Some(reg) = aws_creds.get("region") {
-            region_str = reg.as_str().unwrap_or("").trim_matches('"').to_string(); 
+            region_str = reg.as_str().unwrap_or("").trim_matches('"').to_string();
         }
     }
-    
+
     let session_token = env::var("AWS_SESSION_TOKEN").ok(); // Optional for temporary credentials
 
     // Create the credentials object
@@ -188,7 +198,7 @@ pub async fn create_aws_client_db(server_id: &str) -> Client {
         &access_key_id,
         &secret_access_key,
         session_token,
-        None, 
+        None,
         "custom_credentials",
     );
 

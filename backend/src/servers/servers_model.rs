@@ -1,10 +1,10 @@
-use chrono::{DateTime, Utc};
-use serde::{Serialize, Deserialize};
-use utoipa::ToSchema;
-use diesel::prelude::*;
-use uuid::Uuid;
-use diesel_derive_enum;
 use crate::utils::server_utils::secure_server_response;
+use chrono::{DateTime, Utc};
+use diesel::prelude::*;
+use diesel_derive_enum;
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+use uuid::Uuid;
 
 // Assuming TlsTypeEnum is defined elsewhere with proper diesel and serde derivations
 #[derive(Debug, Clone, PartialEq, diesel_derive_enum::DbEnum, Serialize, Deserialize, ToSchema, Default)]
@@ -52,31 +52,30 @@ pub struct Server {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub default_from_email: String,
-    pub rate_limit: i32
+    pub rate_limit: i32,
 }
 // Create DTOs
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq)]
-#[derive(Insertable)]
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq, Insertable)]
 #[diesel(table_name = crate::schema::servers)]
 pub struct ServerRequest {
     #[schema(example = "smtp.example.com")]
     pub host: String,
 
-    #[schema(example="true")]
+    #[schema(example = "true")]
     pub active: bool,
-    
+
     #[schema(example = "user@example.com")]
     pub smtp_username: String,
-    
+
     #[schema(example = "password123")]
     pub smtp_password: String,
-    
+
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub namespace_id: Uuid,
-    
+
     #[schema(value_type = TlsTypeEnum, example = "Starttls")]
     pub tls_type: TlsTypeEnum,
-    
+
     #[schema(example = 587)]
     pub port: i16,
 
@@ -84,12 +83,12 @@ pub struct ServerRequest {
     pub server_type: ServerTypeEnum,
 
     pub aws_credentials: Option<serde_json::Value>,
-    
+
     #[schema(example = "from.email@test.io")]
     pub default_from_email: String,
 
     #[schema(example = 30)]
-    pub rate_limit: i32
+    pub rate_limit: i32,
 }
 
 // Get DTO
@@ -97,7 +96,7 @@ pub struct ServerRequest {
 pub struct ServerResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub id: Uuid,
-    #[schema(example="true")]
+    #[schema(example = "true")]
     pub active: bool,
     pub host: String,
     pub smtp_username: String,
@@ -116,7 +115,7 @@ pub struct ServerResponse {
     #[schema(example = "from.email@test.io")]
     pub default_from_email: String,
     #[schema(example = 30)]
-    pub rate_limit: i32
+    pub rate_limit: i32,
 }
 
 impl From<Server> for ServerResponse {
@@ -142,7 +141,6 @@ impl From<Server> for ServerResponse {
     }
 }
 
-
 // Delete DTO
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Queryable)]
 pub struct DeleteServerResponse {
@@ -159,13 +157,13 @@ pub struct SendMailFromServerRequest {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub template_id: Uuid,
 
-    pub receiver: Option<String>,   // this should be a list of emails seperated by commas or the list name for now (later to be changed to the list_id)...
+    pub receiver: Option<String>, // this should be a list of emails seperated by commas or the list name for now (later to be changed to the list_id)...
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
 pub struct SendMailFromServerResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
-    pub id: Uuid,   // mail id...
+    pub id: Uuid, // mail id...
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub server_id: Uuid,
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]

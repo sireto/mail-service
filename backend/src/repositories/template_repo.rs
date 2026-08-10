@@ -1,11 +1,11 @@
 // data access layer for templates...
-use crate::{appState::DbPooledConnection, GLOBAL_APP_STATE};
+use crate::models::template::{CreateTemplateRequest, Template, UpdateTemplateRequest};
 use crate::schema::templates::dsl::*;
-use diesel::prelude::*;
-use crate::models::template::{ CreateTemplateRequest, Template, UpdateTemplateRequest };
-use uuid::Uuid;
+use crate::{appState::DbPooledConnection, GLOBAL_APP_STATE};
 use async_trait::async_trait;
+use diesel::prelude::*;
 use mockall::automock;
+use uuid::Uuid;
 
 pub async fn get_connection_pool() -> DbPooledConnection {
     GLOBAL_APP_STATE
@@ -18,17 +18,14 @@ pub async fn get_connection_pool() -> DbPooledConnection {
 #[async_trait]
 pub trait TemplateRepository {
     async fn get_template_by_id(&self, template_id: Uuid) -> Result<Template, diesel::result::Error>;
-    async fn get_all_templates (&self) -> Result<Vec<Template>, diesel::result::Error>;
-    async fn update_template (
+    async fn get_all_templates(&self) -> Result<Vec<Template>, diesel::result::Error>;
+    async fn update_template(
         &self,
-        template_id: Uuid, 
-        payload: UpdateTemplateRequest
+        template_id: Uuid,
+        payload: UpdateTemplateRequest,
     ) -> Result<Template, diesel::result::Error>;
-    async fn delete_template (&self, template_id: Uuid) -> Result<Template, diesel::result::Error>;
-    async fn create_template (
-        &self,
-        payload: CreateTemplateRequest
-    ) -> Result<Template, diesel::result::Error>;
+    async fn delete_template(&self, template_id: Uuid) -> Result<Template, diesel::result::Error>;
+    async fn create_template(&self, payload: CreateTemplateRequest) -> Result<Template, diesel::result::Error>;
 }
 
 pub struct TemplateRespositoryImpl;
@@ -37,16 +34,14 @@ pub struct TemplateRespositoryImpl;
 impl TemplateRepository for TemplateRespositoryImpl {
     async fn get_template_by_id(&self, template_id: Uuid) -> Result<Template, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
-    
+
         // Use `find()` to get the template by id
-        templates
-            .filter(id.eq(template_id))
-            .first(&mut conn)  // Fetch the first matching result
+        templates.filter(id.eq(template_id)).first(&mut conn) // Fetch the first matching result
     }
-    
-    async fn get_all_templates (&self) -> Result<Vec<Template>, diesel::result::Error> {
+
+    async fn get_all_templates(&self) -> Result<Vec<Template>, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
-    
+
         templates 
             .select((
                 id,
@@ -61,28 +56,23 @@ impl TemplateRepository for TemplateRespositoryImpl {
             .order(updated_at.desc())
             .load::<Template>(&mut conn)
     }
-    
-    async fn create_template (
-        &self,
-        payload: CreateTemplateRequest
-    ) -> Result<Template, diesel::result::Error> {
-    
+
+    async fn create_template(&self, payload: CreateTemplateRequest) -> Result<Template, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
-    
+
         diesel::insert_into(templates)
             .values(&payload)
             .returning(Template::as_returning())
             .get_result::<Template>(&mut conn)
     }
-    
-    async fn update_template (
-            &self,
-            template_id: Uuid, 
-            payload: UpdateTemplateRequest
-        ) -> Result<Template, diesel::result::Error> {
-    
+
+    async fn update_template(
+        &self,
+        template_id: Uuid,
+        payload: UpdateTemplateRequest,
+    ) -> Result<Template, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
-        
+
         diesel::update(templates.find(template_id))
             .set((
                 name.eq(payload.name),
@@ -93,11 +83,10 @@ impl TemplateRepository for TemplateRespositoryImpl {
             ))
             .get_result(&mut conn)
     }
-    
-    async fn delete_template (&self, template_id: Uuid) -> Result<Template, diesel::result::Error> {
+
+    async fn delete_template(&self, template_id: Uuid) -> Result<Template, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
-    
-        diesel::delete(templates.filter(id.eq(template_id)))
-            .get_result(&mut conn)
+
+        diesel::delete(templates.filter(id.eq(template_id))).get_result(&mut conn)
     }
 }

@@ -1,17 +1,17 @@
+use crate::models::{campaign::Campaign, list::List};
+use crate::schema::campaign_lists;
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use uuid::Uuid;
-use crate::schema::campaign_lists;
-use chrono::{ DateTime,Utc};
-use crate::models::{campaign::Campaign, list::List};
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 #[derive(Queryable, Identifiable, Associations, Debug)]
 #[primary_key(campaign_id, list_id)]
 #[table_name = "campaign_lists"]
 #[belongs_to(Campaign)] // relationship with Contact
-#[belongs_to(List)]    //relationship with List
+#[belongs_to(List)] //relationship with List
 pub struct ListInCampaign {
     pub campaign_id: Uuid,
     pub list_id: Uuid,
@@ -37,8 +37,7 @@ pub struct AddListRequest {
     pub list_ids: Vec<Uuid>,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone)]
-#[derive(Queryable, Selectable, Insertable)]
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, Queryable, Selectable, Insertable)]
 #[diesel(table_name = crate::schema::campaign_lists)]
 pub struct NewListInCampaign {
     #[schema(value_type=String, example="a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]

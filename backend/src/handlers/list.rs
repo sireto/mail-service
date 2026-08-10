@@ -1,13 +1,14 @@
-
-use crate::models::{contact::{GetContactResponse, GetContactResponsee}, list::{CreateListRequest, CreateListResponse, DeleteListResponse, ListResponse, UpdateListRequest, UpdatedListResponse}, list_contacts::{AddContactRequest,NewContactInList}};
-use axum::{
-    extract:: Path, Json, http::status::StatusCode
-};
-use uuid::Uuid;
 use crate::error::AppError;
+use crate::models::{
+    contact::{GetContactResponse, GetContactResponsee},
+    list::{
+        CreateListRequest, CreateListResponse, DeleteListResponse, ListResponse, UpdateListRequest, UpdatedListResponse,
+    },
+    list_contacts::{AddContactRequest, NewContactInList},
+};
 use crate::services::list_service;
-
-
+use axum::{extract::Path, http::status::StatusCode, Json};
+use uuid::Uuid;
 
 #[utoipa::path(
     post, 
@@ -17,16 +18,13 @@ use crate::services::list_service;
         (status = 404)
     )
 )]
-pub async fn create_list(
-    Json(payload): Json<CreateListRequest>,
-) ->Result<Json<CreateListResponse>, AppError> {
-    
+pub async fn create_list(Json(payload): Json<CreateListRequest>) -> Result<Json<CreateListResponse>, AppError> {
     let create_new_list = list_service::create_list(payload).await?;
 
     let create_response = CreateListResponse {
-        id: create_new_list.id.to_string(), 
-        name: create_new_list.name, 
-        created_at: create_new_list.created_at
+        id: create_new_list.id.to_string(),
+        name: create_new_list.name,
+        created_at: create_new_list.created_at,
     };
 
     Ok(Json(create_response))
@@ -50,7 +48,6 @@ pub async fn get_lists(Path(namespace_id): Path<String>) -> Result<Json<Vec<List
     Ok(Json(lists_result))
 }
 
-
 #[utoipa::path(
     get, 
     path = "/api/list/namespaces/{namespace_id}/list/{list_id}", 
@@ -64,7 +61,7 @@ pub async fn get_list_by_id(
 ) -> Result<Json<ListResponse>, AppError> {
     // Parse namespace_id and list_id to Uuid
     let namespace_id = Uuid::parse_str(&namespace_id)?;
-    
+
     let list_id = Uuid::parse_str(&list_id)?;
 
     // Call service layer with parsed Uuids
@@ -112,7 +109,9 @@ pub async fn update_list(
         (status = 500, description = "Internal server error")
     )
 )]
-pub async fn delete_list(Path((namespace_id, list_id)): Path<(String, String)>) -> Result<Json<DeleteListResponse>, AppError> {
+pub async fn delete_list(
+    Path((namespace_id, list_id)): Path<(String, String)>,
+) -> Result<Json<DeleteListResponse>, AppError> {
     let uuid_namespace_id = Uuid::parse_str(&namespace_id)?;
     let uuid_list_id = Uuid::parse_str(&list_id)?;
     let delete_list_response = list_service::delete_list(uuid_namespace_id, uuid_list_id).await?;
@@ -139,12 +138,10 @@ pub async fn add_contacts_to_list(
 ) -> Result<Json<Vec<NewContactInList>>, AppError> {
     let list_id = Uuid::parse_str(&list_id)?;
 
-    let added_contacts = list_service::add_contacts_to_list(list_id, payload.contact_ids)
-        .await?;
+    let added_contacts = list_service::add_contacts_to_list(list_id, payload.contact_ids).await?;
 
     Ok(Json(added_contacts))
 }
-
 
 #[utoipa::path(
     delete,
@@ -166,12 +163,10 @@ pub async fn remove_contacts_from_list(
 ) -> Result<Json<usize>, AppError> {
     let list_id = Uuid::parse_str(&list_id)?;
 
-    let num_deleted = list_service::delete_contacts_from_list(list_id, payload.contact_ids)
-        .await?;
+    let num_deleted = list_service::delete_contacts_from_list(list_id, payload.contact_ids).await?;
 
     Ok(Json(num_deleted))
 }
-
 
 #[utoipa::path(
     post,
@@ -186,12 +181,9 @@ pub async fn remove_contacts_from_list(
 pub async fn get_contacts_from_lists(
     Json(payload): Json<Vec<Uuid>>,
 ) -> Result<Json<Vec<GetContactResponsee>>, (StatusCode, String)> {
-    let list_ids = payload
-        .into_iter()
-        .collect();
+    let list_ids = payload.into_iter().collect();
 
-    let contacts = list_service::get_contacts_from_lists(list_ids)
-        .await?;
+    let contacts = list_service::get_contacts_from_lists(list_ids).await?;
 
     Ok(Json(contacts))
 }

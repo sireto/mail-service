@@ -1,21 +1,21 @@
-use crate::{models::contact::{ContactList, GetContactResponsee}, repositories::contact::{self, ContactRepository, ContactRepositoryImpl}};
-use uuid::Uuid;
-use std::{collections::HashMap, sync::Arc};
+use super::{list_service, mail_service::MailServiceTrait};
+use crate::error::AppError;
 use crate::models::contact::{
-    Contact,
-    CreateContactRequest,
-    CreateContactResponse, GetContactResponse, UpdateContactRequest, UpdateContactResponse,
-    DeleteContactResponse, ImportResult
+    Contact, CreateContactRequest, CreateContactResponse, DeleteContactResponse, GetContactResponse, ImportResult,
+    UpdateContactRequest, UpdateContactResponse,
 };
 use crate::models::mail::MailWithDetails;
-use crate::error::AppError;
-use super::{list_service, mail_service::MailServiceTrait};
-use crate::repositories::mail_repository::{ MailRepository, MailRepositoryImpl };
+use crate::repositories::mail_repository::{MailRepository, MailRepositoryImpl};
 use crate::services::mail_service;
-
+use crate::{
+    models::contact::{ContactList, GetContactResponsee},
+    repositories::contact::{self, ContactRepository, ContactRepositoryImpl},
+};
+use std::{collections::HashMap, sync::Arc};
+use uuid::Uuid;
 
 pub struct ContactService {
-    repository: Arc<dyn ContactRepository + Send + Sync>
+    repository: Arc<dyn ContactRepository + Send + Sync>,
 }
 
 impl ContactService {
@@ -23,11 +23,18 @@ impl ContactService {
         Self { repository }
     }
 
-    pub async fn create_contacts(&self, payload: Vec<CreateContactRequest>) -> Result<Vec<Contact>, diesel::result::Error> {
+    pub async fn create_contacts(
+        &self,
+        payload: Vec<CreateContactRequest>,
+    ) -> Result<Vec<Contact>, diesel::result::Error> {
         self.repository.create_contacts(payload).await
     }
 
-    pub async fn get_all_contacts(&self, list_id: Option<Uuid>, search: Option<String>) -> Result<Vec<Contact>, diesel::result::Error> {
+    pub async fn get_all_contacts(
+        &self,
+        list_id: Option<Uuid>,
+        search: Option<String>,
+    ) -> Result<Vec<Contact>, diesel::result::Error> {
         self.repository.get_all_contacts(list_id, search).await
     }
 
@@ -39,62 +46,62 @@ impl ContactService {
         self.repository.get_contact_by_email(email).await
     }
 
-    pub async fn update_contact(&self, contact_id: Uuid,
-        payload: UpdateContactRequest
+    pub async fn update_contact(
+        &self,
+        contact_id: Uuid,
+        payload: UpdateContactRequest,
     ) -> Result<Contact, diesel::result::Error> {
         self.repository.update_contact(contact_id, payload).await
     }
 
-    pub async fn delete_contact (
-        &self,
-        contact_id: Uuid,
-    ) -> Result<Contact, diesel::result::Error> {
+    pub async fn delete_contact(&self, contact_id: Uuid) -> Result<Contact, diesel::result::Error> {
         self.repository.delete_contact(contact_id).await
     }
 }
 
-
 pub async fn create_contacts(
-    payloads: Vec<CreateContactRequest> // Corrected syntax
+    payloads: Vec<CreateContactRequest>, // Corrected syntax
 ) -> Result<Vec<CreateContactResponse>, AppError> {
-    
     let contact_repository = Arc::new(ContactRepositoryImpl);
     let contact_service = ContactService::new(contact_repository);
     let created_contacts = contact_service.create_contacts(payloads).await?;
 
-    let response = created_contacts.into_iter().map(|contact| CreateContactResponse {
-        id: contact.id,
-        first_name: contact.first_name,
-        last_name: contact.last_name,
-        email: contact.email,
-        attribute: contact.attribute,
-    }).collect();
+    let response = created_contacts
+        .into_iter()
+        .map(|contact| CreateContactResponse {
+            id: contact.id,
+            first_name: contact.first_name,
+            last_name: contact.last_name,
+            email: contact.email,
+            attribute: contact.attribute,
+        })
+        .collect();
 
     Ok(response)
 }
 
-pub async fn get_all_contacts(list_id: Option<Uuid>, search: Option<String>) -> Result<Vec<GetContactResponsee>, AppError> {
+pub async fn get_all_contacts(
+    list_id: Option<Uuid>,
+    search: Option<String>,
+) -> Result<Vec<GetContactResponsee>, AppError> {
     let contact_repository = Arc::new(ContactRepositoryImpl);
 
-    let contacts = contact_repository
-    .get_all_contacts(list_id, search)
-    .await?;
+    let contacts = contact_repository.get_all_contacts(list_id, search).await?;
 
     println!("Found {} base contacts", contacts.len());
 
     let contact_ids = contacts.iter().map(|c| c.id).collect();
     let list_contacts = contact_repository.get_list_contacts(contact_ids).await?;
-    
+
     let list_ids = list_contacts.iter().map(|lc| lc.list_id).collect();
     let lists = contact_repository.get_lists_by_ids(list_ids).await?;
-    
-    let list_map: HashMap<Uuid, String> = lists.into_iter()
-        .map(|list| (list.id, list.name))
-        .collect();
+
+    let list_map: HashMap<Uuid, String> = lists.into_iter().map(|list| (list.id, list.name)).collect();
 
     let mut response = Vec::new();
     for contact in contacts {
-        let contact_lists = list_contacts.iter()
+        let contact_lists = list_contacts
+            .iter()
             .filter(|lc| lc.contact_id == contact.id)
             .filter_map(|lc| {
                 list_map.get(&lc.list_id).map(|name| ContactList {
@@ -161,9 +168,9 @@ pub async fn get_contact_by_email(email: String) -> Result<GetContactResponse, A
     Ok(contact_response)
 }
 
-pub async fn update_contact (
+pub async fn update_contact(
     contact_id: Uuid,
-    payload: UpdateContactRequest
+    payload: UpdateContactRequest,
 ) -> Result<UpdateContactResponse, AppError> {
     let contact_repository = Arc::new(ContactRepositoryImpl);
     let contact_service = ContactService::new(contact_repository);
@@ -180,9 +187,7 @@ pub async fn update_contact (
     })
 }
 
-pub async fn delete_contact (
-    contact_id: Uuid,
-) -> Result<DeleteContactResponse, AppError> {
+pub async fn delete_contact(contact_id: Uuid) -> Result<DeleteContactResponse, AppError> {
     // Convert 'contact_id' (String) to 'Uuid'...
     let contact_repository = Arc::new(ContactRepositoryImpl);
     let contact_service = ContactService::new(contact_repository);
@@ -204,18 +209,18 @@ pub async fn check_email_exists(email: String) -> Result<bool, AppError> {
     let result = contact_service.get_contact_by_email(email).await;
 
     match result {
-        Ok(contact) => Ok(true), 
-        Err(_) => Ok(false),     
+        Ok(contact) => Ok(true),
+        Err(_) => Ok(false),
     }
 }
 
 pub async fn import_contacts(
     contacts: Vec<CreateContactRequest>,
     list_ids: Vec<Uuid>,
-    overwrite: bool, 
+    overwrite: bool,
 ) -> Result<ImportResult, String> {
     let contact_repository = Arc::new(ContactRepositoryImpl);
-    
+
     let mut result = ImportResult {
         imported: 0,
         errors: Vec::new(),
@@ -224,38 +229,43 @@ pub async fn import_contacts(
     println!("{:?}", contacts);
     println!("{:?}", list_ids);
     println!("Overwrite mode: {}", overwrite);
-    
-   
+
     let created_contacts = match contact_repository.upsert_contacts(contacts, overwrite).await {
         Ok(contacts) => {
             result.imported = contacts.len();
             contacts
-        },
+        }
         Err(e) => {
             return Err(format!("Failed to import contacts: {}", e));
         }
     };
-    
+
     // Associate contacts with lists if any lists were provided
     if !list_ids.is_empty() && !created_contacts.is_empty() {
         let contact_ids: Vec<Uuid> = created_contacts.iter().map(|c| c.id).collect();
-        
+
         for list_id in &list_ids {
             match list_service::add_contacts_to_list(*list_id, contact_ids.clone()).await {
-                Ok(_) => { println!("Succesfully added to list") },
+                Ok(_) => {
+                    println!("Succesfully added to list")
+                }
                 Err(e) => {
-                    result.errors.push(format!("Warning: Imported contacts but failed to associate with list {}: {}", list_id, e.to_string()));
+                    result.errors.push(format!(
+                        "Warning: Imported contacts but failed to associate with list {}: {}",
+                        list_id,
+                        e.to_string()
+                    ));
                 }
             }
         }
     }
-    
+
     Ok(result)
 }
 
-pub async fn get_mails_for_contact (contact_id: Uuid) -> Result<Vec<MailWithDetails>, AppError> {
+pub async fn get_mails_for_contact(contact_id: Uuid) -> Result<Vec<MailWithDetails>, AppError> {
     let mail_repo = Arc::new(MailRepositoryImpl);
-        let mail_service = mail_service::MailService::new(mail_repo);
+    let mail_service = mail_service::MailService::new(mail_repo);
 
     let mails = mail_service.get_mails_by_contact(contact_id).await?;
 

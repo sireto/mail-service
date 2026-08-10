@@ -1,9 +1,8 @@
-use chrono::{ DateTime, Utc };
-use serde::{ Serialize, Deserialize };
-use utoipa::ToSchema;
+use chrono::{DateTime, Utc};
 use diesel::{pg::Pg, prelude::*};
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
-
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 
@@ -33,7 +32,7 @@ pub struct Mail {
     pub last_error: Option<String>,
 }
 
-#[derive(Queryable, QueryableByName, ToSchema )]
+#[derive(Queryable, QueryableByName, ToSchema)]
 #[diesel(check_for_backend(Pg))] // Ensure this struct is valid for PostgreSQL...
 #[diesel(table_name = crate::schema::mails)]
 pub struct MailWithDetails {
@@ -76,22 +75,21 @@ pub struct MailWithDetails {
     pub last_error: Option<String>,
 
     #[diesel(sql_type = diesel::sql_types::Text)]
-    pub email: String,  // This comes from contacts.email
+    pub email: String, // This comes from contacts.email
 
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
-    pub reason: Option<String>,  // This comes from bounce_logs.reason
+    pub reason: Option<String>, // This comes from bounce_logs.reason
 
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
     pub from_name: Option<String>,
 }
 
-
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema )]
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
 pub struct GetMailResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub id: String,
     pub mail_message: String,
-    
+
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub email: String,
 
@@ -142,7 +140,7 @@ pub struct NewMail {
     pub status: String,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq )]
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq)]
 
 pub struct CreateMailRequest {
     pub id: String,
@@ -186,7 +184,7 @@ pub struct CreateMailResponse {
 
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub sent_at: DateTime<Utc>,
-    pub status: String, 
+    pub status: String,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, AsChangeset)]
@@ -204,7 +202,7 @@ pub struct UpdateMailRequest {
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub open: Option<DateTime<Utc>>,
     pub clicks: Option<i32>,
-    
+
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub scheduled_at: DateTime<Utc>,
     pub attempts: i32,
@@ -215,7 +213,7 @@ pub struct UpdateMailRequest {
 pub struct UpdateMailResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub id: String,
-    
+
     pub mail_message: String,
 
     #[schema(value_type = String, example = "c1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
@@ -259,9 +257,9 @@ impl From<Mail> for UpdateMailResponse {
 pub struct DeleteMailResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub id: String,
-    
+
     pub status: Option<String>,
-    
+
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub contact_id: Option<Uuid>,
 }

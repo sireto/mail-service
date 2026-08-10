@@ -46,7 +46,7 @@ export const createColumns = (
   selectedContacts: Record<string, boolean>,
   setSelectedContacts: React.Dispatch<
     React.SetStateAction<Record<string, boolean>>
-  >
+  >,
 ): ColumnDef<Contact, unknown>[] => [
   {
     id: "select",
@@ -65,9 +65,9 @@ export const createColumns = (
               ? Object.fromEntries(
                   table
                     .getFilteredRowModel()
-                    .rows.map((row) => [row.original.id, true])
+                    .rows.map((row) => [row.original.id, true]),
                 )
-              : {}
+              : {},
           );
         }}
       />
@@ -89,7 +89,7 @@ export const createColumns = (
     header: "Email",
     cell: ({ row }) => (
       <div>
-        <Link 
+        <Link
           href={`/dashboard/contacts/${row.original.id}/mails`}
           className="text-blue-600 hover:underline cursor-pointer w-max"
         >

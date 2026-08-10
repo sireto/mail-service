@@ -1,7 +1,7 @@
-use chrono::{ DateTime, Utc };
-use serde::{ Serialize, Deserialize };
-use utoipa::ToSchema;
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable)]
@@ -57,7 +57,7 @@ pub struct CreateBounceLogResponse {
     pub id: Uuid,
 
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
-    pub contact: Uuid,    // {email} from the contact id or shall we use the contact_id itself...
+    pub contact: Uuid, // {email} from the contact id or shall we use the contact_id itself...
 
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub campaign_id: Option<Uuid>,
@@ -95,7 +95,7 @@ pub struct Message {
     pub bounce: Option<BounceDetails>,
     pub delivery: Option<DeliveryDetails>,
     pub open: Option<OpenDetails>,
-    pub mail: MailDetails
+    pub mail: MailDetails,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
@@ -122,7 +122,7 @@ pub struct MailDetails {
     pub destination: Vec<String>,
     #[serde(rename = "messageId")]
     pub mail_id: String,
-    pub headers: Vec<Header>
+    pub headers: Vec<Header>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, ToSchema)]
