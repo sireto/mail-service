@@ -1,13 +1,10 @@
-use crate::{ appState::DbPooledConnection, GLOBAL_APP_STATE };
+use crate::models::bounce_logs::{BounceLog, CreateBounceLogRequest};
 use crate::schema::bounce_logs::dsl::*;
-use diesel::prelude::*;
-use crate::models::bounce_logs::{
-    BounceLog,
-    CreateBounceLogRequest
-};
-use uuid::Uuid;
-use mockall::{ automock, predicate::* };
+use crate::{appState::DbPooledConnection, GLOBAL_APP_STATE};
 use async_trait::async_trait;
+use diesel::prelude::*;
+use mockall::{automock, predicate::*};
+use uuid::Uuid;
 
 pub async fn get_connection_pool() -> DbPooledConnection {
     GLOBAL_APP_STATE
@@ -22,7 +19,8 @@ pub trait BounceLogsRepository {
     async fn add_bounce(&self, payload: CreateBounceLogRequest) -> Result<BounceLog, diesel::result::Error>;
     async fn get_all_bounces(&self) -> Result<Vec<BounceLog>, diesel::result::Error>;
     async fn delete_bounce(&self, bounce_id: Uuid) -> Result<BounceLog, diesel::result::Error>;
-    async fn get_bounces_of_contact_id(&self, bounce_contact_id: Uuid) -> Result<Vec<BounceLog>, diesel::result::Error>;
+    async fn get_bounces_of_contact_id(&self, bounce_contact_id: Uuid)
+        -> Result<Vec<BounceLog>, diesel::result::Error>;
     async fn get_bounce_by_mail_id(&self, bounce_mail_id: String) -> Result<BounceLog, diesel::result::Error>;
 }
 
@@ -32,7 +30,7 @@ pub struct BounceLogsRepositoryImpl;
 impl BounceLogsRepository for BounceLogsRepositoryImpl {
     async fn add_bounce(&self, payload: CreateBounceLogRequest) -> Result<BounceLog, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
-        
+
         diesel::insert_into(bounce_logs)
             .values(&payload)
             .returning(BounceLog::as_returning())
@@ -43,32 +41,19 @@ impl BounceLogsRepository for BounceLogsRepositoryImpl {
         let mut conn = get_connection_pool().await;
 
         bounce_logs
-            .select((
-                id,
-                contact_id,
-                mail_id,
-                campaign_id,
-                at,
-                kind,
-                reason
-            ))
+            .select((id, contact_id, mail_id, campaign_id, at, kind, reason))
             .load::<BounceLog>(&mut conn)
     }
 
     /// Get all bounces of a contact...
-    async fn get_bounces_of_contact_id(&self, bounce_contact_id: Uuid) -> Result<Vec<BounceLog>, diesel::result::Error> {
+    async fn get_bounces_of_contact_id(
+        &self,
+        bounce_contact_id: Uuid,
+    ) -> Result<Vec<BounceLog>, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
 
         bounce_logs
-            .select((
-                id,
-                contact_id,
-                mail_id,
-                campaign_id,
-                at,
-                kind,
-                reason
-            ))
+            .select((id, contact_id, mail_id, campaign_id, at, kind, reason))
             .filter(contact_id.eq(bounce_contact_id))
             .load::<BounceLog>(&mut conn)
     }

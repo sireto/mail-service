@@ -1,21 +1,19 @@
-use crate::servers::servers_model::ServerTypeEnum;
-use crate::{ appState::DbPooledConnection, GLOBAL_APP_STATE };
-use crate::schema::mails::dsl::*;
-use crate::schema::contacts::dsl as contacts_dsl;
+use crate::models::mail::{Mail, MailWithDetails, NewMail, UpdateMailRequest};
 use crate::schema::bounce_logs::dsl as bounce_logs_dsl;
 use crate::schema::campaign_senders::dsl as campaign_senders_dsl;
 use crate::schema::campaigns::dsl as campaigns_dsl;
+use crate::schema::contacts::dsl as contacts_dsl;
+use crate::schema::mails::dsl::*;
 use crate::schema::servers::{dsl as servers_dsl, server_type};
-use diesel::prelude::*;
-use chrono::{ Utc, DateTime, Duration };
-use crate::models::mail::{
-    Mail, MailWithDetails, NewMail, UpdateMailRequest
-};
-use uuid::Uuid;
-use diesel::dsl::sql;
-use diesel::sql_types::{ Nullable, Text };
-use mockall::{ automock, predicate::* };
+use crate::servers::servers_model::ServerTypeEnum;
+use crate::{appState::DbPooledConnection, GLOBAL_APP_STATE};
 use async_trait::async_trait;
+use chrono::{DateTime, Duration, Utc};
+use diesel::dsl::sql;
+use diesel::prelude::*;
+use diesel::sql_types::{Nullable, Text};
+use mockall::{automock, predicate::*};
+use uuid::Uuid;
 
 pub async fn get_connection_pool() -> DbPooledConnection {
     GLOBAL_APP_STATE
@@ -28,13 +26,22 @@ pub async fn get_connection_pool() -> DbPooledConnection {
 #[async_trait]
 pub trait MailRepository {
     async fn create_mail(&self, payload: NewMail) -> Result<Mail, diesel::result::Error>;
-    async fn get_all_mails(&self, campaign_ids: Option<Uuid>, from: Option<DateTime<Utc>>, to: Option<DateTime<Utc>>) -> Result<Vec<MailWithDetails>, diesel::result::Error>;
+    async fn get_all_mails(
+        &self,
+        campaign_ids: Option<Uuid>,
+        from: Option<DateTime<Utc>>,
+        to: Option<DateTime<Utc>>,
+    ) -> Result<Vec<MailWithDetails>, diesel::result::Error>;
     async fn update_mail(&self, mail_id: String, payload: UpdateMailRequest) -> Result<Mail, diesel::result::Error>;
     async fn update_mail_status(&self, mail_id: String, new_status: &str) -> Result<Mail, diesel::result::Error>;
     async fn delete_mail(&self, mail_id: String) -> Result<Mail, diesel::result::Error>;
     async fn increment_mail_clicks(&self, mail_id: String) -> Result<Mail, diesel::result::Error>;
     async fn get_mails_by_contact(&self, c_id: Uuid) -> Result<Vec<MailWithDetails>, diesel::result::Error>;
-    async fn get_mails_by_status(&self, mail_status: &str, is_ascending: bool) -> Result<Vec<MailWithDetails>, diesel::result::Error>;
+    async fn get_mails_by_status(
+        &self,
+        mail_status: &str,
+        is_ascending: bool,
+    ) -> Result<Vec<MailWithDetails>, diesel::result::Error>;
     async fn get_stale_submitted_mails(&self) -> Result<Vec<MailWithDetails>, diesel::result::Error>;
     async fn update_mail_attempts(&self, mail_id: String) -> Result<Mail, diesel::result::Error>;
     async fn udpate_mail_last_try_error(&self, mail_id: String, error: &str) -> Result<Mail, diesel::result::Error>;
@@ -46,14 +53,19 @@ pub struct MailRepositoryImpl;
 impl MailRepository for MailRepositoryImpl {
     async fn create_mail(&self, payload: NewMail) -> Result<Mail, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
-        
+
         diesel::insert_into(mails)
             .values(&payload)
             .returning(Mail::as_returning())
             .get_result::<Mail>(&mut conn)
     }
 
-    async fn get_all_mails(&self, campaign_ids: Option<Uuid>, from: Option<DateTime<Utc>>, to: Option<DateTime<Utc>>) -> Result<Vec<MailWithDetails>, diesel::result::Error> {
+    async fn get_all_mails(
+        &self,
+        campaign_ids: Option<Uuid>,
+        from: Option<DateTime<Utc>>,
+        to: Option<DateTime<Utc>>,
+    ) -> Result<Vec<MailWithDetails>, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
 
         let mut query = mails
@@ -74,7 +86,7 @@ impl MailRepository for MailRepositoryImpl {
                 last_error,
                 contacts_dsl::email,
                 bounce_logs_dsl::reason.nullable(),
-                sql::<Nullable<Text>>("NULL")
+                sql::<Nullable<Text>>("NULL"),
             ))
             .into_boxed();
 
@@ -98,16 +110,13 @@ impl MailRepository for MailRepositoryImpl {
         // Execute the query and return
         let results = query.load::<MailWithDetails>(&mut conn)?;
 
-        
         Ok(results)
     }
 
     async fn update_mail(&self, mail_id: String, payload: UpdateMailRequest) -> Result<Mail, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
 
-        diesel::update(mails.find(mail_id))
-        .set(payload)
-        .get_result(&mut conn)
+        diesel::update(mails.find(mail_id)).set(payload).get_result(&mut conn)
     }
 
     async fn update_mail_status(&self, mail_id: String, new_status: &str) -> Result<Mail, diesel::result::Error> {
@@ -121,8 +130,7 @@ impl MailRepository for MailRepositoryImpl {
     async fn delete_mail(&self, mail_id: String) -> Result<Mail, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
 
-        diesel::delete(mails.find(mail_id))
-            .get_result(&mut conn)
+        diesel::delete(mails.find(mail_id)).get_result(&mut conn)
     }
 
     async fn increment_mail_clicks(&self, mail_id: String) -> Result<Mail, diesel::result::Error> {
@@ -155,20 +163,27 @@ impl MailRepository for MailRepositoryImpl {
                 last_error,
                 contacts_dsl::email,
                 bounce_logs_dsl::reason.nullable(),
-                sql::<Nullable<Text>>("NULL")
+                sql::<Nullable<Text>>("NULL"),
             ))
             .filter(contact_id.eq(c_id))
             .order(sent_at.desc())
             .load::<MailWithDetails>(&mut conn)
     }
 
-    async fn get_mails_by_status(&self, mail_status: &str, is_ascending: bool) -> Result<Vec<MailWithDetails>, diesel::result::Error> {
+    async fn get_mails_by_status(
+        &self,
+        mail_status: &str,
+        is_ascending: bool,
+    ) -> Result<Vec<MailWithDetails>, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
-        
+
         let mut query_results = mails
             .inner_join(contacts_dsl::contacts.on(contact_id.eq(contacts_dsl::id)))
             .inner_join(campaigns_dsl::campaigns.on(campaign_id.eq(campaigns_dsl::id.nullable())))
-            .inner_join(campaign_senders_dsl::campaign_senders.on(campaigns_dsl::campaign_senders.eq(campaign_senders_dsl::id.nullable())))
+            .inner_join(
+                campaign_senders_dsl::campaign_senders
+                    .on(campaigns_dsl::campaign_senders.eq(campaign_senders_dsl::id.nullable())),
+            )
             .left_outer_join(bounce_logs_dsl::bounce_logs.on(id.eq(bounce_logs_dsl::mail_id)))
             .select((
                 id,
@@ -190,12 +205,12 @@ impl MailRepository for MailRepositoryImpl {
             .filter(status.eq(mail_status))
             .into_boxed();
 
-            if is_ascending {
-                query_results = query_results.order(sent_at.asc());
-            } else {
-                query_results = query_results.order(sent_at.desc());
-            }
-            query_results.load::<MailWithDetails>(&mut conn)
+        if is_ascending {
+            query_results = query_results.order(sent_at.asc());
+        } else {
+            query_results = query_results.order(sent_at.desc());
+        }
+        query_results.load::<MailWithDetails>(&mut conn)
     }
 
     async fn get_stale_submitted_mails(&self) -> Result<Vec<MailWithDetails>, diesel::result::Error> {
@@ -221,7 +236,7 @@ impl MailRepository for MailRepositoryImpl {
                 last_error,
                 contacts_dsl::email,
                 bounce_logs_dsl::reason.nullable(),
-                sql::<Nullable<Text>>("NULL")
+                sql::<Nullable<Text>>("NULL"),
             ))
             .filter(status.eq("submitted"))
             .filter(server_type.eq(ServerTypeEnum::AWS))

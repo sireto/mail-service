@@ -1,6 +1,6 @@
-use diesel::prelude::*;
+use backend::models::template::{CreateTemplateRequest, DeleteTemplateResponse, Template};
 use backend::schema::templates::dsl::*;
-use backend::models::template::{ CreateTemplateRequest, DeleteTemplateResponse, Template };
+use diesel::prelude::*;
 use uuid::Uuid;
 
 pub fn insert_test_template(conn: &mut PgConnection) -> Template {
@@ -36,7 +36,5 @@ pub fn delete_test_template_by_id(conn: &mut PgConnection, template_id: Uuid) ->
 }
 
 pub fn get_test_template_by_id(conn: &mut PgConnection, template_id: Uuid) -> Result<Template, diesel::result::Error> {
-    templates
-        .filter(id.eq(template_id))
-        .first::<Template>(conn)
+    templates.filter(id.eq(template_id)).first::<Template>(conn)
 }

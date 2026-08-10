@@ -16,7 +16,7 @@ export const columns: ColumnDef<List>[] = [
     cell: ({ row }) => (
       <Link
         href={`/dashboard/contacts?list_id=${encodeURIComponent(
-          row.original.id
+          row.original.id,
         )}`}
       >
         {row.getValue("name")}

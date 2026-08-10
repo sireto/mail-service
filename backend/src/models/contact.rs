@@ -1,8 +1,8 @@
-use chrono::{ DateTime, NaiveDateTime, Utc };
-use serde_json::Value;
-use serde::{ Serialize, Deserialize };
-use utoipa::{IntoParams, ToSchema};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::prelude::*;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable)]
@@ -18,8 +18,7 @@ pub struct Contact {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq)]
-#[derive(Insertable)]
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq, Insertable)]
 #[diesel(table_name = crate::schema::contacts)]
 pub struct CreateContactRequest {
     #[schema(value_type = String, example = "John")]
@@ -102,7 +101,7 @@ pub struct DeleteContactResponse {
 
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct EmailQuery {
-    pub email: String
+    pub email: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -159,5 +158,5 @@ pub struct ImportResult {
 #[derive(Deserialize)]
 pub struct ContactQuery {
     pub list_id: Option<Uuid>,
-    pub search: Option<String>
+    pub search: Option<String>,
 }

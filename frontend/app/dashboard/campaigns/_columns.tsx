@@ -11,7 +11,7 @@ import { Campaign } from "@/lib/type/campaign";
 
 export const columns = (
   deleteCampaignHandler: (id: string) => void,
-  startCampaignHandler: (id: string) => void
+  startCampaignHandler: (id: string) => void,
 ): ColumnDef<Campaign>[] => [
   {
     accessorKey: "campaign_name",

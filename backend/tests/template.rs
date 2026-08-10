@@ -1,7 +1,11 @@
-use std::sync::Arc;
-use backend::{ models::template::{Template, CreateTemplateRequest, UpdateTemplateRequest }, repositories::template_repo::MockTemplateRepository, services::template_service::TemplateService};
-use uuid::Uuid;
+use backend::{
+    models::template::{CreateTemplateRequest, Template, UpdateTemplateRequest},
+    repositories::template_repo::MockTemplateRepository,
+    services::template_service::TemplateService,
+};
 use mockall::predicate::*;
+use std::sync::Arc;
+use uuid::Uuid;
 
 #[tokio::test]
 async fn test_create_template() {
@@ -42,29 +46,29 @@ async fn test_create_template() {
     assert_eq!(result.as_ref().unwrap().name, "Test Template");
 
     // Ensure the created template has the expected template data...
-    assert_eq!(result.as_ref().unwrap().template_data, serde_json::json!("{\"user_name\": \"John Doe\"}"));
+    assert_eq!(
+        result.as_ref().unwrap().template_data,
+        serde_json::json!("{\"user_name\": \"John Doe\"}")
+    );
 
     // Assert that the template ID is correctly generated (not the same as the input ID)...
     assert_ne!(result.as_ref().unwrap().id, test_payload.namespace_id);
-
 }
 
 #[tokio::test]
 async fn test_get_templates() {
     let mut mock_repo = MockTemplateRepository::new();
-    
-    let expected_output = vec![
-        Template {
-            id: Uuid::new_v4(),
-            namespace_id: Uuid::new_v4(),
-            name: "Test Template".to_string(),
-            template_data: serde_json::json!("{\"user_name\": \"John Doe\"}"),
-            content_plaintext: Some("Test Content Plaintext".to_string()),
-            content_html: "Test Content HTML".to_string(),
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        }
-    ];
+
+    let expected_output = vec![Template {
+        id: Uuid::new_v4(),
+        namespace_id: Uuid::new_v4(),
+        name: "Test Template".to_string(),
+        template_data: serde_json::json!("{\"user_name\": \"John Doe\"}"),
+        content_plaintext: Some("Test Content Plaintext".to_string()),
+        content_html: "Test Content HTML".to_string(),
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    }];
 
     mock_repo
         .expect_get_all_templates()
@@ -82,7 +86,6 @@ async fn test_get_templates() {
     assert!(result_output[0].name == "Test Template");
     assert!(result_output[0].template_data == serde_json::json!("{\"user_name\": \"John Doe\"}"));
     assert!(result_output[0].content_plaintext == Some("Test Content Plaintext".to_string()));
-
 }
 
 #[tokio::test]
@@ -116,8 +119,14 @@ async fn test_get_template_by_id() {
     let result_output = result.as_ref().unwrap();
 
     assert_eq!(result_output.name, "Test Template");
-    assert_eq!(result_output.template_data, serde_json::json!("{\"user_name\": \"John Doe\"}"));
-    assert_eq!(result_output.content_plaintext, Some("Test Content Plaintext".to_string()));
+    assert_eq!(
+        result_output.template_data,
+        serde_json::json!("{\"user_name\": \"John Doe\"}")
+    );
+    assert_eq!(
+        result_output.content_plaintext,
+        Some("Test Content Plaintext".to_string())
+    );
 }
 
 #[tokio::test]

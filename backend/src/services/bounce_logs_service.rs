@@ -1,15 +1,14 @@
-use crate::{error::AppError, repositories::bounce_logs_repo::{ self, BounceLogsRepository, BounceLogsRepositoryImpl }};
-use uuid::Uuid;
-use std::sync::Arc;
-use axum::http::StatusCode;
-use crate::models::bounce_logs::{
-    BounceLog,
-    CreateBounceLogRequest,
-    CreateBounceLogResponse
+use crate::models::bounce_logs::{BounceLog, CreateBounceLogRequest, CreateBounceLogResponse};
+use crate::{
+    error::AppError,
+    repositories::bounce_logs_repo::{self, BounceLogsRepository, BounceLogsRepositoryImpl},
 };
+use axum::http::StatusCode;
+use std::sync::Arc;
+use uuid::Uuid;
 
 pub struct BounceLogsService {
-    repository: Arc<dyn BounceLogsRepository + Send + Sync>
+    repository: Arc<dyn BounceLogsRepository + Send + Sync>,
 }
 
 impl BounceLogsService {
@@ -29,7 +28,10 @@ impl BounceLogsService {
         self.repository.delete_bounce(bounce_id).await
     }
 
-    pub async fn get_bounces_by_contact_id(&self, bounce_contact_id: Uuid) -> Result<Vec<BounceLog>, diesel::result::Error> {
+    pub async fn get_bounces_by_contact_id(
+        &self,
+        bounce_contact_id: Uuid,
+    ) -> Result<Vec<BounceLog>, diesel::result::Error> {
         self.repository.get_bounces_of_contact_id(bounce_contact_id).await
     }
 
@@ -50,7 +52,7 @@ pub async fn add_bounce(payload: CreateBounceLogRequest) -> Result<CreateBounceL
         campaign_id: response.campaign_id,
         at: response.at,
         kind: response.kind,
-        reason: response.reason
+        reason: response.reason,
     })
 }
 
@@ -60,15 +62,18 @@ pub async fn get_all_bounces() -> Result<Vec<BounceLog>, AppError> {
     let bounce_logs_service = BounceLogsService::new(bounce_logs_repository);
     let all_bounces = bounce_logs_service.get_all_bounces().await?;
 
-    let bounces = all_bounces.into_iter().map(|bounce| BounceLog {
-        id: bounce.id,
-        contact_id: bounce.contact_id,
-        mail_id: bounce.mail_id,
-        campaign_id: bounce.campaign_id,
-        at: bounce.at,
-        kind: bounce.kind,
-        reason: bounce.reason,
-    }).collect();
+    let bounces = all_bounces
+        .into_iter()
+        .map(|bounce| BounceLog {
+            id: bounce.id,
+            contact_id: bounce.contact_id,
+            mail_id: bounce.mail_id,
+            campaign_id: bounce.campaign_id,
+            at: bounce.at,
+            kind: bounce.kind,
+            reason: bounce.reason,
+        })
+        .collect();
 
     Ok(bounces)
 }
@@ -77,7 +82,10 @@ pub async fn get_all_bounces() -> Result<Vec<BounceLog>, AppError> {
 pub async fn get_bounces_by_contact_id(bounce_contact_id: Uuid) -> Result<Vec<BounceLog>, AppError> {
     let bounce_logs_repository = Arc::new(BounceLogsRepositoryImpl);
     let bounce_logs_service = BounceLogsService::new(bounce_logs_repository);
-    let bounces = bounce_logs_service.get_bounces_by_contact_id(bounce_contact_id).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+    let bounces = bounce_logs_service
+        .get_bounces_by_contact_id(bounce_contact_id)
+        .await
+        .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     Ok(bounces)
 }
@@ -86,7 +94,10 @@ pub async fn get_bounces_by_contact_id(bounce_contact_id: Uuid) -> Result<Vec<Bo
 pub async fn get_bounce_by_mail_id(bounce_mail_id: String) -> Result<BounceLog, AppError> {
     let bounce_logs_repository = Arc::new(BounceLogsRepositoryImpl);
     let bounce_logs_service = BounceLogsService::new(bounce_logs_repository);
-    let bounce = bounce_logs_service.get_bounce_by_mail_id(bounce_mail_id).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+    let bounce = bounce_logs_service
+        .get_bounce_by_mail_id(bounce_mail_id)
+        .await
+        .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     Ok(bounce)
 }
@@ -95,7 +106,10 @@ pub async fn get_bounce_by_mail_id(bounce_mail_id: String) -> Result<BounceLog, 
 pub async fn delete_bounce(bounce_id: Uuid) -> Result<BounceLog, AppError> {
     let bounce_logs_repository = Arc::new(BounceLogsRepositoryImpl);
     let bounce_logs_service = BounceLogsService::new(bounce_logs_repository);
-    let deleted_bounce = bounce_logs_service.delete_bounce(bounce_id).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+    let deleted_bounce = bounce_logs_service
+        .delete_bounce(bounce_id)
+        .await
+        .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     Ok(deleted_bounce)
 }

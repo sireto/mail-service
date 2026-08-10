@@ -28,7 +28,7 @@ export default function ExportPage() {
   const multiSelectRef = useRef(null);
 
   const { data: contacts, isLoading: contactsLoading } = useGetContactsQuery(
-    {}
+    {},
   );
   const { toast } = useToast();
 
@@ -50,7 +50,7 @@ export default function ExportPage() {
     selectedLists,
     {
       skip: selectedLists.length === 0,
-    }
+    },
   );
   console.log("Selected lists: ", selectedLists);
   console.log("contacts from Lists: ", contactsFromLists);

@@ -76,11 +76,11 @@ export const contactApi = createApi({
       }),
       invalidatesTags: ["Contact"],
     }),
-    getMailsForContact: builder.query<Mail[], string> ({
+    getMailsForContact: builder.query<Mail[], string>({
       query: (contactId) => `contacts/${contactId}/mails`,
       providesTags: (result, error, contactId) => {
-        return [ {type: 'Mail', id: contactId} ]
-      }
+        return [{ type: "Mail", id: contactId }];
+      },
     }),
   }),
 });

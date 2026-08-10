@@ -92,7 +92,7 @@ export const TestEmailForm: React.FC<TestEmailFormProps> = ({
       }
     } catch (error: any) {
       setTestEmailStatus(
-        "Failed to send email: " + (error?.data?.message || "Unknown error")
+        "Failed to send email: " + (error?.data?.message || "Unknown error"),
       );
       console.error("Send test email error:", error);
     }

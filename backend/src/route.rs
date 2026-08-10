@@ -2,27 +2,16 @@ use axum::Router;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::handlers::{
-    template,
-    contact,
-    mail_handler,
-    campaign as campaign,
-    campaign_sender as campaign_sender,
-    bounce_logs_handler,
-};
+use crate::handlers::{bounce_logs_handler, campaign, campaign_sender, contact, mail_handler, template};
 use crate::routes::healthcheck_route::healthcheck_routes;
 use crate::servers::servers_handler as servers;
 
+use crate::handlers::list;
 use crate::routes::list::list_routes;
 use crate::routes::{
-    template as template_routes,
-    contact as contact_routes,
-    mail as mail_routes,
-    campaign as campaign_routes,
-    campaign_senders as campaign_senders_routes,
-    bounce_logs_route,
+    bounce_logs_route, campaign as campaign_routes, campaign_senders as campaign_senders_routes,
+    contact as contact_routes, mail as mail_routes, template as template_routes,
 };
-use crate::handlers::list as list;
 use crate::servers::servers_routes::servers_routes;
 
 #[derive(OpenApi)]
@@ -91,7 +80,6 @@ use crate::servers::servers_routes::servers_routes;
 pub struct ApiDoc;
 
 pub fn create_router() -> Router {
-
     let api_routes = Router::new()
         .nest("/templates", template_routes::template_routes())
         .nest("/list", list_routes())
@@ -105,8 +93,5 @@ pub fn create_router() -> Router {
 
     Router::new()
         .nest("/api", api_routes)
-        .merge(
-            SwaggerUi::new("/swagger-ui")
-                .url("/api-docs/mail-service", ApiDoc::openapi())
-        )
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/mail-service", ApiDoc::openapi()))
 }

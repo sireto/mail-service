@@ -1,8 +1,11 @@
-use std::sync::Arc;
-use backend::{models::contact::{Contact, CreateContactRequest, UpdateContactRequest }, repositories::contact::MockContactRepository, services::contact_service::ContactService};
-use uuid::Uuid;
+use backend::{
+    models::contact::{Contact, CreateContactRequest, UpdateContactRequest},
+    repositories::contact::MockContactRepository,
+    services::contact_service::ContactService,
+};
 use mockall::predicate::*;
-
+use std::sync::Arc;
+use uuid::Uuid;
 
 #[tokio::test]
 async fn test_create_contacts() {
@@ -15,12 +18,11 @@ async fn test_create_contacts() {
         attribute: None,
     };
 
-
     let expected_output = Contact {
         id: Uuid::new_v4(),
-        first_name: "John".to_string(),  
-        last_name: "Doe".to_string(),    
-        email: "john@gmail.com".to_string(),  
+        first_name: "John".to_string(),
+        last_name: "Doe".to_string(),
+        email: "john@gmail.com".to_string(),
         attribute: None,
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
@@ -28,8 +30,8 @@ async fn test_create_contacts() {
 
     mock_repo
         .expect_create_contacts()
-        .with(eq(vec![test_payload.clone()]))  
-        .returning(move |_| Ok(vec![expected_output.clone()]));  // Return a vector of expected output
+        .with(eq(vec![test_payload.clone()]))
+        .returning(move |_| Ok(vec![expected_output.clone()])); // Return a vector of expected output
 
     let contact_service = ContactService::new(Arc::new(mock_repo));
 
@@ -37,7 +39,7 @@ async fn test_create_contacts() {
 
     assert!(result.is_ok());
     let created_contact = result.unwrap();
-    assert_eq!(created_contact.len(), 1);  // Check that we got one contact back
+    assert_eq!(created_contact.len(), 1); // Check that we got one contact back
     assert_eq!(created_contact[0].email, "john@gmail.com");
     assert_eq!(created_contact[0].attribute, None);
 }
@@ -46,17 +48,15 @@ async fn test_create_contacts() {
 async fn test_get_all_contacts() {
     let mut mock_repo = MockContactRepository::new();
 
-    let expected_output = vec![
-        Contact {
-            id: Uuid::new_v4(),
-            first_name: "John".to_string(),
-            last_name: "Doe".to_string(),
-            email: "john@gmail.com".to_string(),
-            attribute: None,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        }
-    ];
+    let expected_output = vec![Contact {
+        id: Uuid::new_v4(),
+        first_name: "John".to_string(),
+        last_name: "Doe".to_string(),
+        email: "john@gmail.com".to_string(),
+        attribute: None,
+        created_at: chrono::Utc::now(),
+        updated_at: chrono::Utc::now(),
+    }];
 
     mock_repo
         .expect_get_all_contacts()

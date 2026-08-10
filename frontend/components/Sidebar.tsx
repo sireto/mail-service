@@ -54,7 +54,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
     setExpandedItems((prev) =>
       prev.includes(itemName)
         ? prev.filter((item) => item !== itemName)
-        : [...prev, itemName]
+        : [...prev, itemName],
     );
   };
 
@@ -81,7 +81,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                     "flex items-center justify-between px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition w-full",
                     normalizedPathname.startsWith(item.href)
                       ? "text-blue-600 font-medium"
-                      : ""
+                      : "",
                   )}
                 >
                   <div className="flex items-center space-x-3">
@@ -99,7 +99,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                           "flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition ml-2",
                           normalizedPathname === subItem.href
                             ? "text-blue-600 font-medium border-r-4 border-blue-600"
-                            : ""
+                            : "",
                         )}
                         onClick={onClose}
                       >
@@ -116,7 +116,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                   "flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition",
                   normalizedPathname === item.href
                     ? "text-blue-600 font-medium border-r-4 border-blue-600"
-                    : ""
+                    : "",
                 )}
                 onClick={onClose}
               >

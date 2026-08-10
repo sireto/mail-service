@@ -1,9 +1,12 @@
 use std::sync::Arc;
 
-use backend::{models::list::{CreateListRequest, List, UpdateListRequest,}, repositories::list_repo::MockListRepository, services::list_service::ListService};
+use backend::{
+    models::list::{CreateListRequest, List, UpdateListRequest},
+    repositories::list_repo::MockListRepository,
+    services::list_service::ListService,
+};
 
 use uuid::Uuid;
-
 
 #[tokio::test]
 async fn test_get_list_by_id1() {
@@ -20,12 +23,11 @@ async fn test_get_list_by_id1() {
         updated_at: chrono::Utc::now(),
     };
 
-    mock_repo.expect_get_list_by_id()
-        .returning(move |ns_id, l_id| {
-            assert_eq!(ns_id, namespace_id);
-            assert_eq!(l_id, list_id);
-            Ok(list.clone())
-        });
+    mock_repo.expect_get_list_by_id().returning(move |ns_id, l_id| {
+        assert_eq!(ns_id, namespace_id);
+        assert_eq!(l_id, list_id);
+        Ok(list.clone())
+    });
 
     let service = ListService::new(Arc::new(mock_repo));
 
@@ -38,8 +40,6 @@ async fn test_get_list_by_id1() {
     assert_eq!(response_list.description.unwrap(), "Description");
 }
 
-
-
 #[tokio::test]
 async fn test_create_list() {
     let mut mock_repo = MockListRepository::new();
@@ -51,16 +51,16 @@ async fn test_create_list() {
     };
 
     // Mock behavior: use request data to create a list in DB
-    mock_repo
-        .expect_create_list()
-        .returning(|req| Ok(List {
+    mock_repo.expect_create_list().returning(|req| {
+        Ok(List {
             id: Uuid::new_v4(),
             name: req.name.clone(),
             namespace_id: req.namespace_id,
             description: Some(req.description.clone()),
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
-        }));
+        })
+    });
 
     let service = ListService::new(Arc::new(mock_repo));
 
@@ -71,7 +71,6 @@ async fn test_create_list() {
 
     assert_eq!(created.name, "Request List");
 }
-
 
 #[tokio::test]
 async fn test_update_list() {
@@ -93,12 +92,11 @@ async fn test_update_list() {
         description: Some("Updated Description".to_string()),
     };
 
-    mock_repo.expect_update_list()
-        .returning(move |ns_id, l_id, _payload| {
-            assert_eq!(ns_id, namespace_id);
-            assert_eq!(l_id, list_id);
-            Ok(updated_list.clone())
-        });
+    mock_repo.expect_update_list().returning(move |ns_id, l_id, _payload| {
+        assert_eq!(ns_id, namespace_id);
+        assert_eq!(l_id, list_id);
+        Ok(updated_list.clone())
+    });
 
     let service = ListService::new(Arc::new(mock_repo));
 
@@ -109,7 +107,6 @@ async fn test_update_list() {
     assert_eq!(response_list.id, list_id);
     assert_eq!(response_list.name, "Updated List");
 }
-
 
 #[tokio::test]
 async fn test_delete_list() {
@@ -126,8 +123,7 @@ async fn test_delete_list() {
         updated_at: chrono::Utc::now(),
     };
 
-    mock_repo.expect_delete_list()
-        .returning(move |_, _| Ok(list.clone()));
+    mock_repo.expect_delete_list().returning(move |_, _| Ok(list.clone()));
 
     let service = ListService::new(Arc::new(mock_repo));
 

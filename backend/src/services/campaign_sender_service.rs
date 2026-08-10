@@ -1,23 +1,30 @@
-use crate::{error::AppError, models::campaign_sender::{CampaignSenderRequest, SendTestEmailRequest, SendTestEmailResponse, ValidateEmailIdentityRequest, ValidateEmailIdentityResponse}, repositories::campaign_sender::{CampaignSenderRepository, CampaignSenderRepositoryImpl}, servers::{servers_handler::{get_server_by_id, get_servers}, servers_model::{Server, ServerTypeEnum}, servers_services::{self, ServerServiceTrait}}};
-use lettre::{transport::smtp::authentication::Credentials, Message, SmtpTransport, Transport};
-use uuid::Uuid;
-use std::sync::Arc;
-use axum::http::StatusCode;
+use super::aws_service::{self, create_aws_client_db};
 use crate::models::campaign_sender::{
-    CampaignSender,
-    CreateCampaignSenderRequest,
-    CreateCampaignSenderResponse,
-    GetCampaignSenderResponse,
-    UpdateCampaignSenderRequest,
-    UpdateCampaignSenderResponse,
-    DeleteCampaignSenderResponse
+    CampaignSender, CreateCampaignSenderRequest, CreateCampaignSenderResponse, DeleteCampaignSenderResponse,
+    GetCampaignSenderResponse, UpdateCampaignSenderRequest, UpdateCampaignSenderResponse,
 };
-use chrono::Utc;
-use super::aws_service::{self, create_aws_client_db,};
 use crate::servers::servers_repo::ServerRepoImpl;
+use crate::{
+    error::AppError,
+    models::campaign_sender::{
+        CampaignSenderRequest, SendTestEmailRequest, SendTestEmailResponse, ValidateEmailIdentityRequest,
+        ValidateEmailIdentityResponse,
+    },
+    repositories::campaign_sender::{CampaignSenderRepository, CampaignSenderRepositoryImpl},
+    servers::{
+        servers_handler::{get_server_by_id, get_servers},
+        servers_model::{Server, ServerTypeEnum},
+        servers_services::{self, ServerServiceTrait},
+    },
+};
+use axum::http::StatusCode;
+use chrono::Utc;
+use lettre::{transport::smtp::authentication::Credentials, Message, SmtpTransport, Transport};
+use std::sync::Arc;
+use uuid::Uuid;
 
 pub struct CampaignSenderService {
-    repository: Arc<dyn CampaignSenderRepository + Send + Sync>
+    repository: Arc<dyn CampaignSenderRepository + Send + Sync>,
 }
 
 impl CampaignSenderService {
@@ -25,7 +32,10 @@ impl CampaignSenderService {
         Self { repository }
     }
 
-    pub async fn create_campaign_sender(&self, payload: CreateCampaignSenderRequest) -> Result<CampaignSender, diesel::result::Error> {
+    pub async fn create_campaign_sender(
+        &self,
+        payload: CreateCampaignSenderRequest,
+    ) -> Result<CampaignSender, diesel::result::Error> {
         self.repository.create_campaign_sender(payload).await
     }
 
@@ -40,15 +50,12 @@ impl CampaignSenderService {
     pub async fn update_campaign_sender(
         &self,
         sender_id: Uuid,
-        payload: UpdateCampaignSenderRequest
+        payload: UpdateCampaignSenderRequest,
     ) -> Result<CampaignSender, diesel::result::Error> {
         self.repository.update_campaign_sender(sender_id, payload).await
     }
 
-    pub async fn delete_campaign_sender(
-        &self,
-        sender_id: Uuid,
-    ) -> Result<CampaignSender, diesel::result::Error> {
+    pub async fn delete_campaign_sender(&self, sender_id: Uuid) -> Result<CampaignSender, diesel::result::Error> {
         self.repository.delete_campaign_sender(sender_id).await
     }
 }
@@ -60,9 +67,9 @@ pub async fn create_campaign_sender(payload: CampaignSenderRequest) -> Result<Cr
     let id = Uuid::parse_str(&payload.server_id).unwrap();
 
     let payload = CreateCampaignSenderRequest {
-        server_id: id, 
-        from_email: payload.from_email, 
-        from_name: payload.from_name
+        server_id: id,
+        from_email: payload.from_email,
+        from_name: payload.from_name,
     };
 
     let response = sender_service.create_campaign_sender(payload).await?;
@@ -80,14 +87,17 @@ pub async fn get_all_campaign_senders() -> Result<Vec<GetCampaignSenderResponse>
     let sender_service = CampaignSenderService::new(sender_repository);
     let all_senders = sender_service.get_all_campaign_senders().await?;
 
-    let senders = all_senders.into_iter().map(|sender| GetCampaignSenderResponse {
-        id: sender.id,
-        server_id: sender.server_id,
-        from_name: sender.from_name,
-        from_email: sender.from_email,
-        created_at: sender.created_at,
-        updated_at: sender.updated_at,
-    }).collect();
+    let senders = all_senders
+        .into_iter()
+        .map(|sender| GetCampaignSenderResponse {
+            id: sender.id,
+            server_id: sender.server_id,
+            from_name: sender.from_name,
+            from_email: sender.from_email,
+            created_at: sender.created_at,
+            updated_at: sender.updated_at,
+        })
+        .collect();
 
     Ok(senders)
 }
@@ -115,12 +125,15 @@ pub async fn get_campaign_sender_by_id(sender_id: String) -> Result<GetCampaignS
 
 pub async fn update_campaign_sender(
     sender_id: Uuid,
-    payload: UpdateCampaignSenderRequest
+    payload: UpdateCampaignSenderRequest,
 ) -> Result<UpdateCampaignSenderResponse, AppError> {
     let sender_repository = Arc::new(CampaignSenderRepositoryImpl);
     let sender_service = CampaignSenderService::new(sender_repository);
 
-    let updated_sender_response = sender_service.update_campaign_sender(sender_id, payload).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+    let updated_sender_response = sender_service
+        .update_campaign_sender(sender_id, payload)
+        .await
+        .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     Ok(UpdateCampaignSenderResponse {
         id: updated_sender_response.id,
@@ -131,13 +144,14 @@ pub async fn update_campaign_sender(
     })
 }
 
-pub async fn delete_campaign_sender(
-    sender_id: Uuid,
-) -> Result<DeleteCampaignSenderResponse, AppError> {
+pub async fn delete_campaign_sender(sender_id: Uuid) -> Result<DeleteCampaignSenderResponse, AppError> {
     let sender_repository = Arc::new(CampaignSenderRepositoryImpl);
     let sender_service = CampaignSenderService::new(sender_repository);
 
-    let deleted_sender_response = sender_service.delete_campaign_sender(sender_id).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+    let deleted_sender_response = sender_service
+        .delete_campaign_sender(sender_id)
+        .await
+        .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     Ok(DeleteCampaignSenderResponse {
         id: deleted_sender_response.id,
@@ -147,22 +161,27 @@ pub async fn delete_campaign_sender(
     })
 }
 
-pub async fn validate_email_identity(payload: ValidateEmailIdentityRequest) -> Result<ValidateEmailIdentityResponse, (StatusCode, String)> {
+pub async fn validate_email_identity(
+    payload: ValidateEmailIdentityRequest,
+) -> Result<ValidateEmailIdentityResponse, (StatusCode, String)> {
     // Create AWS SES client
     let client = aws_service::create_aws_client().await;
-    
+
     // Extract domain from email (for domain identity validation)
     let email = payload.email.clone();
     let domain = email.split('@').last().unwrap_or("").to_string();
     println!("{}", email);
     println!("{}", domain);
-    
+
     // Get list of verified identities
     let request = client.list_email_identities();
     let result = request.send().await.map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to fetch identities: {}", e))
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to fetch identities: {}", e),
+        )
     })?;
-    
+
     // Check if email or its domain is verified
     let mut is_valid = false;
     if let Some(identities) = result.email_identities {
@@ -177,7 +196,7 @@ pub async fn validate_email_identity(payload: ValidateEmailIdentityRequest) -> R
             }
         }
     }
-    
+
     if is_valid {
         println!("Email is validated");
         Ok(ValidateEmailIdentityResponse {
@@ -188,7 +207,10 @@ pub async fn validate_email_identity(payload: ValidateEmailIdentityRequest) -> R
         println!("Email is not validated");
         Ok(ValidateEmailIdentityResponse {
             is_valid: false,
-            message: Some(format!("Email '{}' is not verified in AWS SES. Please verify it in the AWS console first.", email)),
+            message: Some(format!(
+                "Email '{}' is not verified in AWS SES. Please verify it in the AWS console first.",
+                email
+            )),
         })
     }
 }
@@ -197,11 +219,14 @@ pub async fn validate_email_identity(payload: ValidateEmailIdentityRequest) -> R
 pub async fn get_verified_identities() -> Result<Vec<String>, (StatusCode, String)> {
     let client = aws_service::create_aws_client().await;
     let request = client.list_email_identities();
-    
+
     let result = request.send().await.map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to fetch identities: {}", e))
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to fetch identities: {}", e),
+        )
     })?;
-    
+
     let mut identities = Vec::new();
     if let Some(verified_identities) = result.email_identities {
         for identity in verified_identities {
@@ -210,65 +235,59 @@ pub async fn get_verified_identities() -> Result<Vec<String>, (StatusCode, Strin
             }
         }
     }
-    
+
     Ok(identities)
 }
 
 pub async fn send_test_email(payload: SendTestEmailRequest) -> Result<SendTestEmailResponse, AppError> {
     let server_repo = Arc::new(ServerRepoImpl);
     let server_service = servers_services::ServerService::new(server_repo);
-    
+
     // Get server details
     let server = server_service.get_server_by_id(&payload.server_id as &str).await?;
-    
+
     // Optional: Validate email identity for AWS servers
     let mut validation_message = String::new();
     if server.server_type == ServerTypeEnum::AWS {
         let validation_result = validate_email_identity(ValidateEmailIdentityRequest {
             email: payload.from_email.clone(),
             serverId: payload.server_id.clone(),
-        }).await;
-        
+        })
+        .await;
+
         match validation_result {
             Ok(result) => {
                 if !result.is_valid {
-                    validation_message = format!("Warning: {} ", result.message.unwrap_or_else(|| "Email identity not verified".to_string()));
+                    validation_message = format!(
+                        "Warning: {} ",
+                        result
+                            .message
+                            .unwrap_or_else(|| "Email identity not verified".to_string())
+                    );
                 }
-            },
+            }
             Err((_, msg)) => {
                 validation_message = format!("Warning: Could not validate email identity. {}", msg);
             }
         }
     }
-    
+
     // Prepare the subject
     let subject = payload.subject.unwrap_or_else(|| "Test Email".to_string());
-    
+
     // Send test email based on server type
     let result = match server.server_type {
-        ServerTypeEnum::AWS => {
-            send_aws_test_email(
-                server, 
-                &payload.from_email,
-                &payload.to_email,
-            ).await
-        },
-        ServerTypeEnum::SMTP => {
-            send_smtp_test_email(
-                server,
-                &payload.from_email,
-                &payload.to_email,
-            ).await
-        }
+        ServerTypeEnum::AWS => send_aws_test_email(server, &payload.from_email, &payload.to_email).await,
+        ServerTypeEnum::SMTP => send_smtp_test_email(server, &payload.from_email, &payload.to_email).await,
     };
-    
+
     match result {
         Ok(message) => Ok(SendTestEmailResponse {
             success: true,
-            message: if validation_message.is_empty() { 
-                message 
-            } else { 
-                format!("{}. {}", message, validation_message) 
+            message: if validation_message.is_empty() {
+                message
+            } else {
+                format!("{}. {}", message, validation_message)
             },
         }),
         Err((status, error_message)) => {
@@ -278,11 +297,11 @@ pub async fn send_test_email(payload: SendTestEmailRequest) -> Result<SendTestEm
             } else {
                 format!("{}. {}", error_message, validation_message)
             };
-            
+
             match status {
                 StatusCode::BAD_REQUEST => Err(AppError::BadRequestError(Some(error_msg))),
                 StatusCode::NOT_FOUND => Err(AppError::NotFoundError(Some(error_msg))),
-                _ => Err(AppError::InternalServerError(Some(error_msg)))
+                _ => Err(AppError::InternalServerError(Some(error_msg))),
             }
         }
     }
@@ -298,20 +317,19 @@ pub async fn send_aws_test_email(
     let client: Client = create_aws_client_db(&server.id.to_string()).await;
 
     let subject = Content::builder().data("Test Email from AWS SES").build().unwrap();
-    let body_text = Content::builder().data("This is a test email to verify AWS SES configuration.").build().unwrap();
+    let body_text = Content::builder()
+        .data("This is a test email to verify AWS SES configuration.")
+        .build()
+        .unwrap();
 
     let message = Message::builder()
         .subject(subject)
         .body(Body::builder().text(body_text).build())
         .build();
 
-    let destination = Destination::builder()
-        .to_addresses(to_email)
-        .build();
+    let destination = Destination::builder().to_addresses(to_email).build();
 
-    let email_content = EmailContent::builder()
-        .simple(message)
-        .build();
+    let email_content = EmailContent::builder().simple(message).build();
 
     let send_result = client
         .send_email()
@@ -323,19 +341,19 @@ pub async fn send_aws_test_email(
 
     match send_result {
         Ok(_) => Ok("Test email sent via AWS SES.".to_string()),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to send AWS SES email: {}", e))),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to send AWS SES email: {}", e),
+        )),
     }
 }
 
 pub async fn send_smtp_test_email(
     server: Server,
     from_email: &str,
-    to_email: &str
+    to_email: &str,
 ) -> Result<String, (StatusCode, String)> {
-    let creds = Credentials::new(
-        server.smtp_username.clone(),
-        server.smtp_password.clone(),
-    );
+    let creds = Credentials::new(server.smtp_username.clone(), server.smtp_password.clone());
 
     let mailer = SmtpTransport::relay(&server.host.clone())
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("SMTP relay error: {}", e)))?
@@ -352,7 +370,9 @@ pub async fn send_smtp_test_email(
 
     match mailer.send(&email) {
         Ok(_) => Ok("Test email sent via SMTP.".to_string()),
-        Err(e) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to send SMTP email: {}", e))),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to send SMTP email: {}", e),
+        )),
     }
 }
-

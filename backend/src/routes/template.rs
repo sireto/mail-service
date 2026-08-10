@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
 use axum::{
-    routing::{
-        delete, get, patch, post
-    }, Extension, Router };
-
-use crate::handlers::template::{
-    delete_template, get_templates, get_templates_by_id, create_template, update_template, send_templated_email, parse_mjml_to_html
+    routing::{delete, get, patch, post},
+    Extension, Router,
 };
 
-use crate::services::mail_service;
-use crate::repositories::mail_repository;
+use crate::handlers::template::{
+    create_template, delete_template, get_templates, get_templates_by_id, parse_mjml_to_html, send_templated_email,
+    update_template,
+};
 
+use crate::repositories::mail_repository;
+use crate::services::mail_service;
 
 pub fn template_routes() -> Router {
     let mail_repo = Arc::new(mail_repository::MailRepositoryImpl);

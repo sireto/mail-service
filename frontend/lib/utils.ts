@@ -45,10 +45,10 @@ export function formatDateWithoutDay(dateString: string) {
 }
 
 /**
- * 
- * @param date 
+ *
+ * @param date
  * @description Set the time of a date to the end of the day by time...
- * @returns 
+ * @returns
  */
 export function setToEndOfDay(date: Date) {
   const d = new Date(date);

@@ -1,18 +1,15 @@
-use std::sync::Arc;
 use axum::{
-    routing::{
-        get,
-        post,
-        delete
-    }, Router, Extension };
+    routing::{delete, get, post},
+    Extension, Router,
+};
+use std::sync::Arc;
 
 use crate::handlers::bounce_logs_handler::{
-    delete_bounce, get_all_bounces, get_bounces_by_contact_id, handle_sns_notification
+    delete_bounce, get_all_bounces, get_bounces_by_contact_id, handle_sns_notification,
 };
 
-use crate::services::mail_service;
 use crate::repositories::mail_repository;
-
+use crate::services::mail_service;
 
 pub fn bounce_logs_routes() -> Router {
     let mail_repo = Arc::new(mail_repository::MailRepositoryImpl);

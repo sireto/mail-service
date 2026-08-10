@@ -1,16 +1,24 @@
 use std::sync::Arc;
 
-use crate::{error::AppError, models::{bounce_logs::
-    { 
-        CreateBounceLogRequest, CreateBounceLogResponse, GetBounceLogResponse, Message, SnsNotification
-    }, mail::UpdateMailRequest}, repositories::{contact::ContactRepositoryImpl, mail_repository::MailRepositoryImpl}, services::{bounce_logs_service, contact_service::ContactService, mail_service::{self, MailService, MailServiceTrait}}
+use crate::{
+    error::AppError,
+    models::{
+        bounce_logs::{
+            CreateBounceLogRequest, CreateBounceLogResponse, GetBounceLogResponse, Message, SnsNotification,
+        },
+        mail::UpdateMailRequest,
+    },
+    repositories::{contact::ContactRepositoryImpl, mail_repository::MailRepositoryImpl},
+    services::{
+        bounce_logs_service,
+        contact_service::ContactService,
+        mail_service::{self, MailService, MailServiceTrait},
+    },
 };
 
-use axum::{
-    extract:: Path, Json, http::StatusCode, Extension
-};
-use uuid::Uuid;
 use crate::utils::bounce_logs::search_header_from_header_list;
+use axum::{extract::Path, http::StatusCode, Extension, Json};
+use uuid::Uuid;
 
 enum MailStatus {
     Draft,
@@ -60,12 +68,12 @@ impl MailStatus {
         (status = 404)
     )
 )]
-pub async fn handle_sns_notification (
+pub async fn handle_sns_notification(
     Extension(mail_service): Extension<Arc<MailService>>,
     payload: Json<SnsNotification>,
 ) -> Result<(), AppError> {
-     // automate the subscription confirmation...
-     if payload.notification_type == "SubscriptionConfirmation" {
+    // automate the subscription confirmation...
+    if payload.notification_type == "SubscriptionConfirmation" {
         // subscribe to the public api endpoint...
         let subscribe_url = serde_json::from_str::<serde_json::Value>(&payload.message)
             .ok()
@@ -73,30 +81,37 @@ pub async fn handle_sns_notification (
 
         if let Some(url) = subscribe_url {
             println!("Confirming SNS subscription...");
-            reqwest::get(&url).await.map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+            reqwest::get(&url)
+                .await
+                .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
         }
         return Ok(());
     }
 
     if payload.notification_type == "Notification" {
-        let sns_event: Message = serde_json::from_str(&payload.message)
-            .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+        let sns_event: Message =
+            serde_json::from_str(&payload.message).map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
         if sns_event.notification_type.is_none() {
             if let Some(event_type) = sns_event.event_type.as_ref() {
                 let mail_id = search_header_from_header_list(&sns_event, "mailId")
-                .ok_or_else(|| AppError::NotFoundError(Some("mailId not found in SNS event".to_string())))?;
+                    .ok_or_else(|| AppError::NotFoundError(Some("mailId not found in SNS event".to_string())))?;
 
                 match event_type.as_str() {
                     "Open" => {
-                        mail_service.update_mail(mail_id,UpdateMailRequest {
-                            open: Some(chrono::Utc::now()),
-                            ..Default::default()
-                        }).await?;
-                    },
+                        mail_service
+                            .update_mail(
+                                mail_id,
+                                UpdateMailRequest {
+                                    open: Some(chrono::Utc::now()),
+                                    ..Default::default()
+                                },
+                            )
+                            .await?;
+                    }
                     "Click" => {
                         mail_service.increment_mail_clicks(mail_id).await?;
-                    },
+                    }
                     _ => {
                         println!("Unknown event type: {}", event_type);
                     }
@@ -115,7 +130,7 @@ pub async fn handle_sns_notification (
 
                     let status = MailStatus::Bounced;
                     let mail_id = search_header_from_header_list(&sns_event, "mailId")
-                    .ok_or_else(|| AppError::NotFoundError(Some("mailId not found in SNS event".to_string())))?;
+                        .ok_or_else(|| AppError::NotFoundError(Some("mailId not found in SNS event".to_string())))?;
 
                     let _ = mail_service.update_mail_status(mail_id.clone(), status.as_str()).await;
 
@@ -126,7 +141,9 @@ pub async fn handle_sns_notification (
 
                         let new_bounce = CreateBounceLogRequest {
                             contact_id: contact.unwrap().id,
-                            at: bounce.timestamp.parse::<chrono::DateTime<chrono::Utc>>()
+                            at: bounce
+                                .timestamp
+                                .parse::<chrono::DateTime<chrono::Utc>>()
                                 .map_err(|err| AppError::BadRequestError(Some(err.to_string())))?,
                             kind: bounce.bounce_type.clone(),
                             campaign_id: None,
@@ -144,7 +161,7 @@ pub async fn handle_sns_notification (
                     let status = MailStatus::Delivered;
 
                     let mail_id = search_header_from_header_list(&sns_event, "mailId")
-                    .ok_or_else(|| AppError::NotFoundError(Some("mailId not found in SNS event".to_string())))?;
+                        .ok_or_else(|| AppError::NotFoundError(Some("mailId not found in SNS event".to_string())))?;
 
                     let _ = mail_service.update_mail_status(mail_id, status.as_str()).await;
                 }
@@ -169,14 +186,17 @@ pub async fn handle_sns_notification (
 pub async fn get_all_bounces() -> Result<Json<Vec<GetBounceLogResponse>>, AppError> {
     let all_bounces_response = bounce_logs_service::get_all_bounces().await?;
 
-    let response: Vec<GetBounceLogResponse> = all_bounces_response.into_iter().map(|bounce| GetBounceLogResponse {
-        id: bounce.id,
-        contact_id: bounce.contact_id,
-        campaign_id: bounce.campaign_id,
-        at: bounce.at,
-        kind: bounce.kind,
-        reason: bounce.reason,
-    }).collect();
+    let response: Vec<GetBounceLogResponse> = all_bounces_response
+        .into_iter()
+        .map(|bounce| GetBounceLogResponse {
+            id: bounce.id,
+            contact_id: bounce.contact_id,
+            campaign_id: bounce.campaign_id,
+            at: bounce.at,
+            kind: bounce.kind,
+            reason: bounce.reason,
+        })
+        .collect();
 
     Ok(Json(response))
 }
@@ -190,20 +210,23 @@ pub async fn get_all_bounces() -> Result<Json<Vec<GetBounceLogResponse>>, AppErr
     )
 )]
 pub async fn get_bounces_by_contact_id(
-    Path(contact_id): Path<String>
+    Path(contact_id): Path<String>,
 ) -> Result<Json<Vec<GetBounceLogResponse>>, AppError> {
     let uuid_id = Uuid::parse_str(&contact_id)?;
 
     let bounces_response = bounce_logs_service::get_bounces_by_contact_id(uuid_id).await?;
 
-    let response: Vec<GetBounceLogResponse> = bounces_response.into_iter().map(|bounce| GetBounceLogResponse {
-        id: bounce.id,
-        contact_id: bounce.contact_id,
-        campaign_id: bounce.campaign_id,
-        at: bounce.at,
-        kind: bounce.kind,
-        reason: bounce.reason,
-    }).collect();
+    let response: Vec<GetBounceLogResponse> = bounces_response
+        .into_iter()
+        .map(|bounce| GetBounceLogResponse {
+            id: bounce.id,
+            contact_id: bounce.contact_id,
+            campaign_id: bounce.campaign_id,
+            at: bounce.at,
+            kind: bounce.kind,
+            reason: bounce.reason,
+        })
+        .collect();
 
     Ok(Json(response))
 }
@@ -216,12 +239,10 @@ pub async fn get_bounces_by_contact_id(
         (status = 404)
     )
 )]
-pub async fn delete_bounce(
-    Path(bounce_id): Path<String>
-) -> Result<(), AppError> {
+pub async fn delete_bounce(Path(bounce_id): Path<String>) -> Result<(), AppError> {
     // Convert the bounce_id of type string to the Uuid...
     let uuid_id = Uuid::parse_str(&bounce_id)?;
-    
+
     bounce_logs_service::delete_bounce(uuid_id).await?;
 
     Ok(())

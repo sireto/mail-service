@@ -1,16 +1,14 @@
 use std::sync::Arc;
 
 use axum::{
-    routing::{
-        delete, get, patch, post
-    }, Extension, Router };
-
-use crate::handlers::mail_handler::{
-    add_mail, delete_mail, get_all_mails, update_mail, get_bounced_mails
+    routing::{delete, get, patch, post},
+    Extension, Router,
 };
 
-use crate::services::mail_service as service;
+use crate::handlers::mail_handler::{add_mail, delete_mail, get_all_mails, get_bounced_mails, update_mail};
+
 use crate::repositories::mail_repository;
+use crate::services::mail_service as service;
 
 pub fn mail_routes() -> Router {
     let mail_repo = Arc::new(mail_repository::MailRepositoryImpl);

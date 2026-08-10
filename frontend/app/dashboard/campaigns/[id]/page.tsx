@@ -33,39 +33,27 @@ const Page = () => {
     },
   });
 
-  const {
-    data: campaignData,
-  } = useGetCampaignByIdQuery(id, { skip: !isEditing });
-  const [createCampaign] =
-    useCreateCampaignMutation();
-  const [updateCampaign] =
-    useUpdateCampaignMutation();
+  const { data: campaignData } = useGetCampaignByIdQuery(id, {
+    skip: !isEditing,
+  });
+  const [createCampaign] = useCreateCampaignMutation();
+  const [updateCampaign] = useUpdateCampaignMutation();
 
-  const {
-    data: templates,
-    isLoading: isTemplateLoading
-  } = useGetTemplatesQuery(
-    undefined,
-    { refetchOnMountOrArgChange: true }
-  );
+  const { data: templates, isLoading: isTemplateLoading } =
+    useGetTemplatesQuery(undefined, { refetchOnMountOrArgChange: true });
 
-  const {
-    data: campaignSenders,
-    isLoading: isSenderLoading,
-  } = useGetCampaignSendersQuery(
-    undefined,
-    { refetchOnMountOrArgChange: true }
-  );
+  const { data: campaignSenders, isLoading: isSenderLoading } =
+    useGetCampaignSendersQuery(undefined, { refetchOnMountOrArgChange: true });
 
   useEffect(() => {
     if (
-        isEditing && 
-        campaignData &&
-        !isTemplateLoading &&
-        !isSenderLoading &&
-        templates && 
-        campaignSenders
-      ) {
+      isEditing &&
+      campaignData &&
+      !isTemplateLoading &&
+      !isSenderLoading &&
+      templates &&
+      campaignSenders
+    ) {
       form.reset({
         campaign_name: campaignData.campaign_name,
         campaign_senders: campaignData.campaign_senders,
@@ -74,10 +62,18 @@ const Page = () => {
         list_ids: campaignData.lists.map((list) => list.id),
       });
     }
-  }, [campaignData, isEditing, isTemplateLoading, isSenderLoading, form, campaignSenders, templates]);
+  }, [
+    campaignData,
+    isEditing,
+    isTemplateLoading,
+    isSenderLoading,
+    form,
+    campaignSenders,
+    templates,
+  ]);
 
   const saveCampaignChanges = async (
-    value: z.infer<typeof AddCampaignFormSchemaDTO>
+    value: z.infer<typeof AddCampaignFormSchemaDTO>,
   ) => {
     if (isEditing) {
       const updatedCampaign = {

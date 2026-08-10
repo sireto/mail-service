@@ -1,14 +1,20 @@
 // the following functions are not currently used it might be used for the cleanup process for the contact list while developing...
 
-
-
-use aws_sdk_sesv2::{ Client, Error };
-use tera::{Context, Tera};
+use aws_sdk_sesv2::{Client, Error};
 use serde_json::Value;
-use uuid::Uuid;
 use std::{collections::HashMap, sync::Arc};
+use tera::{Context, Tera};
+use uuid::Uuid;
 
-use crate::{error::AppError, models::{contact::{Contact, CreateContactRequest}, template::GetTemplateResponse}, repositories::{campaign_lists_repo::CampaignListRepositoryImpl, list_contact_repo::ListContactRepositoryImpl}, services::{campaign_service::CampaignListService, list_service::ListContactService}};
+use crate::{
+    error::AppError,
+    models::{
+        contact::{Contact, CreateContactRequest},
+        template::GetTemplateResponse,
+    },
+    repositories::{campaign_lists_repo::CampaignListRepositoryImpl, list_contact_repo::ListContactRepositoryImpl},
+    services::{campaign_service::CampaignListService, list_service::ListContactService},
+};
 
 pub async fn delete_contact_from_list(client: &Client, list_name: &str, email: &str) -> Result<(), Error> {
     // Attempt to delete the contact from the specified contact list
@@ -25,22 +31,14 @@ pub async fn delete_contact_from_list(client: &Client, list_name: &str, email: &
             Ok(())
         }
         Err(err) => {
-            eprintln!(
-                "Failed to delete contact {} from list {}: {}",
-                email, list_name, err
-            );
+            eprintln!("Failed to delete contact {} from list {}: {}", email, list_name, err);
             Err(err.into())
         }
     }
 }
 
-
 async fn show_contacts(client: &Client, list: &str) -> Result<(), Error> {
-    let resp = client
-        .list_contacts()
-        .contact_list_name(list)
-        .send()
-        .await?;
+    let resp = client.list_contacts().contact_list_name(list).send().await?;
 
     println!("Contacts:");
 
@@ -93,46 +91,50 @@ pub fn parse_csv_data(
         .delimiter(delimiter.as_bytes()[0])
         .flexible(true)
         .from_reader(data);
-    
+
     let mut contacts = Vec::new();
-    let headers = reader.headers()
-        .map_err(|e| format!("Failed to read CSV headers: {}", e))?.clone();
-    
+    let headers = reader
+        .headers()
+        .map_err(|e| format!("Failed to read CSV headers: {}", e))?
+        .clone();
+
     // Validate headers (must have at least 'email')
     if !headers.iter().any(|h| h.trim() == "email") {
         return Err("CSV file must contain an 'email' column".to_string());
     }
-    
+
     for result in reader.records() {
         let record = result.map_err(|e| format!("Failed to read CSV record: {}", e))?;
-        
+
         // Find email, name, and attributes columns
-        let email = record.iter()
+        let email = record
+            .iter()
             .zip(headers.iter())
             .find(|(_, h)| h.trim() == "email")
             .map(|(v, _)| v.trim())
             .ok_or_else(|| "Email not found in record".to_string())?;
-        
+
         if email.is_empty() {
             continue; // Skip records with empty email
         }
-        
-        let name = record.iter()
+
+        let name = record
+            .iter()
             .zip(headers.iter())
             .find(|(_, h)| h.trim() == "name")
             .map(|(v, _)| v.trim())
             .unwrap_or("");
-        
-            let attributes = record.iter()
+
+        let attributes = record
+            .iter()
             .zip(headers.iter())
             .find(|(_, h)| h.trim() == "attributes")
             .map(|(v, _)| serde_json::from_str(v.trim()).unwrap_or(Value::Object(serde_json::Map::new())))
             .unwrap_or(Value::Object(serde_json::Map::new()));
-        
-        
+
         // Split name into first_name and last_name
         let (first_name, last_name) = split_name(name);
-        
+
         // Create contact
         contacts.push(CreateContactRequest {
             email: email.to_string(),
@@ -141,7 +143,7 @@ pub fn parse_csv_data(
             attribute: Some(attributes),
         });
     }
-    
+
     Ok(contacts)
 }
 
@@ -159,13 +161,13 @@ pub fn split_name(name: &str) -> (String, String) {
     }
 }
 
-pub async fn get_unique_contacts_from_campaign(
-    campaign_id: Uuid,
-) -> Result<Vec<Contact>, AppError> {
+pub async fn get_unique_contacts_from_campaign(campaign_id: Uuid) -> Result<Vec<Contact>, AppError> {
     let campaign_lists_repository = Arc::new(CampaignListRepositoryImpl);
     let campaign_list_service = CampaignListService::new(campaign_lists_repository);
 
-    let list_ids: Vec<Uuid> = campaign_list_service.get_lists_from_campaign(campaign_id).await?
+    let list_ids: Vec<Uuid> = campaign_list_service
+        .get_lists_from_campaign(campaign_id)
+        .await?
         .into_iter()
         .map(|list| list.id)
         .collect();

@@ -1,29 +1,38 @@
-import type { StorybookConfig } from "@storybook/nextjs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import type { StorybookConfig } from "@storybook/react-vite";
+
+const projectRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 
 const config: StorybookConfig = {
-  stories: ["../**/*.mdx", "../**/*.stories.@(js|jsx|mjs|ts|tsx)"],
+  stories: ["../**/*.stories.@(js|jsx|mjs|ts|tsx)"],
 
-  addons: [
-    "@storybook/addon-onboarding",
-    "@storybook/addon-essentials",
-    "@chromatic-com/storybook",
-    "@storybook/addon-interactions",
-    "@storybook/addon-mdx-gfm"
-  ],
+  addons: ["@storybook/addon-onboarding", "@chromatic-com/storybook"],
 
   framework: {
-    name: "@storybook/nextjs",
+    name: "@storybook/react-vite",
     options: {},
   },
 
   staticDirs: ["../public"],
 
   docs: {
-    autodocs: true
+    autodocs: true,
   },
 
   typescript: {
-    reactDocgen: "react-docgen-typescript"
-  }
+    reactDocgen: "react-docgen-typescript",
+  },
+
+  viteFinal: async (config) => ({
+    ...config,
+    resolve: {
+      ...config.resolve,
+      alias: {
+        ...config.resolve?.alias,
+        "@": projectRoot,
+      },
+    },
+  }),
 };
 export default config;

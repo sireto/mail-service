@@ -11,6 +11,10 @@ import { TestEmailForm } from "./TestEmailForm";
 import { CampaignSenderDialog } from "./CampaignSenderDialog";
 import { CampaignSenderFields } from "./CampaignSenderFields";
 
+const EditCampaignSenderSchema = EditCampaignSenderFormSchemaDTO.extend({
+  server_id: z.string().uuid("Invalid server ID"),
+});
+
 interface EditCampaignSenderProps {
   open?: boolean;
   onClose: () => void;
@@ -35,19 +39,18 @@ const EditCampaignSender: React.FC<EditCampaignSenderProps> = ({
   const { toast } = useToast();
 
   // Form
-  const form = useForm<z.infer<typeof EditCampaignSenderFormSchemaDTO>>({
-    resolver: zodResolver(EditCampaignSenderFormSchemaDTO),
+  const form = useForm<z.infer<typeof EditCampaignSenderSchema>>({
+    resolver: zodResolver(EditCampaignSenderSchema),
     mode: "onChange",
     defaultValues: {
       from_name: senderData?.from_name || "",
       from_email: senderData?.from_email || "",
+      server_id: senderData?.server_id || "",
     },
   });
 
   // Form submission
-  const onSubmit = async (
-    values: z.infer<typeof EditCampaignSenderFormSchemaDTO>
-  ) => {
+  const onSubmit = async (values: z.infer<typeof EditCampaignSenderSchema>) => {
     try {
       const payload = {
         from_name: values.from_name,

@@ -1,18 +1,15 @@
+use axum::body::to_bytes;
 use axum::{
     body::Body,
-    http::{Request, header},
+    http::{header, Request},
     middleware::Next,
-    response::{Response, IntoResponse},
-    Json
+    response::{IntoResponse, Response},
+    Json,
 };
 use serde_json::json;
-use axum::body::to_bytes;
 
 // Error handling middleware...
-pub async fn error_handling_middleware(
-    request: Request<Body>,
-    next: Next,
-) -> Response {
+pub async fn error_handling_middleware(request: Request<Body>, next: Next) -> Response {
     // Process the request and get response...
     let response = next.run(request).await;
     let status = response.status();
@@ -28,10 +25,9 @@ pub async fn error_handling_middleware(
     let message = String::from_utf8_lossy(&bytes);
 
     // Preserve existing headers but set content type to JSON
-    parts.headers.insert(
-        header::CONTENT_TYPE,
-        "application/json".parse().unwrap()
-    );
+    parts
+        .headers
+        .insert(header::CONTENT_TYPE, "application/json".parse().unwrap());
 
     // Create our standardized JSON error format...
     let json_error = json!({

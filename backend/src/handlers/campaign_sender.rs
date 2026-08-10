@@ -2,13 +2,13 @@ use crate::error::AppError;
 use crate::servers::servers_services::{ServerService, ServerServiceTrait};
 use crate::{
     models::campaign_sender::{
-        CampaignSenderRequest, CreateCampaignSenderRequest, CreateCampaignSenderResponse, DeleteCampaignSenderResponse, GetCampaignSenderResponse, UpdateCampaignSenderRequest, UpdateCampaignSenderResponse, ValidateEmailIdentityRequest, ValidateEmailIdentityResponse, SendTestEmailRequest, SendTestEmailResponse
+        CampaignSenderRequest, CreateCampaignSenderRequest, CreateCampaignSenderResponse, DeleteCampaignSenderResponse,
+        GetCampaignSenderResponse, SendTestEmailRequest, SendTestEmailResponse, UpdateCampaignSenderRequest,
+        UpdateCampaignSenderResponse, ValidateEmailIdentityRequest, ValidateEmailIdentityResponse,
     },
-    services::campaign_sender_service
+    services::campaign_sender_service,
 };
-use axum::{
-    extract::Path, Json, http::StatusCode
-};
+use axum::{extract::Path, http::StatusCode, Json};
 use serde::Deserialize;
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -57,7 +57,7 @@ pub async fn get_campaign_senders() -> Result<Json<Vec<GetCampaignSenderResponse
     )
 )]
 pub async fn get_campaign_sender_by_id(
-    Path(sender_id): Path<String>
+    Path(sender_id): Path<String>,
 ) -> Result<Json<GetCampaignSenderResponse>, AppError> {
     let sender = campaign_sender_service::get_campaign_sender_by_id(sender_id).await?;
     Ok(Json(sender))
@@ -79,7 +79,7 @@ pub async fn get_campaign_sender_by_id(
 )]
 pub async fn update_campaign_sender(
     Path(sender_id): Path<String>,
-    Json(payload): Json<UpdateCampaignSenderRequest>
+    Json(payload): Json<UpdateCampaignSenderRequest>,
 ) -> Result<Json<UpdateCampaignSenderResponse>, AppError> {
     let uuid_id = Uuid::parse_str(&sender_id)?;
 
@@ -101,7 +101,7 @@ pub async fn update_campaign_sender(
     )
 )]
 pub async fn delete_campaign_sender(
-    Path(sender_id): Path<String>
+    Path(sender_id): Path<String>,
 ) -> Result<Json<DeleteCampaignSenderResponse>, AppError> {
     let uuid_id = Uuid::parse_str(&sender_id)?;
 
@@ -159,4 +159,3 @@ pub async fn send_test_email(
     let response = campaign_sender_service::send_test_email(payload).await?;
     Ok(Json(response))
 }
-

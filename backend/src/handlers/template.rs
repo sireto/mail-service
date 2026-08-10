@@ -1,19 +1,20 @@
-use std::sync::Arc;
 use crate::error::AppError;
 use crate::models::mail::CreateMailRequest;
-use crate::models::template::{ CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, ParseMjml2HtmlRequest, ParseMjml2HtmlResponse, SendMailRequest, SendMailResponse, TemplateResponse, UpdateTemplateRequest, UpdateTemplateResponse };
+use crate::models::template::{
+    CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, ParseMjml2HtmlRequest,
+    ParseMjml2HtmlResponse, SendMailRequest, SendMailResponse, TemplateResponse, UpdateTemplateRequest,
+    UpdateTemplateResponse,
+};
 use serde_json::Value;
+use std::sync::Arc;
 use uuid::Uuid;
 
-use axum::{
-    extract:: Path, Json, http::StatusCode, Extension
-};
 use crate::services::mail_service::MailService;
+use axum::{extract::Path, http::StatusCode, Extension, Json};
 
+use crate::handlers::mail_handler;
 use crate::services::template_service;
-use crate::handlers::mail_handler as mail_handler;
 use crate::utils::template_utils;
-
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum TemplateField {
@@ -66,7 +67,6 @@ pub async fn get_templates_by_id(Path(template_id): Path<String>) -> Result<Json
 pub async fn create_template(
     Json(payload): Json<CreateTemplateRequest>,
 ) -> Result<Json<CreateTemplateResponse>, AppError> {
-
     let create_new_template = template_service::create_template(payload).await?;
 
     let create_response = CreateTemplateResponse {
@@ -92,11 +92,9 @@ pub async fn create_template(
     )
 )]
 pub async fn update_template(
-    
     Path(template_id): Path<String>,
-    Json(payload): Json<UpdateTemplateRequest>
+    Json(payload): Json<UpdateTemplateRequest>,
 ) -> Result<Json<UpdateTemplateResponse>, AppError> {
-
     // Convert 'template_id' (String) to 'Uuid'...
     let uuid_id = Uuid::parse_str(&template_id)?;
 
@@ -118,9 +116,7 @@ pub async fn update_template(
         (status = 500, description = "Internal server error")
     )
 )]
-pub async fn delete_template(
-    Path(template_id): Path<String>
-) -> Result<Json<DeleteTemplateResponse>, AppError> {
+pub async fn delete_template(Path(template_id): Path<String>) -> Result<Json<DeleteTemplateResponse>, AppError> {
     let uuid_id = Uuid::parse_str(&template_id)?;
 
     let delete_template_response = template_service::delete_template(uuid_id).await?;
@@ -144,17 +140,17 @@ pub async fn delete_template(
 pub async fn send_templated_email(
     Extension(mail_service): Extension<Arc<MailService>>,
     Path(template_id): Path<String>,
-    Json(payload): Json<SendMailRequest>
+    Json(payload): Json<SendMailRequest>,
 ) -> Result<Json<SendMailResponse>, AppError> {
     let template_uuid_id = Uuid::parse_str(&template_id)?;
 
-    let send_templated_email_response = template_service::send_templated_email(template_uuid_id, payload.clone())
-        .await?;
+    let send_templated_email_response =
+        template_service::send_templated_email(template_uuid_id, payload.clone()).await?;
 
     let emails = template_utils::merge_receipients(
-        payload.receiver.unwrap_or("".to_string()), 
-        payload.cc.unwrap_or("".to_string()), 
-        payload.bcc.unwrap_or("".to_string())
+        payload.receiver.unwrap_or("".to_string()),
+        payload.cc.unwrap_or("".to_string()),
+        payload.bcc.unwrap_or("".to_string()),
     );
 
     let payload = CreateMailRequest {
@@ -184,9 +180,9 @@ pub async fn send_templated_email(
     )
 )]
 pub async fn parse_mjml_to_html(
-    Json(payload): Json<ParseMjml2HtmlRequest>
+    Json(payload): Json<ParseMjml2HtmlRequest>,
 ) -> Result<Json<ParseMjml2HtmlResponse>, AppError> {
     let parsed_html = template_service::parse_mjml_to_html(payload).await?;
-    
+
     Ok(Json(parsed_html))
 }

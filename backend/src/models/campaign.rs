@@ -1,9 +1,9 @@
-use chrono::{ DateTime, NaiveDateTime, Utc };
-use serde::{ Serialize, Deserialize };
-use utoipa::{openapi::schema, ToSchema};
-use diesel::{prelude::*, sql_types::Integer};
-use uuid::Uuid;
 use crate::models::list::ListResponse;
+use chrono::{DateTime, NaiveDateTime, Utc};
+use diesel::{prelude::*, sql_types::Integer};
+use serde::{Deserialize, Serialize};
+use utoipa::{openapi::schema, ToSchema};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::schema::campaigns)]
@@ -52,7 +52,6 @@ pub struct ExtendedCreateCampaignRequest {
     pub list_ids: Vec<String>,
 }
 
-
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
 pub struct GetCampaignResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
@@ -71,7 +70,7 @@ pub struct GetCampaignResponse {
     pub created_at: DateTime<Utc>,
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub updated_at: DateTime<Utc>,
-    
+
     pub lists: Vec<ListResponse>,
 }
 
@@ -124,7 +123,7 @@ pub struct UpdateCampaignResponse {
     pub scheduled_at: Option<DateTime<Utc>>,
     #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
     pub updated_at: Option<DateTime<Utc>>,
-   
+
     pub lists: Vec<ListResponse>,
 }
 

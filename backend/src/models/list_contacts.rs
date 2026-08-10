@@ -1,14 +1,13 @@
+use crate::models::{contact::Contact, list::List};
+use crate::schema::list_contacts;
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use uuid::Uuid;
-use crate::schema::list_contacts;
-use chrono::{ DateTime,Utc};
-use crate::models::{contact::Contact, list::List};
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::{appState::DbPooledConnection, GLOBAL_APP_STATE};
-
 
 pub async fn get_connection_pool() -> DbPooledConnection {
     GLOBAL_APP_STATE
@@ -16,7 +15,6 @@ pub async fn get_connection_pool() -> DbPooledConnection {
         .get()
         .expect("Failed to get DB connection from pool")
 }
-
 
 impl ContactInList {
     pub fn contact(&self, conn: &mut PgConnection) -> QueryResult<Contact> {
@@ -34,7 +32,7 @@ impl ContactInList {
 #[primary_key(list_id, contact_id)]
 #[table_name = "list_contacts"]
 #[belongs_to(Contact)] // relationship with Contact
-#[belongs_to(List)]    //relationship with List
+#[belongs_to(List)] //relationship with List
 pub struct ContactInList {
     pub list_id: Uuid,
     pub contact_id: Uuid,
@@ -46,8 +44,7 @@ pub struct AddContactRequest {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub contact_ids: Vec<Uuid>, // Collect contact IDs to add to the list
 }
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone)]
-#[derive(Queryable, Selectable, Insertable)]
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, Queryable, Selectable, Insertable)]
 #[diesel(table_name = crate::schema::list_contacts)]
 pub struct NewContactInList {
     #[schema(value_type=String, example="a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
@@ -56,8 +53,7 @@ pub struct NewContactInList {
     pub contact_id: Uuid,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone)]
-#[derive(Queryable, Selectable)]
+#[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, Queryable, Selectable)]
 #[diesel(table_name = crate::schema::list_contacts)]
 pub struct ListContact {
     #[schema(value_type=String, example="a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]

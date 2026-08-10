@@ -50,14 +50,15 @@ const multiSelectVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  }
+  },
 );
 
 /**
  * Props for MultiSelect component
  */
 interface MultiSelectProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+  extends
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof multiSelectVariants> {
   /**
    * An array of option objects to be displayed in the multi-select component.
@@ -126,8 +127,8 @@ interface MultiSelectProps
 const DEFAULT_WIDTH = 444;
 
 export const MultiSelect = React.forwardRef<
-HTMLButtonElement,
-MultiSelectProps
+  HTMLButtonElement,
+  MultiSelectProps
 >(
   (
     {
@@ -144,7 +145,7 @@ MultiSelectProps
       className,
       ...props
     },
-    ref
+    ref,
   ) => {
     const [selectedValues, setSelectedValues] =
       React.useState<string[]>(defaultValue);
@@ -152,21 +153,23 @@ MultiSelectProps
     const [isAnimating, setIsAnimating] = React.useState(false);
 
     // set the multiSelectButton so that we can access it in the useEffect in order for the popover to be displayed per its width...
-    const [multiSelectButtonWidth, setMultiSelectButtonWidth] = React.useState<number>(DEFAULT_WIDTH);
-    
-    React.useEffect(() => {
-        const handleMultiSelectButtonWidth = () => {
-            if (typeof ref === 'object' && ref !== null && 'current' in ref) {
-                setMultiSelectButtonWidth(ref?.current?.clientWidth || DEFAULT_WIDTH);
-            }
-        }
-          
-        if (typeof ref === 'object' && ref !== null && 'current' in ref) {
-            setMultiSelectButtonWidth(ref?.current?.clientWidth || DEFAULT_WIDTH);
-            window.addEventListener('resize', handleMultiSelectButtonWidth);
-        }
+    const [multiSelectButtonWidth, setMultiSelectButtonWidth] =
+      React.useState<number>(DEFAULT_WIDTH);
 
-        return () => window.removeEventListener('resize', handleMultiSelectButtonWidth);
+    React.useEffect(() => {
+      const handleMultiSelectButtonWidth = () => {
+        if (typeof ref === "object" && ref !== null && "current" in ref) {
+          setMultiSelectButtonWidth(ref?.current?.clientWidth || DEFAULT_WIDTH);
+        }
+      };
+
+      if (typeof ref === "object" && ref !== null && "current" in ref) {
+        setMultiSelectButtonWidth(ref?.current?.clientWidth || DEFAULT_WIDTH);
+        window.addEventListener("resize", handleMultiSelectButtonWidth);
+      }
+
+      return () =>
+        window.removeEventListener("resize", handleMultiSelectButtonWidth);
     }, [ref]);
 
     // set the selected values when the value prop changes...
@@ -176,7 +179,7 @@ MultiSelectProps
     }, [value]);
 
     const handleInputKeyDown = (
-      event: React.KeyboardEvent<HTMLInputElement>
+      event: React.KeyboardEvent<HTMLInputElement>,
     ) => {
       if (event.key === "Enter") {
         setIsPopoverOpen(true);
@@ -234,7 +237,7 @@ MultiSelectProps
             onClick={handleTogglePopover}
             className={cn(
               "flex w-full p-1 rounded-md border min-h-10 h-auto items-center justify-between bg-inherit hover:bg-inherit [&_svg]:pointer-events-auto",
-              className
+              className,
             )}
           >
             {selectedValues.length > 0 ? (
@@ -248,7 +251,7 @@ MultiSelectProps
                         key={value}
                         className={cn(
                           isAnimating ? "animate-bounce" : "",
-                          multiSelectVariants({ variant })
+                          multiSelectVariants({ variant }),
                         )}
                         style={{ animationDuration: `${animation}s` }}
                       >
@@ -271,7 +274,7 @@ MultiSelectProps
                       className={cn(
                         "bg-transparent text-foreground border-foreground/1 hover:bg-transparent",
                         isAnimating ? "animate-bounce" : "",
-                        multiSelectVariants({ variant })
+                        multiSelectVariants({ variant }),
                       )}
                       style={{ animationDuration: `${animation}s` }}
                     >
@@ -316,10 +319,10 @@ MultiSelectProps
           align="start"
           onEscapeKeyDown={() => setIsPopoverOpen(false)}
         >
-          <Command 
-            style={{ width: `${multiSelectButtonWidth}px` }} 
+          <Command
+            style={{ width: `${multiSelectButtonWidth}px` }}
             className={"p-0"}
-            >
+          >
             <CommandInput
               placeholder="Search..."
               onKeyDown={handleInputKeyDown}
@@ -337,7 +340,7 @@ MultiSelectProps
                       "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
                       selectedValues.length === options.length
                         ? "bg-primary text-primary-foreground"
-                        : "opacity-50 [&_svg]:invisible"
+                        : "opacity-50 [&_svg]:invisible",
                     )}
                   >
                     <CheckIcon className="h-4 w-4" />
@@ -357,7 +360,7 @@ MultiSelectProps
                           "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
                           isSelected
                             ? "bg-primary text-primary-foreground"
-                            : "opacity-50 [&_svg]:invisible"
+                            : "opacity-50 [&_svg]:invisible",
                         )}
                       >
                         <CheckIcon className="h-4 w-4" />
@@ -402,14 +405,14 @@ MultiSelectProps
           <WandSparkles
             className={cn(
               "cursor-pointer my-2 text-foreground bg-background w-3 h-3",
-              isAnimating ? "" : "text-muted-foreground"
+              isAnimating ? "" : "text-muted-foreground",
             )}
             onClick={() => setIsAnimating(!isAnimating)}
           />
         )}
       </Popover>
     );
-  }
+  },
 );
 
 MultiSelect.displayName = "MultiSelect";
