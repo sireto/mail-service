@@ -1,6 +1,5 @@
-use crate::models::campaign::Campaign;
+use crate::models::campaign_lists::NewListInCampaign;
 use crate::models::list::ListResponse;
-use crate::models::{campaign_lists::NewListInCampaign, list::List};
 use crate::schema::campaign_lists;
 use crate::schema::lists::dsl::*;
 use chrono::{DateTime, Utc};
@@ -9,7 +8,8 @@ use uuid::Uuid;
 
 use crate::{app_state::DbPooledConnection, GLOBAL_APP_STATE};
 use async_trait::async_trait;
-use mockall::{automock, predicate::*};
+#[cfg(feature = "mocks")]
+use mockall::automock;
 
 pub async fn get_connection_pool() -> DbPooledConnection {
     GLOBAL_APP_STATE
@@ -18,7 +18,7 @@ pub async fn get_connection_pool() -> DbPooledConnection {
         .expect("Failed to get DB connection from pool")
 }
 
-#[automock]
+#[cfg_attr(feature = "mocks", automock)]
 #[async_trait]
 pub trait CampaignListRepository {
     async fn add_lists_to_campaign(

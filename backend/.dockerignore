@@ -1,0 +1,10 @@
+# Without this file the whole build context — including target/, which is gigabytes once
+# anything has been built locally — is uploaded to the daemon on every build.
+target/
+.git/
+.env
+.env.*
+*.md
+Dockerfile
+.dockerignore
+docker-compose.yml

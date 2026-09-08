@@ -1,18 +1,13 @@
+# Only stable options. The previous file set ten nightly-only options
+# (imports_granularity, group_imports, format_strings, wrap_comments, comment_width,
+# error_on_line_overflow, normalize_doc_attributes, format_macro_bodies,
+# format_macro_matchers, format_code_in_doc_comments); stable `cargo fmt` printed a warning
+# for each and ignored it, so the file described a style nothing enforced.
+#
+# If the team wants those, add a nightly `cargo +nightly fmt` step rather than putting them
+# here where they are silently dropped.
 newline_style = "unix"
 use_field_init_shorthand = true
 use_try_shorthand = true
-
-# Unstable features below (remove if using stable)
-# unstable_features = true
-style_edition = "2021"  # Stick to stable 2021 edition
+style_edition = "2021"
 max_width = 120
-comment_width = 120
-error_on_line_overflow = true
-format_code_in_doc_comments = true
-format_macro_bodies = true
-format_macro_matchers = true
-format_strings = true
-imports_granularity = "Module"
-group_imports = "StdExternalCrate"
-normalize_doc_attributes = true
-wrap_comments = true

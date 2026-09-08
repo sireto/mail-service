@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -10,6 +10,7 @@ use uuid::Uuid;
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Contact {
     pub id: Uuid,
+    pub namespace_id: Uuid,
     pub first_name: String,
     pub last_name: String,
     pub email: String,
@@ -21,6 +22,9 @@ pub struct Contact {
 #[derive(Debug, Default, Serialize, Deserialize, ToSchema, Clone, PartialEq, Insertable)]
 #[diesel(table_name = crate::schema::contacts)]
 pub struct CreateContactRequest {
+    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub namespace_id: Uuid,
+
     #[schema(value_type = String, example = "John")]
     pub first_name: String,
 
@@ -38,6 +42,8 @@ pub struct CreateContactRequest {
 pub struct CreateContactResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub id: Uuid,
+    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub namespace_id: Uuid,
     pub first_name: String,
     pub last_name: String,
 
@@ -52,6 +58,8 @@ pub struct CreateContactResponse {
 pub struct GetContactResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub id: Uuid,
+    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub namespace_id: Uuid,
     pub first_name: String,
     pub last_name: String,
     pub email: String,
@@ -102,6 +110,9 @@ pub struct DeleteContactResponse {
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct EmailQuery {
     pub email: String,
+    /// Required: an email address is only unique within a namespace.
+    #[param(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub namespace_id: Uuid,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -116,6 +127,8 @@ pub struct ContactList {
 pub struct GetContactResponsee {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub id: Uuid,
+    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub namespace_id: Uuid,
     pub first_name: String,
     pub last_name: String,
     pub email: String,
@@ -155,8 +168,12 @@ pub struct ImportResult {
     pub errors: Vec<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize, IntoParams)]
 pub struct ContactQuery {
+    /// Required: contacts are scoped to a namespace.
+    #[param(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub namespace_id: Uuid,
+    #[param(value_type = Option<String>, example = "b1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub list_id: Option<Uuid>,
     pub search: Option<String>,
 }

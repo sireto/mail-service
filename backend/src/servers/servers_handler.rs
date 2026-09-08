@@ -10,8 +10,6 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::servers::servers_services::{ServerService, ServerServiceTrait};
-use crate::services::mail_service::MailService;
-use crate::utils::server_utils::secure_server_response;
 
 use serde::Serialize;
 
@@ -61,7 +59,7 @@ pub async fn get_servers(
         .map(|server| {
             let server_response: ServerResponse = server.into();
 
-            return server_response;
+            server_response
         })
         .collect();
 
@@ -173,10 +171,14 @@ pub async fn send_mail_from_server(
     Json(payload): Json<SendMailFromServerRequest>,
 ) -> Result<Json<SendMailFromServerResponse>, AppError> {
     let template_id = payload.template_id;
+    let receiver = payload
+        .receiver
+        .filter(|r| !r.trim().is_empty())
+        .ok_or_else(|| AppError::BadRequestError(Some("`receiver` is required".to_string())))?;
+
     let mail = server_service
-        .send_mail_from_server(&server_id, template_id, payload.receiver.unwrap())
-        .await
-        .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+        .send_mail_from_server(&server_id, template_id, receiver)
+        .await?;
 
     Ok(Json(SendMailFromServerResponse {
         id: mail.id,

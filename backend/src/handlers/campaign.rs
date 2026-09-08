@@ -6,14 +6,17 @@ use crate::{
             CampaignSendResponse, CreateCampaignRequest, CreateCampaignResponse, DeleteCampaignResponse,
             ExtendedCreateCampaignRequest, GetCampaignResponse, UpdateCampaignRequest, UpdateCampaignResponse,
         },
-        contact::{DeleteContactResponse, UpdateContactResponse},
+        contact::UpdateContactResponse,
     },
-    repositories::campaign_sender::CampaignSenderRepositoryImpl,
     services::{campaign_sender_service, campaign_service},
 };
 use uuid::Uuid;
 
-use axum::{extract::Path, http::StatusCode, Json};
+use crate::models::pagination::{Page, PageQuery};
+use axum::{
+    extract::{Path, Query},
+    Json,
+};
 
 #[utoipa::path(
     post,
@@ -33,18 +36,14 @@ pub async fn create_campaign(
 #[utoipa::path(
     get,
     path = "/api/campaigns",
+    params(PageQuery),
     responses(
-        (status = 200, description = "Get all the campaigns", body = Vec<GetCampaignResponse>),
+        (status = 200, description = "Get a page of campaigns", body = Page<GetCampaignResponse>),
         (status = 404)
     )
 )]
-pub async fn get_all_campaigns() -> Result<Json<Vec<GetCampaignResponse>>, AppError> {
-    let campaigns = campaign_service::get_all_campaigns().await?;
-
-    if campaigns.is_empty() {
-        return Ok(Json(vec![]));
-    }
-    Ok(Json(campaigns))
+pub async fn get_all_campaigns(Query(page): Query<PageQuery>) -> Result<Json<Page<GetCampaignResponse>>, AppError> {
+    Ok(Json(campaign_service::get_all_campaigns(&page).await?))
 }
 
 #[utoipa::path(
@@ -144,11 +143,10 @@ pub async fn send_campaign_email_smtp(Path(campaign_id): Path<String>) -> Result
     use crate::services::campaign_service::send_campaign_email_smtp;
 
     let campaign_uuid = Uuid::parse_str(&campaign_id)?;
-    let campaign_sender_id = campaign_service::get_campaign_by_id(campaign_uuid.clone())
-        .await
-        .unwrap()
+    let campaign_sender_id = campaign_service::get_campaign_by_id(campaign_uuid)
+        .await?
         .campaign_senders
-        .unwrap()
+        .ok_or_else(|| AppError::BadRequestError(Some("Campaign has no sender assigned".to_string())))?
         .to_string();
     let campaign_sender = campaign_sender_service::get_campaign_sender_by_id(campaign_sender_id).await?;
     let server_uuid = campaign_sender.server_id;

@@ -1,3 +1,4 @@
 [alias]
-prisma = "run --bin prisma-cli"
+# `prisma = "run --bin prisma-cli"` used to live here, pointing at a binary this project
+# does not have — leftover from another codebase.
 serve = "run --bin backend"

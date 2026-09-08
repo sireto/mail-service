@@ -300,6 +300,7 @@ pub async fn get_contacts_from_lists(list_ids: Vec<Uuid>) -> Result<Vec<GetConta
 
         response.push(GetContactResponsee {
             id: contact.id,
+            namespace_id: contact.namespace_id,
             first_name: contact.first_name,
             last_name: contact.last_name,
             email: contact.email,

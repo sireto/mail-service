@@ -15,8 +15,11 @@ import { Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CampaignForm from "./_components/CampaignForm";
 import SendTestMailForm from "./_components/SendTestMailForm";
-import { useGetTemplatesQuery } from "@/app/services/TemplateApi";
+import { useLazyGetTemplatesQuery } from "@/app/services/TemplateApi";
 import { useGetCampaignSendersQuery } from "@/app/services/CampaignSenderApi";
+import { NAMESPACE_ID } from "@/config/namespace";
+import { MAX_PAGE_SIZE } from "@/lib/type/pagination";
+import type { Template } from "@/lib/type/template";
 
 const Page = () => {
   const { id } = useParams<{ id: string }>();
@@ -39,11 +42,59 @@ const Page = () => {
   const [createCampaign] = useCreateCampaignMutation();
   const [updateCampaign] = useUpdateCampaignMutation();
 
-  const { data: templates, isLoading: isTemplateLoading } =
-    useGetTemplatesQuery(undefined, { refetchOnMountOrArgChange: true });
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [isTemplateLoading, setIsTemplateLoading] = useState(true);
+  const [templateLoadError, setTemplateLoadError] = useState(false);
+  const [fetchTemplatesPage] = useLazyGetTemplatesQuery();
 
   const { data: campaignSenders, isLoading: isSenderLoading } =
     useGetCampaignSendersQuery(undefined, { refetchOnMountOrArgChange: true });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTemplates = async () => {
+      setIsTemplateLoading(true);
+      setTemplateLoadError(false);
+
+      try {
+        const allTemplates: Template[] = [];
+        let offset = 0;
+
+        for (;;) {
+          const page = await fetchTemplatesPage({
+            limit: MAX_PAGE_SIZE,
+            offset,
+          }).unwrap();
+
+          if (cancelled) return;
+
+          allTemplates.push(...page.items);
+          offset += page.items.length;
+
+          if (
+            !page.has_more ||
+            page.items.length === 0 ||
+            allTemplates.length >= page.total
+          ) {
+            break;
+          }
+        }
+
+        if (!cancelled) setTemplates(allTemplates);
+      } catch {
+        if (!cancelled) setTemplateLoadError(true);
+      } finally {
+        if (!cancelled) setIsTemplateLoading(false);
+      }
+    };
+
+    void loadTemplates();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchTemplatesPage]);
 
   useEffect(() => {
     if (
@@ -96,7 +147,7 @@ const Page = () => {
       const newCampaign = {
         campaign_name: value.campaign_name.trim(),
         campaign_senders: value.campaign_senders.trim(),
-        namespace_id: "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82",
+        namespace_id: NAMESPACE_ID,
         template_id: value.template_id.trim(),
         status: "draft",
         list_ids: value.list_ids,
@@ -109,6 +160,10 @@ const Page = () => {
     }
     router.push("/dashboard/campaigns");
   };
+
+  if (templateLoadError) {
+    return <div>There was an error fetching templates...</div>;
+  }
 
   return (
     <div className="flex flex-col space-y-8 lg:space-y-0 lg:flex-row lg:justify-between lg:gap-x-64">

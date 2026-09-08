@@ -49,6 +49,7 @@ const Page = () => {
     },
   });
 
+  const [offset, setOffset] = useState(0);
   const [searchParams, setSearchParams] = useState({
     campaign_ids: typeof id === "string" ? [id] : [],
     from: oneWeekAgo.toISOString(),
@@ -64,7 +65,7 @@ const Page = () => {
     isLoading,
     error,
   } = useGetMailsQuery(
-    searchParams,
+    { ...searchParams, offset },
     // skip when the form dates are not changed here...
     {
       skip:
@@ -78,6 +79,9 @@ const Page = () => {
 
   const searchHandler = async (value: SearchCampaignAnalytics) => {
     const { campaigns, from, to } = value;
+
+    // Reset to the first page: keeping the old offset would show page 3 of a new result set.
+    setOffset(0);
 
     setSearchParams({
       campaign_ids: campaigns,
@@ -142,10 +146,13 @@ const Page = () => {
       ) : (
         <div className="my-4 z-20">
           <DataTable
-            data={mails || []}
+            data={mails?.items ?? []}
             columns={columns(deleteMailHandler)} // Pass columns directly
             fallback={"No mails found"}
             isLoading={isLoading}
+            pagination={
+              mails ? { page: mails, onOffsetChange: setOffset } : undefined
+            }
           />
         </div>
       )}

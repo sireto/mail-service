@@ -9,13 +9,13 @@ use crate::{
     services::contact_service,
 };
 
+use crate::models::pagination::{Page, PageQuery};
 use axum::{
     extract::{Path, Query},
     Json,
 };
 
 use axum_extra::extract::Multipart;
-use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::utils::contact_lists_functions::parse_csv_data;
@@ -37,6 +37,7 @@ pub async fn create_contacts(
         .iter()
         .map(|contact| CreateContactResponse {
             id: contact.id,
+            namespace_id: contact.namespace_id,
             first_name: contact.first_name.clone(),
             last_name: contact.last_name.clone(),
             email: contact.email.clone(),
@@ -50,19 +51,19 @@ pub async fn create_contacts(
 #[utoipa::path(
     get,
     path = "/api/contacts",
+    params(ContactQuery, PageQuery),
     responses(
-        (status = 200, description = "Get all the contacts", body = Vec<GetContactResponse>),
+        (status = 200, description = "A page of contacts", body = Page<GetContactResponsee>),
         (status = 404)
     )
 )]
-pub async fn get_contacts(query: Query<ContactQuery>) -> Result<Json<Vec<GetContactResponsee>>, AppError> {
-    println!("Handler called");
+pub async fn get_contacts(
+    query: Query<ContactQuery>,
+    Query(page): Query<PageQuery>,
+) -> Result<Json<Page<GetContactResponsee>>, AppError> {
+    let contacts =
+        contact_service::get_all_contacts(query.namespace_id, query.list_id, query.search.clone(), &page).await?;
 
-    let contacts = contact_service::get_all_contacts(query.list_id, query.search.clone())
-        .await
-        .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
-
-    println!("Found {} contacts", contacts.len());
     Ok(Json(contacts))
 }
 
@@ -130,9 +131,7 @@ pub async fn delete_contact(Path(contact_id): Path<String>) -> Result<Json<Delet
 #[utoipa::path(
     get,
     path = "/api/contacts/check-email",
-    params(
-        EmailQuery
-    ),
+    params(EmailQuery),
     responses(
         (status = 200, description = "Email existence check result", body = bool),
         (status = 400, description = "Invalid email format"),
@@ -140,7 +139,7 @@ pub async fn delete_contact(Path(contact_id): Path<String>) -> Result<Json<Delet
     )
 )]
 pub async fn check_email(Query(query): Query<EmailQuery>) -> Result<Json<bool>, AppError> {
-    let exists = contact_service::check_email_exists(query.email).await?;
+    let exists = contact_service::check_email_exists(query.namespace_id, query.email).await?;
 
     Ok(Json(exists))
 }
@@ -163,6 +162,7 @@ pub async fn import_contacts(mut multipart: Multipart) -> Result<Json<ImportResp
     let mut overwrite = false;
     let mut delimiter = ",".to_string();
     let mut lists_json = None;
+    let mut namespace_id = None;
 
     // Process multipart form fields
     while let Some(field) = multipart
@@ -210,6 +210,16 @@ pub async fn import_contacts(mut multipart: Multipart) -> Result<Json<ImportResp
                         .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?
                         .to_string();
                 }
+                "namespace_id" => {
+                    let raw = field
+                        .text()
+                        .await
+                        .map_err(|err| AppError::BadRequestError(Some(err.to_string())))?;
+                    namespace_id = Some(
+                        Uuid::parse_str(raw.trim())
+                            .map_err(|err| AppError::BadRequestError(Some(format!("Invalid namespace_id: {err}"))))?,
+                    );
+                }
                 "lists" => {
                     lists_json = Some(
                         field
@@ -241,13 +251,17 @@ pub async fn import_contacts(mut multipart: Multipart) -> Result<Json<ImportResp
         })
         .unwrap_or_default();
 
+    // Every imported contact belongs to a namespace, so the form must say which.
+    let namespace_id = namespace_id
+        .ok_or_else(|| AppError::BadRequestError(Some("Missing required field: namespace_id".to_string())))?;
+
     // Parse CSV and import contacts
-    let contacts = parse_csv_data(&file_data, &delimiter, &mode, &status, overwrite)
-        .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+    let contacts = parse_csv_data(&file_data, namespace_id, &delimiter, &mode, &status, overwrite)
+        .map_err(|err| AppError::BadRequestError(Some(err.to_string())))?;
 
     let result = contact_service::import_contacts(contacts, list_ids, overwrite)
         .await
-        .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+        .map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;
 
     Ok(Json(ImportResponse {
         success: true,

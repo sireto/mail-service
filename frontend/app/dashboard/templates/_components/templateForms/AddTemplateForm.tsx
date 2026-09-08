@@ -10,6 +10,7 @@ import { useCreateTemplateMutation } from "@/app/services/TemplateApi";
 import { DialogClose } from "@radix-ui/react-dialog";
 import TemplateModalBody from "@/app/dashboard/templates/_components/TemplateModalBody";
 import { Button } from "@/components/ui/button";
+import { NAMESPACE_ID } from "@/config/namespace";
 
 const AddTemplateForm = () => {
   const form = useForm<z.infer<typeof AddTemplateFormSchemaDTO>>({
@@ -36,7 +37,7 @@ const AddTemplateForm = () => {
     const newTemplate = {
       name: value.name.trim(),
       content_html: value.raw_mjml_content.trim(),
-      namespace_id: "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82",
+      namespace_id: NAMESPACE_ID,
       content_plaintext: "Hi, {{name}}",
       template_data: JSON.stringify({
         name: "John Doe",

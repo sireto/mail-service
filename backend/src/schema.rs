@@ -59,6 +59,7 @@ diesel::table! {
 diesel::table! {
     contacts (id) {
         id -> Uuid,
+        namespace_id -> Uuid,
         first_name -> Varchar,
         last_name -> Varchar,
         email -> Varchar,
@@ -160,6 +161,7 @@ diesel::joinable!(campaign_senders -> servers (server_id));
 diesel::joinable!(campaigns -> campaign_senders (campaign_senders));
 diesel::joinable!(campaigns -> namespaces (namespace_id));
 diesel::joinable!(campaigns -> templates (template_id));
+diesel::joinable!(contacts -> namespaces (namespace_id));
 diesel::joinable!(list_contacts -> contacts (contact_id));
 diesel::joinable!(list_contacts -> lists (list_id));
 diesel::joinable!(lists -> namespaces (namespace_id));

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 
 import Modal from "@/components/Modal";
 import AddTemplateForm from "./_components/templateForms/AddTemplateForm";
@@ -10,7 +10,12 @@ import columns from "./_columns";
 import AddButton from "@/components/common/AddButton";
 
 const Page = () => {
-  const { data: templates, error, isLoading } = useGetTemplatesQuery();
+  const [offset, setOffset] = useState(0);
+  const {
+    data: templates,
+    error,
+    isLoading,
+  } = useGetTemplatesQuery({ offset });
 
   if (error) {
     return <div>There was an error fetching templates...</div>;
@@ -26,7 +31,7 @@ const Page = () => {
       <div className="w-full flex justify-between items-center">
         <h1 className="text-xl font-bold">
           Templates
-          <span>({templates?.length})</span>
+          <span>({templates?.total ?? 0})</span>
         </h1>
         <Modal
           triggerButton={<AddButton />}
@@ -37,9 +42,15 @@ const Page = () => {
       </div>
       <div className="my-12">
         <DataTable
-          data={templates || []}
+          data={templates?.items ?? []}
           columns={columns}
           fallback={"No templates found"}
+          isLoading={isLoading}
+          pagination={
+            templates
+              ? { page: templates, onOffsetChange: setOffset }
+              : undefined
+          }
         />
       </div>
     </div>

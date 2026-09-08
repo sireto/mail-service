@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { useGetListsQuery } from "@/app/services/ListApi";
 import DropdownItemList from "./DropdownItemList";
 import { MultiSelect } from "@/components/common/Multiselect";
+import { NAMESPACE_ID } from "@/config/namespace";
 
 type Template = z.infer<typeof TemplateDTO>;
 type Sender = z.infer<typeof CampaignSenderDTO>;
@@ -43,7 +44,7 @@ type SenderItem = {
   name: string;
 };
 
-const namespaceId: string | undefined = process.env.NEXT_PUBLIC_NAMESPACE_ID;
+
 
 const CampaignForm = (props: CampaignFormProps) => {
   const {
@@ -54,9 +55,7 @@ const CampaignForm = (props: CampaignFormProps) => {
     senders: campaignSenders,
   } = props;
 
-  const { data: lists } = useGetListsQuery(
-    namespaceId || "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82",
-  );
+  const { data: lists } = useGetListsQuery(NAMESPACE_ID);
 
   const multiSelectRef = useRef(null);
 

@@ -3,7 +3,10 @@
 set -euo pipefail
 
 echo "Checking Rust formatting..."
-cargo fmt --check
+cargo fmt --all --check
+
+echo "Running clippy..."
+cargo clippy --all-targets --all-features -- -D warnings
 
 echo "Checking backend compilation..."
 cargo check --all-targets --all-features

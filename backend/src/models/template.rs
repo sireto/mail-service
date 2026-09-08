@@ -111,6 +111,10 @@ pub struct SendMailRequest {
 pub struct SendMailResponse {
     #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
     pub id: Uuid,
+    /// Namespace of the template that was sent. Needed to record the mail, since resolving
+    /// a recipient address requires knowing which namespace it belongs to.
+    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub namespace_id: Uuid,
     pub message_id: String,
     pub name: String,
     pub to: Vec<String>,

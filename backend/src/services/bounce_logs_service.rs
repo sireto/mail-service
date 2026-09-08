@@ -1,9 +1,8 @@
 use crate::models::bounce_logs::{BounceLog, CreateBounceLogRequest, CreateBounceLogResponse};
 use crate::{
     error::AppError,
-    repositories::bounce_logs_repo::{self, BounceLogsRepository, BounceLogsRepositoryImpl},
+    repositories::bounce_logs_repo::{BounceLogsRepository, BounceLogsRepositoryImpl},
 };
-use axum::http::StatusCode;
 use std::sync::Arc;
 use uuid::Uuid;
 

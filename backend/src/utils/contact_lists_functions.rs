@@ -37,18 +37,6 @@ pub async fn delete_contact_from_list(client: &Client, list_name: &str, email: &
     }
 }
 
-async fn show_contacts(client: &Client, list: &str) -> Result<(), Error> {
-    let resp = client.list_contacts().contact_list_name(list).send().await?;
-
-    println!("Contacts:");
-
-    for contact in resp.contacts() {
-        println!("  {}", contact.email_address().unwrap_or_default());
-    }
-
-    Ok(())
-}
-
 pub async fn populate_contact_template(
     template: &GetTemplateResponse,
     contact: &Contact,
@@ -61,7 +49,13 @@ pub async fn populate_contact_template(
     let mut context = Context::new();
     if let Some(Value::Object(map)) = &contact.attribute {
         for (key, value) in map {
-            context.insert(key, &value.to_string());
+            // `value.to_string()` on a JSON string keeps its quotes, so {{ city }} rendered
+            // as "Tokyo" (with the quote characters) in the delivered email.
+            match value {
+                Value::String(text) => context.insert(key, text),
+                Value::Null => context.insert(key, ""),
+                other => context.insert(key, &other.to_string()),
+            }
         }
     }
 
@@ -80,13 +74,22 @@ pub async fn populate_contact_template(
 // Helper function to parse CSV data
 pub fn parse_csv_data(
     data: &[u8],
+    namespace_id: Uuid,
     delimiter: &str,
     _mode: &str,
     _status: &str,
     _overwrite: bool,
 ) -> Result<Vec<CreateContactRequest>, String> {
+    // `delimiter.as_bytes()[0]` panicked on an empty delimiter field, and silently ignored
+    // a multi-byte one.
+    let delimiter_byte = match delimiter.as_bytes() {
+        [single] => *single,
+        [] => b',',
+        _ => return Err(format!("delimiter must be a single byte, got {delimiter:?}")),
+    };
+
     let mut reader = csv::ReaderBuilder::new()
-        .delimiter(delimiter.as_bytes()[0])
+        .delimiter(delimiter_byte)
         .flexible(true)
         .from_reader(data);
 
@@ -135,6 +138,7 @@ pub fn parse_csv_data(
 
         // Create contact
         contacts.push(CreateContactRequest {
+            namespace_id,
             email: email.to_string(),
             first_name,
             last_name,

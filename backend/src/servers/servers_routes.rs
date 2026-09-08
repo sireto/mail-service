@@ -6,13 +6,9 @@ use ::axum::{
 };
 use axum::Extension;
 
-use crate::{
-    repositories::mail_repository,
-    servers::servers_handler::{
-        check_credentials, create_server, delete_server, get_mails_from_server, get_server_by_id, get_servers,
-        send_mail_from_server, update_server,
-    },
-    services::mail_service,
+use crate::servers::servers_handler::{
+    check_credentials, create_server, delete_server, get_mails_from_server, get_server_by_id, get_servers,
+    send_mail_from_server, update_server,
 };
 
 use crate::repositories::template_repo;

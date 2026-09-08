@@ -9,6 +9,11 @@ import {
 } from "@/lib/type";
 import environments from "@/config/environments";
 import { listApi } from "./ListApi";
+import {
+  appendPageParams,
+  type Page,
+  type PageParams,
+} from "@/lib/type/pagination";
 
 type Campaign = z.infer<typeof CampaignDTO>;
 type CreateCampaignRequest = z.infer<typeof CreateCampaignRequestDTO>;
@@ -23,8 +28,15 @@ export const campaignApi = createApi({
   tagTypes: ["Campaign"],
   endpoints: (builder) => ({
     // Query to fetch all lists...
-    getCampaigns: builder.query<Campaign[], void>({
-      query: () => "",
+    getCampaigns: builder.query<Page<Campaign>, PageParams | void>({
+      query: (page) => {
+        const params = appendPageParams(
+          new URLSearchParams(),
+          page ?? undefined,
+        );
+        const qs = params.toString();
+        return qs ? `?${qs}` : "";
+      },
       providesTags: ["Campaign"],
     }),
     getCampaignById: builder.query<Campaign, string>({

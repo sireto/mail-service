@@ -1,8 +1,8 @@
 use crate::models::list::ListResponse;
 use chrono::{DateTime, NaiveDateTime, Utc};
-use diesel::{prelude::*, sql_types::Integer};
+use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
-use utoipa::{openapi::schema, ToSchema};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable)]

@@ -25,17 +25,78 @@ jobs:
       - name: Set up Rust
         uses: moonrepo/setup-rust@v1
         with:
-          channel: 1.97.0
+          # Kept in step with rust-toolchain.toml; Cargo.lock's AWS crates set the floor.
+          channel: 1.95.0
+          components: rustfmt, clippy
 
       - name: Show Rust version
         run: |
           rustc --version
           cargo --version
 
-      - name: Install dependencies
-        run: cargo build
+      # These three were absent, which is why 51 compiler warnings and a pile of clippy
+      # findings accumulated unnoticed. Warnings are now errors so they cannot come back.
+      - name: Check formatting
+        run: cargo fmt --all --check
+        working-directory: backend
+
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+        working-directory: backend
+
+      - name: Build
+        run: cargo build --locked
+        working-directory: backend
+
+      - name: Build without dev feature flags (production shape)
+        run: cargo build --locked --no-default-features
         working-directory: backend
 
       - name: Run tests
-        run: cargo test
+        run: cargo test --locked
         working-directory: backend
+        env:
+          # A throwaway value: the crypto tests set their own key, and nothing in CI reads
+          # real data. Never reuse this anywhere that stores credentials.
+          DATA_ENCRYPTION_KEY: ci-only-not-a-real-key-0123456789abcdefghijklmnop
+
+  frontend:
+    name: Build and Lint Frontend
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # next 16 needs node >=20.9.0 and vite 7 needs ^20.19.0 || >=22.12.0; 22 satisfies both.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+        working-directory: frontend
+
+      # Neither of these ran in CI before, so a frontend that did not compile could be
+      # merged and published.
+      #
+      # `yarn format:check` is deliberately not gated yet: prettier has never been run over
+      # this repository, so it would fail on unrelated files. Run `yarn format` once, commit
+      # that on its own, then add the gate here.
+      - name: Lint
+        run: yarn lint
+        working-directory: frontend
+
+      - name: Build
+        run: yarn build
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_BASE_URL: http://localhost:8000/api
+          NEXT_PUBLIC_NAMESPACE_ID: e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82

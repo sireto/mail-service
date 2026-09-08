@@ -1,17 +1,8 @@
 use chrono::{DateTime, Utc};
 use diesel::{pg::Pg, prelude::*};
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-
-enum MailStatus {
-    Draft,
-    Pending,
-    Sent,
-    Bounced,
-}
 
 #[derive(Debug, Clone, PartialEq, Queryable, Selectable, Identifiable)]
 #[diesel(table_name = crate::schema::mails)]
@@ -32,7 +23,7 @@ pub struct Mail {
     pub last_error: Option<String>,
 }
 
-#[derive(Queryable, QueryableByName, ToSchema)]
+#[derive(Clone, Debug, Queryable, QueryableByName, ToSchema)]
 #[diesel(check_for_backend(Pg))] // Ensure this struct is valid for PostgreSQL...
 #[diesel(table_name = crate::schema::mails)]
 pub struct MailWithDetails {
@@ -145,6 +136,12 @@ pub struct NewMail {
 pub struct CreateMailRequest {
     pub id: String,
     pub mail_message: String,
+
+    /// Namespace the recipient addresses belong to. Required because an email is only
+    /// unique within a namespace, so resolving one without it would pick an arbitrary
+    /// namespace's contact.
+    #[schema(value_type = String, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    pub namespace_id: Uuid,
 
     #[schema(value_type = Vec<String>, example = "someone@example.com")]
     pub email: Vec<String>,
@@ -267,13 +264,38 @@ pub struct DeleteMailResponse {
 /**
  * query struct for mail query...
  */
-#[derive(Debug, Default, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Default, Serialize, Deserialize, IntoParams, ToSchema)]
 pub struct MailQuery {
-    #[schema(value_type = String, example = "[a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8, a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8]")]
-    pub campaign_ids: Option<Uuid>,
-    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    /// Comma-separated campaign ids. The client has always sent a comma-joined list here,
+    /// but the field was a single Uuid, so filtering by more than one campaign failed
+    /// deserialization and returned 400.
+    #[param(value_type = Option<String>, example = "a1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8,b1a2a3a4-b1b2-c1c2-d1d2-d3d4d5d6d7d8")]
+    #[schema(value_type = String)]
+    pub campaign_ids: Option<String>,
+    #[param(value_type = Option<String>, example = "2023-01-01T00:00:00Z")]
+    #[schema(value_type = String)]
     pub from: Option<DateTime<Utc>>,
 
-    #[schema(value_type = String, example = "2023-01-01T00:00:00Z")]
+    #[param(value_type = Option<String>, example = "2023-01-01T00:00:00Z")]
+    #[schema(value_type = String)]
     pub to: Option<DateTime<Utc>>,
+}
+
+impl MailQuery {
+    /// Parse the comma-separated `campaign_ids` parameter, rejecting malformed ids rather
+    /// than silently ignoring them.
+    pub fn parsed_campaign_ids(&self) -> Result<Option<Vec<Uuid>>, uuid::Error> {
+        let Some(raw) = self.campaign_ids.as_deref() else {
+            return Ok(None);
+        };
+
+        let ids = raw
+            .split(',')
+            .map(str::trim)
+            .filter(|part| !part.is_empty())
+            .map(Uuid::parse_str)
+            .collect::<Result<Vec<Uuid>, uuid::Error>>()?;
+
+        Ok(if ids.is_empty() { None } else { Some(ids) })
+    }
 }

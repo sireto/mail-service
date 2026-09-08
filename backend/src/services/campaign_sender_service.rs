@@ -3,6 +3,7 @@ use crate::models::campaign_sender::{
     CampaignSender, CreateCampaignSenderRequest, CreateCampaignSenderResponse, DeleteCampaignSenderResponse,
     GetCampaignSenderResponse, UpdateCampaignSenderRequest, UpdateCampaignSenderResponse,
 };
+use crate::servers::servers_model::TlsTypeEnum;
 use crate::servers::servers_repo::ServerRepoImpl;
 use crate::{
     error::AppError,
@@ -12,14 +13,18 @@ use crate::{
     },
     repositories::campaign_sender::{CampaignSenderRepository, CampaignSenderRepositoryImpl},
     servers::{
-        servers_handler::{get_server_by_id, get_servers},
         servers_model::{Server, ServerTypeEnum},
         servers_services::{self, ServerServiceTrait},
     },
 };
 use axum::http::StatusCode;
-use chrono::Utc;
-use lettre::{transport::smtp::authentication::Credentials, Message, SmtpTransport, Transport};
+use lettre::{
+    transport::smtp::{
+        authentication::Credentials,
+        client::{Tls, TlsParameters},
+    },
+    Message, SmtpTransport, Transport,
+};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -64,7 +69,8 @@ pub async fn create_campaign_sender(payload: CampaignSenderRequest) -> Result<Cr
     let sender_repository = Arc::new(CampaignSenderRepositoryImpl);
     let sender_service = CampaignSenderService::new(sender_repository);
 
-    let id = Uuid::parse_str(&payload.server_id).unwrap();
+    let id = Uuid::parse_str(&payload.server_id)
+        .map_err(|e| AppError::BadRequestError(Some(format!("Invalid server_id: {e}"))))?;
 
     let payload = CreateCampaignSenderRequest {
         server_id: id,
@@ -165,11 +171,13 @@ pub async fn validate_email_identity(
     payload: ValidateEmailIdentityRequest,
 ) -> Result<ValidateEmailIdentityResponse, (StatusCode, String)> {
     // Create AWS SES client
-    let client = aws_service::create_aws_client().await;
+    let client = aws_service::create_aws_client()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     // Extract domain from email (for domain identity validation)
     let email = payload.email.clone();
-    let domain = email.split('@').last().unwrap_or("").to_string();
+    let domain = email.split('@').next_back().unwrap_or("").to_string();
     println!("{}", email);
     println!("{}", domain);
 
@@ -217,7 +225,9 @@ pub async fn validate_email_identity(
 
 // Function to get all verified identities
 pub async fn get_verified_identities() -> Result<Vec<String>, (StatusCode, String)> {
-    let client = aws_service::create_aws_client().await;
+    let client = aws_service::create_aws_client()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     let request = client.list_email_identities();
 
     let result = request.send().await.map_err(|e| {
@@ -273,7 +283,7 @@ pub async fn send_test_email(payload: SendTestEmailRequest) -> Result<SendTestEm
     }
 
     // Prepare the subject
-    let subject = payload.subject.unwrap_or_else(|| "Test Email".to_string());
+    let _subject = payload.subject.unwrap_or_else(|| "Test Email".to_string());
 
     // Send test email based on server type
     let result = match server.server_type {
@@ -314,13 +324,18 @@ pub async fn send_aws_test_email(
     to_email: &str,
 ) -> Result<String, (StatusCode, String)> {
     use aws_sdk_sesv2::types::{Body, Content, Destination, EmailContent, Message};
-    let client: Client = create_aws_client_db(&server.id.to_string()).await;
+    let client: Client = create_aws_client_db(&server.id.to_string())
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    let subject = Content::builder().data("Test Email from AWS SES").build().unwrap();
+    let subject = Content::builder()
+        .data("Test Email from AWS SES")
+        .build()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Build subject error: {e}")))?;
     let body_text = Content::builder()
         .data("This is a test email to verify AWS SES configuration.")
         .build()
-        .unwrap();
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Build body error: {e}")))?;
 
     let message = Message::builder()
         .subject(subject)
@@ -355,15 +370,33 @@ pub async fn send_smtp_test_email(
 ) -> Result<String, (StatusCode, String)> {
     let creds = Credentials::new(server.smtp_username.clone(), server.smtp_password.clone());
 
+    // Respect the server's configured TLS mode. This used to fall back to lettre's default,
+    // so a server saved as SSL/TLS or NONE was tested over a transport it will never use.
+    let tls_parameters = TlsParameters::new(server.host.clone())
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("TLS parameter error: {e}")))?;
+
+    let tls = match server.tls_type {
+        TlsTypeEnum::STARTTLS => Tls::Required(tls_parameters),
+        TlsTypeEnum::SSLTLS => Tls::Wrapper(tls_parameters),
+        TlsTypeEnum::NONE => Tls::None,
+    };
+
     let mailer = SmtpTransport::relay(&server.host.clone())
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("SMTP relay error: {}", e)))?
         .port(server.port as u16)
         .credentials(creds)
+        .tls(tls)
         .build();
 
     let email = Message::builder()
-        .from(from_email.parse().unwrap())
-        .to(to_email.parse().unwrap())
+        .from(
+            from_email
+                .parse()
+                .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid sender email: {e}")))?,
+        )
+        .to(to_email
+            .parse()
+            .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid recipient email: {e}")))?)
         .subject("Test Email from SMTP Server")
         .body("This is a test email to verify SMTP configuration.".to_string())
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Build email error: {}", e)))?;

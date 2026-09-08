@@ -1,11 +1,12 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { useDeleteMailMutation, useGetMailsQuery } from "../services/MailApi";
 import DataTable from "@/components/DataTable";
 import columns from "@/app/dashboard/campaigns/[id]/analytics/_columns";
 
 function Dashboard() {
-  const { data: mails } = useGetMailsQuery({});
+  const [offset, setOffset] = useState(0);
+  const { data: mails, isLoading } = useGetMailsQuery({ offset });
   const [deleteMail, { error: deletionError }] = useDeleteMailMutation();
 
   const deleteMailHandler = async (id: string) => {
@@ -21,9 +22,13 @@ function Dashboard() {
       <h1 className="text-xl font-bold">Dashboard Overview</h1>
       <div className="mt-4">
         <DataTable
-          data={mails || []}
+          data={mails?.items ?? []}
           columns={columns(deleteMailHandler)}
           fallback={"No Mails Found"}
+          isLoading={isLoading}
+          pagination={
+            mails ? { page: mails, onOffsetChange: setOffset } : undefined
+          }
         />
       </div>
     </div>

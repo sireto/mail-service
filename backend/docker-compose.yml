@@ -1,4 +1,3 @@
-version: "3"
 services:
   postgres:
     image: postgres:latest
@@ -11,6 +10,11 @@ services:
       - "6500:5432"
     volumes:
       - mailservice_1:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mail_service"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     env_file:
       - ./.env
     networks:
@@ -24,15 +28,14 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       # Use the service name 'postgres' instead of localhost
       DATABASE_URL: postgresql://postgres:postgres@postgres_mailservice:5432/mail_service
 
     env_file:
       - ./.env
-    volumes:
-      - .backend/api/src:/app/src:ro
     networks:
       - app_network
 

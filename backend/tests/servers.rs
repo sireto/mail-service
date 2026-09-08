@@ -168,6 +168,17 @@ async fn test_update_server() {
         default_from_email: "user@example.com".to_string(),
         rate_limit: 30,
     };
+    // update_server now reads the stored row first so it can tell a masked secret from a
+    // real one. The payload here carries a genuine password,
+    // so it must reach the repository unchanged.
+    let stored_server = Server {
+        smtp_password: "previousPassword!".to_string(),
+        ..updated_server.clone()
+    };
+    mock_repo
+        .expect_get_server_by_id()
+        .with(eq(server_id))
+        .returning(move |_| Ok(stored_server.clone()));
     mock_repo
         .expect_update_server()
         .with(eq(server_id), eq(update_payload.clone()))

@@ -8,11 +8,11 @@ import { useGetListsQuery } from "@/app/services/ListApi";
 import DataTable from "@/components/DataTable";
 import columns from "./_columns";
 import AddButton from "@/components/common/AddButton";
+import { NAMESPACE_ID } from "@/config/namespace";
 
 const Page = () => {
-  const namespaceId = "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
 
-  const { data: lists, error, isLoading } = useGetListsQuery(namespaceId);
+  const { data: lists, error, isLoading } = useGetListsQuery(NAMESPACE_ID);
 
   if (error) {
     return <div>There was an error fetching lists...</div>;

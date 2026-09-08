@@ -6,7 +6,8 @@ use crate::{app_state::DbPooledConnection, GLOBAL_APP_STATE};
 use async_trait::async_trait;
 use diesel::dsl::now;
 use diesel::prelude::*;
-use mockall::{automock, predicate::*};
+#[cfg(feature = "mocks")]
+use mockall::automock;
 use uuid::Uuid;
 
 pub async fn get_connection_pool() -> DbPooledConnection {
@@ -16,16 +17,20 @@ pub async fn get_connection_pool() -> DbPooledConnection {
         .expect("Failed to get DB connection from pool")
 }
 
-#[automock]
+#[cfg_attr(feature = "mocks", automock)]
 #[async_trait]
 pub trait ContactRepository {
     async fn create_contacts(&self, payloads: Vec<CreateContactRequest>)
         -> Result<Vec<Contact>, diesel::result::Error>;
+    /// Returns one page of contacts plus the total number matching the filters.
     async fn get_all_contacts(
         &self,
+        namespace: Uuid,
         list_id: Option<Uuid>,
         search: Option<String>,
-    ) -> Result<Vec<Contact>, diesel::result::Error>;
+        limit: i64,
+        offset: i64,
+    ) -> Result<(Vec<Contact>, i64), diesel::result::Error>;
     async fn update_contact(
         &self,
         contact_id: Uuid,
@@ -33,7 +38,11 @@ pub trait ContactRepository {
     ) -> Result<Contact, diesel::result::Error>;
     async fn delete_contact(&self, contact_id: Uuid) -> Result<Contact, diesel::result::Error>;
     async fn get_contact_by_id(&self, contact_id: Uuid) -> Result<Contact, diesel::result::Error>;
-    async fn get_contact_by_email(&self, contact_email: String) -> Result<Contact, diesel::result::Error>;
+    async fn get_contact_by_email(
+        &self,
+        namespace: Uuid,
+        contact_email: String,
+    ) -> Result<Contact, diesel::result::Error>;
     async fn get_list_contacts(&self, contact_ids: Vec<Uuid>) -> Result<Vec<ListContact>, diesel::result::Error>;
     async fn get_lists_by_ids(&self, list_ids: Vec<Uuid>) -> Result<Vec<List>, diesel::result::Error>;
     async fn upsert_contacts(
@@ -61,17 +70,61 @@ impl ContactRepository for ContactRepositoryImpl {
 
     async fn get_all_contacts(
         &self,
+        namespace: Uuid,
         list_id: Option<Uuid>,
         search: Option<String>,
-    ) -> Result<Vec<Contact>, diesel::result::Error> {
+        limit: i64,
+        offset: i64,
+    ) -> Result<(Vec<Contact>, i64), diesel::result::Error> {
         use crate::schema::contacts::dsl::*;
         use diesel::prelude::*;
 
         let mut conn = get_connection_pool().await;
 
-        // Start building the query
+        // Same filters, counted. Boxed queries cannot be cloned, so this is applied twice
+        // rather than shared.
+        let mut count_query = contacts
+            .select(diesel::dsl::count_star())
+            .filter(namespace_id.eq(namespace))
+            .into_boxed();
+
+        if let Some(list_id_val) = list_id {
+            use crate::schema::list_contacts::dsl as lc;
+            count_query = count_query.filter(
+                id.eq_any(
+                    lc::list_contacts
+                        .select(lc::contact_id)
+                        .filter(lc::list_id.eq(list_id_val)),
+                ),
+            );
+        }
+
+        if let Some(search_term) = search.clone() {
+            let pattern = format!("%{}%", search_term.to_lowercase());
+            count_query = count_query.filter(
+                first_name
+                    .ilike(pattern.clone())
+                    .or(last_name.ilike(pattern.clone()))
+                    .or(email.ilike(pattern)),
+            );
+        }
+
+        let total: i64 = count_query.first(&mut conn)?;
+
+        // Contacts are scoped to a namespace. Without this filter every namespace saw every
+        // other namespace's subscribers.
         let mut query = contacts
-            .select((id, first_name, last_name, email, attribute, created_at, updated_at))
+            .select((
+                id,
+                namespace_id,
+                first_name,
+                last_name,
+                email,
+                attribute,
+                created_at,
+                updated_at,
+            ))
+            .filter(namespace_id.eq(namespace))
             .into_boxed();
 
         // Filter by list_id if present
@@ -93,7 +146,15 @@ impl ContactRepository for ContactRepositoryImpl {
             );
         }
 
-        query.load::<Contact>(&mut conn)
+        // A deterministic order is what makes offset paging stable; email is unique within
+        // the namespace, so it is a safe tiebreaker.
+        let items = query
+            .order((created_at.desc(), email.asc()))
+            .limit(limit)
+            .offset(offset)
+            .load::<Contact>(&mut conn)?;
+
+        Ok((items, total))
     }
 
     async fn update_contact(
@@ -126,10 +187,19 @@ impl ContactRepository for ContactRepositoryImpl {
         contacts.filter(id.eq(contact_id)).first(&mut conn)
     }
 
-    async fn get_contact_by_email(&self, contact_email: String) -> Result<Contact, diesel::result::Error> {
+    async fn get_contact_by_email(
+        &self,
+        namespace: Uuid,
+        contact_email: String,
+    ) -> Result<Contact, diesel::result::Error> {
         let mut conn = get_connection_pool().await;
 
-        contacts.filter(email.eq(contact_email)).first(&mut conn)
+        // An email is only unique within a namespace now, so the namespace is part of the
+        // lookup key rather than an afterthought.
+        contacts
+            .filter(namespace_id.eq(namespace))
+            .filter(email.eq(contact_email))
+            .first(&mut conn)
     }
     async fn get_list_contacts(&self, contact_ids: Vec<Uuid>) -> Result<Vec<ListContact>, diesel::result::Error> {
         use crate::schema::list_contacts::dsl::*;
@@ -153,10 +223,12 @@ impl ContactRepository for ContactRepositoryImpl {
         use diesel::pg::upsert::excluded;
         let mut conn = get_connection_pool().await;
 
-        let result = if overwrite {
+        if overwrite {
             diesel::insert_into(contacts)
                 .values(&payloads)
-                .on_conflict(email)
+                // Matches contacts_namespace_id_email_key, which replaced the global unique
+                // constraint on email.
+                .on_conflict((namespace_id, email))
                 .do_update()
                 .set((
                     first_name.eq(excluded(first_name)),
@@ -169,12 +241,12 @@ impl ContactRepository for ContactRepositoryImpl {
         } else {
             diesel::insert_into(contacts)
                 .values(&payloads)
-                .on_conflict(email)
+                // Matches contacts_namespace_id_email_key, which replaced the global unique
+                // constraint on email.
+                .on_conflict((namespace_id, email))
                 .do_nothing()
                 .returning(Contact::as_returning())
                 .get_results(&mut conn)
-        };
-
-        result
+        }
     }
 }

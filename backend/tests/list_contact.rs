@@ -17,12 +17,12 @@ async fn test_add_contacts_to_list() {
     // Define the expected output data (NewContactInList)
     let expected_output = vec![
         NewContactInList {
-            list_id: list_id.clone(),
-            contact_id: contact_ids[0].clone(),
+            list_id,
+            contact_id: contact_ids[0],
         },
         NewContactInList {
-            list_id: list_id.clone(),
-            contact_id: contact_ids[1].clone(),
+            list_id,
+            contact_id: contact_ids[1],
         },
     ];
 
