@@ -8,57 +8,15 @@ use crate::{
         },
         mail::UpdateMailRequest,
     },
-    repositories::{contact::ContactRepositoryImpl, mail_repository::MailRepositoryImpl},
     services::{
         bounce_logs_service,
-        contact_service::ContactService,
-        mail_service::{self, MailService, MailServiceTrait},
+        mail_service::{MailService, MailServiceTrait, MAIL_STATUS_BOUNCED, MAIL_STATUS_DELIVERED},
     },
 };
 
-use crate::utils::bounce_logs::search_header_from_header_list;
-use axum::{extract::Path, http::StatusCode, Extension, Json};
+use crate::utils::bounce_logs::{is_trusted_sns_url, search_header_from_header_list};
+use axum::{extract::Path, Extension, Json};
 use uuid::Uuid;
-
-enum MailStatus {
-    Draft,
-    Scheduled,
-    Queued,
-    Processing, // this status might not be necessary...
-    Submitted,
-    Delivered,
-    Failed,
-    Bounced,
-}
-
-impl MailStatus {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            MailStatus::Draft => "draft",
-            MailStatus::Scheduled => "scheduled",
-            MailStatus::Queued => "queued",
-            MailStatus::Processing => "processing",
-            MailStatus::Submitted => "submitted",
-            MailStatus::Delivered => "delivered",
-            MailStatus::Failed => "failed",
-            MailStatus::Bounced => "bounced",
-        }
-    }
-
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "draft" => Some(MailStatus::Draft),
-            "scheduled" => Some(MailStatus::Scheduled),
-            "queued" => Some(MailStatus::Queued),
-            "processing" => Some(MailStatus::Processing),
-            "submitted" => Some(MailStatus::Submitted),
-            "delivered" => Some(MailStatus::Delivered),
-            "failed" => Some(MailStatus::Failed),
-            "bounced" => Some(MailStatus::Bounced),
-            _ => None,
-        }
-    }
-}
 
 #[utoipa::path(
     post,
@@ -72,6 +30,19 @@ pub async fn handle_sns_notification(
     Extension(mail_service): Extension<Arc<MailService>>,
     payload: Json<SnsNotification>,
 ) -> Result<(), AppError> {
+    // Restrict the endpoint to a known topic when one is configured. This is a partial
+    // control: it is not a substitute for verifying the SNS message signature, which is
+    // still outstanding.
+    if let Ok(expected_topic) = std::env::var("AWS_SNS_TOPIC_ARN") {
+        let expected_topic = expected_topic.trim();
+        if !expected_topic.is_empty() && payload.topic_arn.as_deref() != Some(expected_topic) {
+            eprintln!("Rejecting SNS notification for unexpected topic");
+            return Err(AppError::BadRequestError(Some(
+                "Notification topic is not accepted by this endpoint".to_string(),
+            )));
+        }
+    }
+
     // automate the subscription confirmation...
     if payload.notification_type == "SubscriptionConfirmation" {
         // subscribe to the public api endpoint...
@@ -80,10 +51,18 @@ pub async fn handle_sns_notification(
             .and_then(|v| v["SubscribeURL"].as_str().map(String::from));
 
         if let Some(url) = subscribe_url {
+            // Never fetch a URL just because the request body said so.
+            if !is_trusted_sns_url(&url) {
+                eprintln!("Refusing SNS subscription confirmation for untrusted URL");
+                return Err(AppError::BadRequestError(Some(
+                    "SubscribeURL is not an Amazon SNS endpoint".to_string(),
+                )));
+            }
+
             println!("Confirming SNS subscription...");
             reqwest::get(&url)
                 .await
-                .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
+                .map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;
         }
         return Ok(());
     }
@@ -117,36 +96,56 @@ pub async fn handle_sns_notification(
                     }
                 }
             } else {
-                println!("Unknown event type: {}", sns_event.event_type.unwrap());
+                println!("SNS event carried neither notificationType nor eventType; ignoring");
             }
 
             return Ok(());
         }
 
-        match sns_event.notification_type.as_ref().unwrap().as_str() {
+        let Some(notification_type) = sns_event.notification_type.as_deref() else {
+            return Ok(());
+        };
+
+        match notification_type {
             "Bounce" => {
                 if let Some(bounce) = sns_event.bounce.as_ref() {
                     let recipients = &bounce.bounced_recipients;
 
-                    let status = MailStatus::Bounced;
                     let mail_id = search_header_from_header_list(&sns_event, "mailId")
                         .ok_or_else(|| AppError::NotFoundError(Some("mailId not found in SNS event".to_string())))?;
 
-                    let _ = mail_service.update_mail_status(mail_id.clone(), status.as_str()).await;
+                    let _ = mail_service
+                        .update_mail_status(mail_id.clone(), MAIL_STATUS_BOUNCED)
+                        .await;
+
+                    // The mail row is the source of truth for both the campaign and the
+                    // contact. campaign_id was hardcoded to None, so the bounces table's
+                    // campaign column was always blank; and resolving the contact from the
+                    // bounced address alone is now ambiguous, since an email is only unique
+                    // within a namespace and this webhook carries no namespace of its own.
+                    let bounced_mail = mail_service.get_mail_by_id(mail_id.clone()).await.ok();
+                    let campaign_id = bounced_mail.as_ref().and_then(|mail| mail.campaign_id);
+                    let bounced_contact_id = bounced_mail.as_ref().map(|mail| mail.contact_id);
 
                     for recp in recipients {
-                        let contact_repository = Arc::new(ContactRepositoryImpl);
-                        let contact_service = ContactService::new(contact_repository);
-                        let contact = contact_service.get_contact_by_email(recp.email_address.clone()).await;
+                        let Some(contact_id) = bounced_contact_id else {
+                            // A bounce can name a mail we never stored. That is not a reason
+                            // to abort the request.
+                            eprintln!(
+                                "Bounce names unknown mail {mail_id}; skipping bounce log for {}",
+                                recp.email_address
+                            );
+                            continue;
+                        };
 
                         let new_bounce = CreateBounceLogRequest {
-                            contact_id: contact.unwrap().id,
+                            contact_id,
                             at: bounce
                                 .timestamp
                                 .parse::<chrono::DateTime<chrono::Utc>>()
                                 .map_err(|err| AppError::BadRequestError(Some(err.to_string())))?,
                             kind: bounce.bounce_type.clone(),
-                            campaign_id: None,
+                            campaign_id,
                             reason: bounce.bounce_sub_type.clone(),
                             mail_id: mail_id.clone(),
                         };
@@ -157,17 +156,15 @@ pub async fn handle_sns_notification(
                 }
             }
             "Delivery" => {
-                if let Some(delivery) = sns_event.delivery.as_ref() {
-                    let status = MailStatus::Delivered;
-
+                if sns_event.delivery.is_some() {
                     let mail_id = search_header_from_header_list(&sns_event, "mailId")
                         .ok_or_else(|| AppError::NotFoundError(Some("mailId not found in SNS event".to_string())))?;
 
-                    let _ = mail_service.update_mail_status(mail_id, status.as_str()).await;
+                    let _ = mail_service.update_mail_status(mail_id, MAIL_STATUS_DELIVERED).await;
                 }
             }
-            _ => {
-                println!("Unknown notification type: {}", sns_event.notification_type.unwrap());
+            other => {
+                println!("Unknown notification type: {other}");
             }
         }
     }

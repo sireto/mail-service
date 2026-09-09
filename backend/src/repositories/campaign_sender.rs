@@ -3,7 +3,8 @@ use crate::schema::campaign_senders::dsl::*;
 use crate::{app_state::DbPooledConnection, GLOBAL_APP_STATE};
 use async_trait::async_trait;
 use diesel::prelude::*;
-use mockall::{automock, predicate::*};
+#[cfg(feature = "mocks")]
+use mockall::automock;
 use uuid::Uuid;
 
 pub async fn get_connection_pool() -> DbPooledConnection {
@@ -13,7 +14,7 @@ pub async fn get_connection_pool() -> DbPooledConnection {
         .expect("Failed to get DB connection from pool")
 }
 
-#[automock]
+#[cfg_attr(feature = "mocks", automock)]
 #[async_trait]
 pub trait CampaignSenderRepository {
     async fn create_campaign_sender(

@@ -115,6 +115,8 @@ export default function SmtpServerForm({
           <Label>SMTP Password</Label>
           <Input
             type="password"
+            autoComplete="new-password"
+            placeholder="Leave blank to keep the current password"
             {...register("smtp_password", {
               onChange: () => trigger("smtp_password"),
             })}
@@ -173,7 +175,7 @@ export default function SmtpServerForm({
               onChange: () => trigger("rate_limit"),
               valueAsNumber: true,
             })}
-            placeholder="30"
+            placeholder="60"
           />
           {errors.rate_limit && (
             <span className="text-sm text-destructive">

@@ -15,6 +15,7 @@ pub mod models {
     pub mod list;
     pub mod list_contacts;
     pub mod mail;
+    pub mod pagination;
     pub mod template;
 }
 pub mod handlers {
@@ -65,7 +66,6 @@ pub mod servers {
     pub mod servers_routes;
     pub mod servers_services;
 }
-pub mod tests;
 
 pub mod app_state;
 pub mod error;
@@ -74,6 +74,7 @@ pub mod schema;
 pub mod utils {
     pub mod bounce_logs;
     pub mod contact_lists_functions;
+    pub mod crypto;
     pub mod email_utils;
     pub mod mjml_parser;
     pub mod server_utils;

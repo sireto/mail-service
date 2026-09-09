@@ -1,6 +1,7 @@
 use crate::models::campaign::{Campaign, CreateCampaignRequest, CreateCampaignResponse, ExtendedCreateCampaignRequest};
 use crate::models::list::ListResponse;
-use crate::services::{aws_service, list_service::ListContactService, template_service::get_template_by_id};
+use crate::models::pagination::{Page, PageQuery};
+use crate::services::{aws_service, template_service::get_template_by_id};
 use crate::{
     error::AppError,
     models::{
@@ -12,32 +13,26 @@ use crate::{
         mail::CreateMailRequest,
     },
     repositories::{
-        campaign::{self, CampaginRepositoryImpl, CampaignRepository},
+        campaign::{CampaginRepositoryImpl, CampaignRepository},
         campaign_lists_repo::{CampaignListRepository, CampaignListRepositoryImpl},
-        list_contact_repo::ListContactRepositoryImpl,
-        mail_repository::{MailRepository, MailRepositoryImpl},
+        mail_repository::MailRepositoryImpl,
     },
     servers::{
-        servers_handler::get_server_by_id,
-        servers_model::{Server, ServerTypeEnum},
-        servers_repo::{self, ServerRepoImpl},
+        servers_model::ServerTypeEnum,
+        servers_repo::ServerRepoImpl,
         servers_services::{self, ServerService, ServerServiceTrait},
     },
     utils::contact_lists_functions::{get_unique_contacts_from_campaign, populate_contact_template},
 };
-use anyhow::{anyhow, Result};
-use aws_sdk_sesv2::types::{
-    builders::{BodyBuilder, ContentBuilder},
-    Body, Content, Destination, EmailContent, Message,
-};
+use anyhow::Result;
+use aws_sdk_sesv2::types::{Body, Content, Destination, EmailContent, Message};
 use axum::http::StatusCode;
 use std::{collections::HashSet, env, sync::Arc};
 use uuid::Uuid;
 
 use super::{
-    aws_service::create_aws_client_db,
     campaign_sender_service::get_campaign_sender_by_id,
-    mail_service::{MailService, MailServiceTrait},
+    mail_service::{MailServiceTrait, MAIL_STATUS_QUEUED, MAIL_STATUS_SENT},
 };
 use crate::services::mail_service;
 
@@ -82,8 +77,11 @@ impl CampaignService {
     pub async fn create_campaign(&self, payload: CreateCampaignRequest) -> Result<Campaign, diesel::result::Error> {
         self.repository.create_campaign(payload).await
     }
-    pub async fn get_all_campaigns(&self) -> Result<Vec<Campaign>, diesel::result::Error> {
-        self.repository.get_all_campaigns().await
+    pub async fn get_all_campaigns(&self, page: &PageQuery) -> Result<Page<Campaign>, diesel::result::Error> {
+        let (limit, offset) = (page.limit(), page.offset());
+        let (items, total) = self.repository.get_all_campaigns(limit, offset).await?;
+
+        Ok(Page::new(items, total, limit, offset))
     }
     pub async fn get_campaign_by_id(&self, campaign_id: Uuid) -> Result<Campaign, diesel::result::Error> {
         self.repository.get_campaign_by_id(campaign_id).await
@@ -121,8 +119,10 @@ pub async fn create_campaign(payload: ExtendedCreateCampaignRequest) -> Result<C
     let list_ids: Vec<Uuid> = payload
         .list_ids
         .iter()
-        .map(|id| Uuid::parse_str(id).expect("Invalid UUID format"))
-        .collect();
+        .map(|id| {
+            Uuid::parse_str(id).map_err(|e| AppError::BadRequestError(Some(format!("Invalid list_id {id:?}: {e}"))))
+        })
+        .collect::<Result<Vec<Uuid>, AppError>>()?;
 
     campaign_list_service
         .add_lists_to_campaign(response.id, list_ids)
@@ -141,26 +141,26 @@ pub async fn create_campaign(payload: ExtendedCreateCampaignRequest) -> Result<C
     })
 }
 
-pub async fn get_all_campaigns() -> Result<Vec<GetCampaignResponse>, AppError> {
+pub async fn get_all_campaigns(page: &PageQuery) -> Result<Page<GetCampaignResponse>, AppError> {
     let campaign_repository = Arc::new(CampaginRepositoryImpl);
     let campaign_service = CampaignService::new(campaign_repository);
-    let all_campaigns = campaign_service.get_all_campaigns().await?;
+    let all_campaigns = campaign_service.get_all_campaigns(page).await?;
 
     let campaign_lists_repository = Arc::new(CampaignListRepositoryImpl);
     let campaign_list_service = CampaignListService::new(campaign_lists_repository);
 
     let mut responses = Vec::new();
-    for campaign in all_campaigns {
+    for campaign in &all_campaigns.items {
         let lists = campaign_list_service
             .get_lists_from_campaign(campaign.id)
             .await
             .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
         responses.push(GetCampaignResponse {
             id: campaign.id,
-            campaign_name: campaign.campaign_name,
+            campaign_name: campaign.campaign_name.clone(),
             template_id: campaign.template_id,
             namespace_id: campaign.namespace_id,
-            status: campaign.status,
+            status: campaign.status.clone(),
             campaign_senders: campaign.campaign_senders,
             scheduled_at: campaign.scheduled_at,
             created_at: campaign.created_at,
@@ -169,7 +169,7 @@ pub async fn get_all_campaigns() -> Result<Vec<GetCampaignResponse>, AppError> {
         });
     }
 
-    Ok(responses)
+    Ok(all_campaigns.with_items(responses))
 }
 
 pub async fn get_campaign_by_id(campaign_id: Uuid) -> Result<GetCampaignResponse, AppError> {
@@ -224,7 +224,7 @@ pub async fn update_campaign(
     let existing_list_ids: HashSet<Uuid> = existing_lists.iter().map(|list| list.id).collect();
 
     // Convert incoming list IDs from arguments to HashSet...
-    let new_list_ids: HashSet<Uuid> = payload.list_ids.clone().iter().map(|id| *id).collect();
+    let new_list_ids: HashSet<Uuid> = payload.list_ids.clone().iter().copied().collect();
 
     // lists to delete from the junction table...
     let to_delete: Vec<Uuid> = existing_list_ids.difference(&new_list_ids).cloned().collect();
@@ -298,24 +298,25 @@ pub async fn send_campaign_email(campaign_id: Uuid) -> Result<AddMailToQueueResp
     let server = server_service.get_server_by_id(server_id.as_str()).await?;
 
     // modified to add the mails to queue rather than directly sending them...
-    let _result = enqueue_email(campaign_id, server.id).await?;
-    return Ok(AddMailToQueueResponse {
-        status: StatusCode::OK.into(),
-        message: "Campaign email sent successfully".to_string(),
-    });
+    enqueue_email(campaign_id, server.id).await?;
+    Ok(AddMailToQueueResponse {
+        status: StatusCode::ACCEPTED.into(),
+        message: "Campaign email queued for delivery".to_string(),
+    })
 }
 
 pub async fn send_campaign_email_aws(campaign_id: Uuid) -> Result<CampaignSendResponse, AppError> {
-    let campaign = get_campaign_by_id(campaign_id.clone())
+    let campaign = get_campaign_by_id(campaign_id)
         .await
         .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
-    let configuration_name =
-        env::var("AWS_SES_CONFIGURATION_SET_NAME").expect("AWS_SES_CONFIGURATION_SET_NAME must be set in .env file");
+    let configuration_name = env::var("AWS_SES_CONFIGURATION_SET_NAME").map_err(|_| {
+        AppError::InternalServerError(Some("AWS_SES_CONFIGURATION_SET_NAME is not configured".to_string()))
+    })?;
 
     let contacts = get_unique_contacts_from_campaign(campaign_id).await?;
 
-    let template = get_template_by_id(campaign.template_id.clone())
+    let template = get_template_by_id(campaign.template_id)
         .await
         .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
@@ -340,7 +341,7 @@ pub async fn send_campaign_email_aws(campaign_id: Uuid) -> Result<CampaignSendRe
     let server_uuid = campaign_sender_response.server_id;
     let server_id = server_uuid.to_string();
 
-    let client = aws_service::create_aws_client_db(&server_id).await;
+    let client = aws_service::create_aws_client_db(&server_id).await?;
     let request = client.list_email_identities();
 
     let mail_repo = Arc::new(MailRepositoryImpl);
@@ -399,13 +400,18 @@ pub async fn send_campaign_email_aws(campaign_id: Uuid) -> Result<CampaignSendRe
             .await?;
 
         let new_mail = CreateMailRequest {
-            id: result.message_id().unwrap().to_string(),
+            id: result
+                .message_id()
+                .ok_or_else(|| AppError::InternalServerError(Some("SES returned no message id".to_string())))?
+                .to_string(),
             mail_message: parsed_html,
+            namespace_id: campaign.namespace_id,
             email: vec![contact.email.clone()],
             template_id: Some(Uuid::parse_str(&template.id)?),
             campaign_id: Some(campaign_id),
             sent_at: chrono::Utc::now(),
-            status: "queued".to_string(),
+            // SES has accepted this message already; it is not awaiting the queue.
+            status: MAIL_STATUS_SENT.to_string(),
             server_id: Some(server_uuid),
         };
 
@@ -414,7 +420,7 @@ pub async fn send_campaign_email_aws(campaign_id: Uuid) -> Result<CampaignSendRe
     Ok(CampaignSendResponse {
         campaign_id: campaign_id.to_string(),
         total_recipients: contacts.len(),
-        status: "draft".to_string(),
+        status: MAIL_STATUS_SENT.to_string(),
     })
 }
 
@@ -430,13 +436,13 @@ pub async fn add_lists_to_campaign(campaign_id: Uuid, list_ids: Vec<Uuid>) -> Re
 }
 
 pub async fn send_campaign_email_smtp(campaign_id: Uuid, server_id: Uuid) -> Result<CampaignSendResponse, AppError> {
-    let campaign = get_campaign_by_id(campaign_id.clone())
+    let campaign = get_campaign_by_id(campaign_id)
         .await
         .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     let contacts = get_unique_contacts_from_campaign(campaign_id).await?;
 
-    let template = get_template_by_id(campaign.template_id.clone())
+    let template = get_template_by_id(campaign.template_id)
         .await
         .map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;
 
@@ -481,11 +487,14 @@ pub async fn send_campaign_email_smtp(campaign_id: Uuid, server_id: Uuid) -> Res
                 let new_mail = CreateMailRequest {
                     id: Uuid::new_v4().to_string(),
                     mail_message: parsed_html,
+                    namespace_id: campaign.namespace_id,
                     email: vec![contact.email.clone()],
                     template_id: Some(Uuid::parse_str(&template.id)?),
                     campaign_id: Some(campaign_id),
                     sent_at: chrono::Utc::now(),
-                    status: "queued".to_string(),
+                    // This mail was already delivered above. Recording it as "queued" made
+                    // the background worker pick it up and send a duplicate.
+                    status: MAIL_STATUS_SENT.to_string(),
                     server_id: Some(server_id),
                 };
                 mail_service
@@ -505,7 +514,7 @@ pub async fn send_campaign_email_smtp(campaign_id: Uuid, server_id: Uuid) -> Res
     Ok(CampaignSendResponse {
         campaign_id: campaign_id.to_string(),
         total_recipients: contacts.len(),
-        status: "draft".to_string(),
+        status: MAIL_STATUS_SENT.to_string(),
     })
 }
 
@@ -521,7 +530,7 @@ pub async fn send_single_email(
 ) -> Result<CampaignSendResponse, AppError> {
     let server_service = ServerService::new(Arc::new(ServerRepoImpl));
 
-    let campaign = get_campaign_by_id(campaign_id.clone())
+    let campaign = get_campaign_by_id(campaign_id)
         .await
         .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
@@ -545,9 +554,9 @@ pub async fn send_single_email(
 
     let from_email = format!("{} <{}>", campaign_sender_response.from_name, sender_email);
 
-    let _result = match server_type {
+    match server_type {
         ServerTypeEnum::AWS => {
-            let client = aws_service::create_aws_client_db(&server_id.to_string()).await;
+            let client = aws_service::create_aws_client_db(&server_id.to_string()).await?;
 
             let response = aws_service::send_mail(
                 client,
@@ -572,7 +581,7 @@ pub async fn send_single_email(
                 .map_err(|err| AppError::InternalServerError(Some(format!("{:?}", err))))?;
         }
     };
-    let mail_status = "submitted";
+    let mail_status = MAIL_STATUS_SENT;
 
     mail_service
         .update_mail_status(mail_id, mail_status)
@@ -588,13 +597,13 @@ pub async fn send_single_email(
 
 /// a function to enqueue email for sending...
 pub async fn enqueue_email(campaign_id: Uuid, server_id: Uuid) -> Result<(), AppError> {
-    let campaign = get_campaign_by_id(campaign_id.clone())
+    let campaign = get_campaign_by_id(campaign_id)
         .await
         .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
     let contacts = get_unique_contacts_from_campaign(campaign_id).await?;
 
-    let template = get_template_by_id(campaign.template_id.clone())
+    let template = get_template_by_id(campaign.template_id)
         .await
         .map_err(|err| AppError::InternalServerError(Some(err.to_string())))?;
 
@@ -609,11 +618,12 @@ pub async fn enqueue_email(campaign_id: Uuid, server_id: Uuid) -> Result<(), App
         let new_mail = CreateMailRequest {
             id: Uuid::new_v4().to_string(),
             mail_message: parsed_html,
+            namespace_id: campaign.namespace_id,
             email: vec![contact.email.clone()],
             template_id: Some(Uuid::parse_str(&template.id)?),
             campaign_id: Some(campaign_id),
             sent_at: chrono::Utc::now(),
-            status: "queued".to_string(),
+            status: MAIL_STATUS_QUEUED.to_string(),
             server_id: Some(server_id),
         };
 

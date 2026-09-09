@@ -1,6 +1,12 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Contact } from "@/lib/type/contact";
 import { MailDTO } from "@/lib/type";
+import { NAMESPACE_ID } from "@/config/namespace";
+import {
+  appendPageParams,
+  type Page,
+  type PageParams,
+} from "@/lib/type/pagination";
 import { z } from "zod";
 
 type Mail = z.infer<typeof MailDTO>;
@@ -11,18 +17,19 @@ export const contactApi = createApi({
   tagTypes: ["Contact", "Mail"],
   endpoints: (builder) => ({
     getContacts: builder.query<
-      Contact[],
-      { list_id?: string; search?: string }
+      Page<Contact>,
+      { list_id?: string; search?: string } & PageParams
     >({
-      query: ({ list_id, search }) => {
+      query: ({ list_id, search, limit, offset }) => {
         const params = new URLSearchParams();
+        params.append("namespace_id", NAMESPACE_ID);
         if (list_id) {
           params.append("list_id", list_id);
         }
         if (search) {
           params.append("search", search);
         }
-        console.log("The latest query is: ", params.toString());
+        appendPageParams(params, { limit, offset });
         return { url: `contacts?${params.toString()}` };
       },
       providesTags: ["Contact"],
@@ -37,7 +44,7 @@ export const contactApi = createApi({
       query: (newContact) => ({
         url: "contacts",
         method: "POST",
-        body: [newContact],
+        body: [{ namespace_id: NAMESPACE_ID, ...newContact }],
       }),
       invalidatesTags: ["Contact"],
     }),
@@ -62,18 +69,21 @@ export const contactApi = createApi({
     checkEmail: builder.query<{ exists: boolean }, string>({
       query: (email) => ({
         url: `contacts/check-email`,
-        params: { email },
+        // An address is only unique within a namespace, so the check is scoped too.
+        params: { email, namespace_id: NAMESPACE_ID },
       }),
     }),
     importContacts: builder.mutation<
       { success: boolean; imported: number; errors?: string[] },
       FormData
     >({
-      query: (formData) => ({
-        url: "contacts/import",
-        method: "POST",
-        body: formData,
-      }),
+      query: (formData) => {
+        // The import endpoint requires it; append here so no caller has to remember.
+        if (!formData.has("namespace_id")) {
+          formData.append("namespace_id", NAMESPACE_ID);
+        }
+        return { url: "contacts/import", method: "POST", body: formData };
+      },
       invalidatesTags: ["Contact"],
     }),
     getMailsForContact: builder.query<Mail[], string>({
@@ -88,6 +98,7 @@ export const contactApi = createApi({
 // Export hooks for usage in components
 export const {
   useGetContactsQuery,
+  useLazyGetContactsQuery,
   useAddContactMutation,
   useGetContactByIdQuery,
   useUpdateContactMutation,

@@ -12,9 +12,9 @@ import { MultiSelect } from "@/components/multi-select";
 import { useImportContactsMutation } from "@/app/services/ContactApi";
 import { useGetListsQuery } from "@/app/services/ListApi";
 import { useToast } from "@/hooks/use-toast";
+import { NAMESPACE_ID } from "@/config/namespace";
 
 // Hardcoded for now will be replaced later
-const NAMESPACE_ID = "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
 
 // will import from ListType after merge
 interface List {

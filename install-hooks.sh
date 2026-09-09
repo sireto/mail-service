@@ -17,7 +17,13 @@ if [ ! -f "$source_hook" ]; then
 fi
 
 mkdir -p "$hooks_dir"
-cp "$source_hook" "$target_hook"
-chmod +x "$target_hook"
 
-echo "Installed pre-commit hook at $target_hook"
+# Symlink rather than copy: a copy goes stale the moment hooks/pre-commit.sh changes, and
+# nothing tells you it has.
+if ln -sf "$source_hook" "$target_hook" 2>/dev/null; then
+  echo "Linked pre-commit hook: $target_hook -> $source_hook"
+else
+  cp "$source_hook" "$target_hook"
+  chmod +x "$target_hook"
+  echo "Copied pre-commit hook to $target_hook (symlink unsupported here; re-run this script after editing the hook)"
+fi

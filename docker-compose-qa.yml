@@ -12,10 +12,18 @@ services:
     networks:
       - postgres
       - frontend
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 10s
     environment:
       VIRTUAL_HOST: https://email.sireto.dev/api -> /api ; client_max_body_size 100M;
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       ORIGINS: http://localhost:3000,http://172.31.0.6:3600,https://email.sireto.dev
+      AWS_SNS_TOPIC_ARN: ${AWS_SNS_TOPIC_ARN:-}
+      # Required. See docker-compose.yml for how to generate it. Must stay stable across
+      # deploys or stored credentials become unreadable.
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:?set DATA_ENCRYPTION_KEY}
 
   webapp:
     image: ghcr.io/sireto/mail-service-frontend:${IMAGE_VERSION_TAG:-latest}
@@ -23,6 +31,9 @@ services:
       context: ./frontend
       args:
         NEXT_PUBLIC_BASE_URL: /api
+        # Must be a build arg: Next inlines NEXT_PUBLIC_* at build time, so passing it as a
+        # runtime environment variable left it undefined in the browser.
+        NEXT_PUBLIC_NAMESPACE_ID: ${NEXT_PUBLIC_NAMESPACE_ID:-e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82}
     networks:
       - frontend
     environment:

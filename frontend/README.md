@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend — mail-service webapp
 
-## Getting Started
+Next.js 16 App Router UI for the mail-service API. This file replaced the untouched
+create-next-app boilerplate, which described nothing about this project.
 
-First, run the development server:
+## Requirements
+
+Node >= 22 and Yarn 4 (via Corepack). `next` declares `node >=20.9.0` and Storybook's Vite
+7 declares `^20.19.0 || >=22.12.0`; 22 satisfies both and is what CI and the Dockerfile use.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+corepack enable
+yarn install --immutable
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Environment
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Both variables are inlined into the client bundle at build time, so they must be set when
+`yarn build` runs — passing them only at runtime leaves them undefined in the browser.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `NEXT_PUBLIC_BASE_URL` — API origin including the `/api` prefix, e.g. `http://localhost:8000/api`
+- `NEXT_PUBLIC_NAMESPACE_ID` — namespace UUID the UI operates in
 
-## Learn More
+In Docker both arrive as build `args` (see frontend/Dockerfile and the root
+docker-compose.yml).
 
-To learn more about Next.js, take a look at the following resources:
+## Commands
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+yarn dev              # dev server on :3000
+yarn build            # production build (also runs TypeScript)
+yarn lint             # eslint
+yarn format           # prettier --write
+yarn storybook        # component explorer on :6006
+yarn build-storybook  # static Storybook, deployed to GitHub Pages from develop
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+There are no automated frontend tests. Storybook holds stories, not assertions.
 
-## Deploy on Vercel
+## Layout
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `app/` — App Router routes. `app/services/` holds the RTK Query API slices, one per backend resource.
+- `components/ui/` — shadcn/ui primitives. `components/common/` — project-specific shared components.
+- `lib/type.ts` and `lib/type/` — Zod schemas and the types inferred from them; these are the contract with the API.
+- `hooks/` — shared hooks. `useServerForm.ts` carries the credential-masking rules; read the comments there before changing it.

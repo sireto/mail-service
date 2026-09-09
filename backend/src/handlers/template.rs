@@ -9,8 +9,12 @@ use serde_json::Value;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::services::mail_service::MailService;
-use axum::{extract::Path, http::StatusCode, Extension, Json};
+use crate::models::pagination::{Page, PageQuery};
+use crate::services::mail_service::{MailService, MAIL_STATUS_SENT};
+use axum::{
+    extract::{Path, Query},
+    Extension, Json,
+};
 
 use crate::handlers::mail_handler;
 use crate::services::template_service;
@@ -27,15 +31,14 @@ pub enum TemplateField {
 #[utoipa::path(
     get,
     path = "/api/templates",
+    params(PageQuery),
     responses(
-        (status = 200, description = "List of templates", body = Vec<TemplateResponse>),
+        (status = 200, description = "A page of templates", body = Page<GetTemplateResponse>),
         (status = 404)
     )
 )]
-pub async fn get_templates() -> Result<Json<Vec<GetTemplateResponse>>, AppError> {
-    let templates_result = template_service::get_all_templates().await?;
-
-    Ok(Json(templates_result))
+pub async fn get_templates(Query(page): Query<PageQuery>) -> Result<Json<Page<GetTemplateResponse>>, AppError> {
+    Ok(Json(template_service::get_all_templates(&page).await?))
 }
 
 #[utoipa::path(
@@ -156,11 +159,15 @@ pub async fn send_templated_email(
     let payload = CreateMailRequest {
         id: send_templated_email_response.id.to_string(),
         mail_message: send_templated_email_response.message.clone(),
+        namespace_id: send_templated_email_response.namespace_id,
         email: emails,
         template_id: Some(send_templated_email_response.id),
         campaign_id: None,
+        // SES has already accepted this message above; it is not awaiting the queue. It was
+        // recorded as "queued", which was doubly wrong: the row has no campaign so the
+        // worker could never see it, and "queued" is the one status a caller may not set.
+        status: MAIL_STATUS_SENT.to_string(),
         sent_at: send_templated_email_response.sent_at,
-        status: "queued".to_string(),
         server_id: None,
     };
 

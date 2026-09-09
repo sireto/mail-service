@@ -1,25 +1,18 @@
 use crate::{
-    error::AppError,
-    models::contact::Contact,
-    schema::sql_types::TlsType,
-    servers::{
-        servers_repo::{ServerRepo, ServerRepoImpl},
-        servers_services,
-    },
+    error::AppError, models::contact::Contact, servers::servers_repo::ServerRepo,
     services::mail_service::MailServiceTrait,
 };
 
-use crate::models::contact::GetContactResponse;
 use crate::models::mail::{CreateMailRequest, MailWithDetails};
 use crate::models::template::SendMailRequest;
-use crate::repositories::mail_repository::{MailRepository, MailRepositoryImpl};
+use crate::repositories::mail_repository::MailRepositoryImpl;
 use crate::servers::servers_model::{SendMailFromServerResponse, Server, ServerRequest, ServerTypeEnum};
 use crate::services::contact_service::get_contact_by_email;
 use crate::services::mail_service;
 use crate::services::template_service::{get_template_by_id, send_templated_email};
 use crate::utils::contact_lists_functions::populate_contact_template;
+use crate::utils::server_utils::{resolve_aws_credentials, resolve_secret};
 use async_trait::async_trait;
-use axum::extract::Extension;
 use axum::http::StatusCode;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -34,9 +27,10 @@ use lettre::{
     },
     SmtpTransport, Transport,
 };
-use mockall::{automock, predicate::*};
+#[cfg(feature = "mocks")]
+use mockall::automock;
 
-#[automock]
+#[cfg_attr(feature = "mocks", automock)]
 #[async_trait]
 pub trait ServerServiceTrait {
     async fn create_server(&self, payload: ServerRequest) -> Result<Server, AppError>;
@@ -44,6 +38,9 @@ pub trait ServerServiceTrait {
     async fn get_server_by_id(&self, server_id: &str) -> Result<Server, AppError>;
     async fn update_server(&self, server_id: &str, payload: ServerRequest) -> Result<Server, AppError>;
     async fn delete_server(&self, server_id: &str) -> Result<Server, AppError>;
+    // from/to/cc/bcc/subject/body is inherently a wide signature; grouping it into a
+    // struct is a refactor for its own change, not this one.
+    #[allow(clippy::too_many_arguments)]
     async fn send_mail_with_smtp(
         &self,
         server_id: Uuid,
@@ -97,8 +94,15 @@ impl ServerServiceTrait for ServerService {
         Ok(server)
     }
 
-    async fn update_server(&self, server_id: &str, payload: ServerRequest) -> Result<Server, AppError> {
+    async fn update_server(&self, server_id: &str, mut payload: ServerRequest) -> Result<Server, AppError> {
         let uuid_id = Uuid::parse_str(server_id)?;
+
+        // Responses mask secrets, and this is a full-column replace, so a client that
+        // round-trips what it was shown would otherwise persist the mask and destroy the
+        // credential. Treat a masked or blank secret as "leave unchanged".
+        let stored = self.repository.get_server_by_id(uuid_id).await?;
+        payload.smtp_password = resolve_secret(&payload.smtp_password, &stored.smtp_password);
+        payload.aws_credentials = resolve_aws_credentials(payload.aws_credentials, stored.aws_credentials);
 
         let updated_server = self.repository.update_server(uuid_id, payload).await?;
 
@@ -129,11 +133,6 @@ impl ServerServiceTrait for ServerService {
             .get_server_by_id(server_id)
             .await
             .map_err(|err| (StatusCode::NOT_FOUND, format!("Server not found: {}", err)))?;
-
-        println!(
-            "SMTP Host: {}, Username: {}, PASSWORD: {}",
-            server.host, server.smtp_username, server.smtp_password
-        );
 
         let credentials = Credentials::new(server.smtp_username.clone(), server.smtp_password.clone());
 
@@ -255,7 +254,7 @@ impl ServerServiceTrait for ServerService {
                 .tls(Tls::None)
                 .build(),
         };
-        let _conn = mailer.test_connection().map_err(|e| AppError::SmtpError(e))?;
+        let _conn = mailer.test_connection().map_err(AppError::SmtpError)?;
 
         Ok(())
     }
@@ -270,6 +269,9 @@ impl ServerServiceTrait for ServerService {
             .map_err(|err| AppError::BadRequestError(Some(format!("Invalid server_id format: {}", err))))?;
 
         let server = self.repository.get_server_by_id(uuid_id).await?;
+        // Bound before `server` is partially moved below, and it is what scopes the contact
+        // lookups: an address is only unique within a namespace.
+        let server_namespace_id = server.namespace_id;
 
         let receivers = receiver.split(",").map(|s| s.to_string()).collect::<Vec<String>>();
         let mut mail_send_ids: Vec<Uuid> = Vec::new();
@@ -300,6 +302,7 @@ impl ServerServiceTrait for ServerService {
                 let new_mail = CreateMailRequest {
                     id: mail_send_id,
                     mail_message: mail_sent.message, // or store template_data / generated HTML
+                    namespace_id: server_namespace_id,
                     email: vec![receiver],
                     template_id: Some(template_id),
                     campaign_id: None, // fill if available
@@ -333,13 +336,14 @@ impl ServerServiceTrait for ServerService {
                 for email in &receivers {
                     let mail_send_uuid = Uuid::new_v4();
                     let mail_send_id = mail_send_uuid.to_string();
-                    let contact_response = get_contact_by_email(email.clone())
+                    let contact_response = get_contact_by_email(server_namespace_id, email.clone())
                         .await
                         .map_err(|err| AppError::NotFoundError(Some(err.to_string())))?;
 
                     // transform the contact_response to the contact object as the populate_contact_template() only accepts the <Contact>...
                     let contact = Contact {
                         id: contact_response.id,
+                        namespace_id: contact_response.namespace_id,
                         first_name: contact_response.first_name,
                         last_name: contact_response.last_name,
                         email: contact_response.email,
@@ -349,10 +353,7 @@ impl ServerServiceTrait for ServerService {
                     };
 
                     let populated_template = populate_contact_template(&template, &contact).await.map_err(|err| {
-                        AppError::InternalServerError(Some(format!(
-                            "Error populating the template: {}",
-                            err.to_string()
-                        )))
+                        AppError::InternalServerError(Some(format!("Error populating the template: {}", err)))
                     })?;
 
                     let _mail_sent = self
@@ -374,6 +375,7 @@ impl ServerServiceTrait for ServerService {
                     let new_mail = CreateMailRequest {
                         id: mail_send_id,
                         mail_message: populated_template, // or store template_data / generated HTML...
+                        namespace_id: server_namespace_id,
                         email: vec![contact.email.clone()],
                         template_id: Some(template_id),
                         campaign_id: None,

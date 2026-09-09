@@ -1,10 +1,11 @@
+use crate::models::pagination::{Page, PageQuery};
 use crate::models::template::{
     CreateTemplateRequest, CreateTemplateResponse, DeleteTemplateResponse, GetTemplateResponse, ParseMjml2HtmlRequest,
     ParseMjml2HtmlResponse, SendMailRequest, SendMailResponse, Template, UpdateTemplateRequest, UpdateTemplateResponse,
 };
 use std::sync::Arc;
 
-use crate::repositories::template_repo::{self, TemplateRepository, TemplateRespositoryImpl};
+use crate::repositories::template_repo::{TemplateRepository, TemplateRespositoryImpl};
 use crate::services::aws_service;
 use crate::utils::email_utils::enumerate_list;
 use crate::utils::mjml_parser::mjml_to_html;
@@ -30,8 +31,11 @@ impl TemplateService {
         self.repository.get_template_by_id(template_id).await
     }
 
-    pub async fn get_all_templates(&self) -> Result<Vec<Template>, diesel::result::Error> {
-        self.repository.get_all_templates().await
+    pub async fn get_all_templates(&self, page: &PageQuery) -> Result<Page<Template>, diesel::result::Error> {
+        let (limit, offset) = (page.limit(), page.offset());
+        let (items, total) = self.repository.get_all_templates(limit, offset).await?;
+
+        Ok(Page::new(items, total, limit, offset))
     }
 
     pub async fn create_template(&self, payload: CreateTemplateRequest) -> Result<Template, diesel::result::Error> {
@@ -69,25 +73,22 @@ pub async fn get_template_by_id(template_id: Uuid) -> Result<GetTemplateResponse
     })
 }
 
-pub async fn get_all_templates() -> Result<Vec<GetTemplateResponse>, AppError> {
+pub async fn get_all_templates(page: &PageQuery) -> Result<Page<GetTemplateResponse>, AppError> {
     let template_repository = Arc::new(TemplateRespositoryImpl);
     let template_service = TemplateService::new(template_repository);
 
-    let all_templates = template_service.get_all_templates().await?;
+    let all_templates = template_service.get_all_templates(page).await?;
 
-    Ok(all_templates
-        .into_iter()
-        .map(|template| GetTemplateResponse {
-            id: template.id.to_string(),
-            name: template.name,
-            namespace_id: template.namespace_id.to_string(),
-            template_data: template.template_data,
-            content_plaintext: template.content_plaintext,
-            content_html: template.content_html,
-            created_at: template.created_at,
-            updated_at: template.updated_at,
-        })
-        .collect())
+    Ok(all_templates.map(|template| GetTemplateResponse {
+        id: template.id.to_string(),
+        name: template.name,
+        namespace_id: template.namespace_id.to_string(),
+        template_data: template.template_data,
+        content_plaintext: template.content_plaintext,
+        content_html: template.content_html,
+        created_at: template.created_at,
+        updated_at: template.updated_at,
+    }))
 }
 
 pub async fn create_template(payload: CreateTemplateRequest) -> Result<CreateTemplateResponse, AppError> {
@@ -140,7 +141,7 @@ pub async fn delete_template(template_id: Uuid) -> Result<DeleteTemplateResponse
 }
 
 pub async fn send_templated_email(template_id: Uuid, payload: SendMailRequest) -> Result<SendMailResponse, AppError> {
-    let client = aws_service::create_aws_client().await;
+    let client = aws_service::create_aws_client().await?;
 
     // Validate receiver...
     if payload.receiver.clone().unwrap_or_default().trim().is_empty()
@@ -156,11 +157,11 @@ pub async fn send_templated_email(template_id: Uuid, payload: SendMailRequest) -
 
     let parsed_html = populate_and_parse_template(&template, &payload)
         .await
-        .map_err(|e| AppError::InternalServerError(Some("Failed to parse mjml to html".to_string())))?;
+        .map_err(|e| AppError::BadRequestError(Some(format!("Failed to render template: {e}"))))?;
 
     let (receiver_list, cc_list, bcc_list) = handle_receivers(&client, &payload)
         .await
-        .map_err(|e| AppError::InternalServerError(Some("Failed to extract the receivers".to_string())))?;
+        .map_err(|e| AppError::BadRequestError(Some(format!("Failed to resolve recipients: {e}"))))?;
 
     // Send email
     let result = aws_service::send_mail(
@@ -177,6 +178,7 @@ pub async fn send_templated_email(template_id: Uuid, payload: SendMailRequest) -
 
     Ok(SendMailResponse {
         id: template_id,
+        namespace_id: Uuid::parse_str(&template.namespace_id)?,
         message_id: result.message_id().unwrap_or_default().to_string(),
         name: template.name,
         to: receiver_list,
@@ -252,7 +254,7 @@ async fn process_receivers(client: &aws_sdk_sesv2::Client, receiver: &str) -> Re
         return Ok(vec![receiver.to_string()]);
     }
 
-    let emails = enumerate_list(receiver.to_string()).map_err(anyhow::Error::from)?;
+    let emails = enumerate_list(receiver.to_string())?;
 
     if !emails.is_empty() {
         return Ok(emails);

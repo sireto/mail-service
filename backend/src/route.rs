@@ -2,7 +2,9 @@ use axum::Router;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::handlers::{bounce_logs_handler, campaign, campaign_sender, contact, mail_handler, template};
+use crate::handlers::{
+    bounce_logs_handler, campaign, campaign_sender, contact, healthcheck_handler, mail_handler, template,
+};
 use crate::routes::healthcheck_route::healthcheck_routes;
 use crate::servers::servers_handler as servers;
 
@@ -72,6 +74,7 @@ use crate::servers::servers_routes::servers_routes;
         bounce_logs_handler::get_all_bounces,
         bounce_logs_handler::get_bounces_by_contact_id,
         bounce_logs_handler::delete_bounce,
+        healthcheck_handler::check_health,
     ),
     servers(
         (url = "/", description = "Default server")

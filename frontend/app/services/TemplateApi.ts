@@ -9,6 +9,11 @@ import {
   SendTransactionalMailRequestDTO,
 } from "@/lib/type";
 import environments from "@/config/environments";
+import {
+  appendPageParams,
+  type Page,
+  type PageParams,
+} from "@/lib/type/pagination";
 
 type Template = z.infer<typeof TemplateDTO>;
 type CreateTemplateRequest = z.infer<typeof CreateTemplateRequestDTO>;
@@ -26,11 +31,20 @@ export const templateApi = createApi({
   tagTypes: ["Template"],
   endpoints: (builder) => ({
     // Query to fetch all templates...
-    getTemplates: builder.query<Template[], void>({
-      query: () => "",
+    getTemplates: builder.query<Page<Template>, PageParams | void>({
+      query: (page) => {
+        const qs = appendPageParams(
+          new URLSearchParams(),
+          page ?? undefined,
+        ).toString();
+        return qs ? `?${qs}` : "";
+      },
       providesTags: (result) =>
         result
-          ? result.map((template) => ({ type: "Template", id: template.id }))
+          ? result.items.map((template) => ({
+              type: "Template",
+              id: template.id,
+            }))
           : [{ type: "Template" }],
     }),
     getTemplateById: builder.query<Template, string>({
@@ -92,6 +106,7 @@ export const templateApi = createApi({
 
 export const {
   useGetTemplatesQuery,
+  useLazyGetTemplatesQuery,
   useGetTemplateByIdQuery,
   useCreateTemplateMutation,
   useUpdateTemplateMutation,

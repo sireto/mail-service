@@ -9,8 +9,7 @@ import { Button } from "@/components/ui/button";
 import { AddListFormSchemaDTO } from "@/lib/type";
 import { useCreateListMutation } from "@/app/services/ListApi";
 import ListModalBody from "@/app/dashboard/lists/_components/ListModalBody";
-
-const namespaceId = "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
+import { NAMESPACE_ID } from "@/config/namespace";
 
 const AddListForm = () => {
   // const [parsedHtml, setParsedHtml] = useState("");
@@ -36,7 +35,7 @@ const AddListForm = () => {
     const newList = {
       name: value.name.trim(),
       description: value.description.trim(),
-      namespace_id: namespaceId,
+      namespace_id: NAMESPACE_ID,
     };
 
     await createList(newList);

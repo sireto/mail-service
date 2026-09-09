@@ -1,5 +1,6 @@
 use crate::error::AppError;
 use crate::models::mail::{CreateMailRequest, Mail, UpdateMailRequest, UpdateMailResponse};
+use crate::models::pagination::{Page, PageQuery};
 use crate::servers::servers_model::ServerTypeEnum;
 use crate::servers::servers_services::{ServerService, ServerServiceTrait};
 use crate::services::contact_service;
@@ -16,28 +17,58 @@ use governor::{
     state::{InMemoryState, NotKeyed},
     Quota, RateLimiter,
 };
-use mockall::{automock, predicate::*};
-use std::{collections::HashMap, num::NonZeroU32, sync::Arc, time::Instant};
+#[cfg(feature = "mocks")]
+use mockall::automock;
+use std::{collections::HashMap, num::NonZeroU32, sync::Arc};
 use tokio::time::{interval, Duration};
 use uuid::Uuid;
+
+/// How often the queue is polled, and how often stale claimed mails are retried.
+const TICK_SECONDS: u64 = 5;
+const RETRY_TICK_SECONDS: u64 = 600;
+
+/// A mail is abandoned after this many send attempts.
+pub const MAX_SEND_ATTEMPTS: i32 = 3;
+
+pub const MAIL_STATUS_QUEUED: &str = "queued";
+pub const MAIL_STATUS_SUBMITTED: &str = "submitted";
+pub const MAIL_STATUS_SENT: &str = "sent";
+pub const MAIL_STATUS_FAILED: &str = "failed";
+pub const MAIL_STATUS_BOUNCED: &str = "bounced";
+pub const MAIL_STATUS_DELIVERED: &str = "delivered";
+
+/// servers.rate_limit is a plain i32 with no database constraint. Casting a negative value
+/// straight to u32 wrapped to a huge quota, which silently disabled rate limiting
+/// altogether — the opposite of what a misconfigured value should do.
+pub fn sanitize_rate_limit(rate_limit: i32) -> NonZeroU32 {
+    let clamped = rate_limit.clamp(1, 10_000) as u32;
+    NonZeroU32::new(clamped).unwrap_or(NonZeroU32::MIN)
+}
+
+pub fn has_reached_send_attempt_limit(attempts: i32) -> bool {
+    attempts >= MAX_SEND_ATTEMPTS
+}
 
 /// a structure to hold the server state along with its rate limiter and the server_type to decide from what server (either AWS or SMTP) to send the email...
 #[derive(Debug)]
 pub struct ServerState {
     pub limiter: RateLimiter<NotKeyed, InMemoryState, DefaultClock, NoOpMiddleware>,
     pub server_type: ServerTypeEnum,
+    pub rate_limit: i32,
 }
 
-#[automock]
+#[cfg_attr(feature = "mocks", automock)]
 #[async_trait]
 pub trait MailServiceTrait {
     async fn create_mail(&self, payload: CreateMailRequest) -> Result<Vec<Mail>, AppError>;
+    async fn get_mail_by_id(&self, mail_id: String) -> Result<Mail, AppError>;
     async fn get_all_mails(
         &self,
-        campaign_ids: Option<Uuid>,
+        campaign_ids: Option<Vec<Uuid>>,
         from: Option<DateTime<Utc>>,
         to: Option<DateTime<Utc>>,
-    ) -> Result<Vec<MailWithDetails>, AppError>;
+        page: &PageQuery,
+    ) -> Result<Page<MailWithDetails>, AppError>;
     async fn update_mail(&self, mail_id: String, payload: UpdateMailRequest) -> Result<UpdateMailResponse, AppError>;
     async fn update_mail_status(&self, mail_id: String, new_status: &str) -> Result<UpdateMailResponse, AppError>;
     async fn delete_mail(&self, mail_id: String) -> Result<DeleteMailResponse, AppError>;
@@ -55,7 +86,6 @@ pub struct MailService {
     repository: Arc<dyn MailRepository + Send + Sync>,
 }
 
-#[automock]
 impl MailService {
     pub fn new(repository: Arc<dyn MailRepository + Send + Sync>) -> Self {
         Self { repository }
@@ -67,8 +97,8 @@ impl MailServiceTrait for MailService {
     /// a function to add new mail into the record when the mail_send is triggered...
     async fn create_mail(&self, payload: CreateMailRequest) -> Result<Vec<Mail>, AppError> {
         let mut responses = Vec::new(); // Vec<CreateMailResponse>;
-        for email in payload.email {
-            let contact = contact_service::get_contact_by_email(email).await?;
+        for email in payload.email.clone() {
+            let contact = contact_service::get_contact_by_email(payload.namespace_id, email).await?;
 
             let new_mail = NewMail {
                 id: payload.id.clone(),
@@ -88,16 +118,25 @@ impl MailServiceTrait for MailService {
         Ok(responses)
     }
 
+    async fn get_mail_by_id(&self, mail_id: String) -> Result<Mail, AppError> {
+        Ok(self.repository.get_mail_by_id(mail_id).await?)
+    }
+
     /// a function to get all mails from the record...
     async fn get_all_mails(
         &self,
-        campaign_ids: Option<Uuid>,
+        campaign_ids: Option<Vec<Uuid>>,
         from: Option<DateTime<Utc>>,
         to: Option<DateTime<Utc>>,
-    ) -> Result<Vec<MailWithDetails>, AppError> {
-        let response = self.repository.get_all_mails(campaign_ids, from, to).await?;
+        page: &PageQuery,
+    ) -> Result<Page<MailWithDetails>, AppError> {
+        let (limit, offset) = (page.limit(), page.offset());
+        let (items, total) = self
+            .repository
+            .get_all_mails(campaign_ids, from, to, limit, offset)
+            .await?;
 
-        Ok(response)
+        Ok(Page::new(items, total, limit, offset))
     }
 
     /// a function to update mail in the record...
@@ -144,13 +183,13 @@ impl MailServiceTrait for MailService {
     }
 
     async fn fetch_queued_mails(&self) -> Result<Vec<MailWithDetails>, AppError> {
-        let response = self.repository.get_mails_by_status("queued", true).await?;
+        let response = self.repository.get_mails_by_status(MAIL_STATUS_QUEUED, true).await?;
 
         Ok(response)
     }
 
     async fn fetch_bounced_mails(&self) -> Result<Vec<MailWithDetails>, AppError> {
-        let response = self.repository.get_mails_by_status("bounced", false).await?;
+        let response = self.repository.get_mails_by_status(MAIL_STATUS_BOUNCED, false).await?;
 
         Ok(response)
     }
@@ -162,106 +201,151 @@ impl MailServiceTrait for MailService {
     }
 
     /// Process queued mails with per-server rate limiting using the governor crate...
+    ///
+    /// Two properties this loop must preserve, both of which were previously broken:
+    ///   - it must not exit. Returning on a transient database error stopped delivery for
+    ///     the lifetime of the process, and nothing restarts it.
+    ///   - it must pick up servers created after boot. Limiters used to be built once
+    ///     before the loop, so a new server's mail was skipped forever.
+    /// Limiters are kept across ticks rather than rebuilt, because rebuilding one resets
+    /// its token bucket and would defeat the rate limit.
     async fn process_mails(&self, server_service: Arc<ServerService>) -> Result<(), AppError> {
-        // Create a rate limiter for each server...
         let mut limiters: HashMap<Uuid, ServerState> = HashMap::new();
-        for server in server_service.get_all_servers().await? {
-            // rate_limit defines max tokens per second
-            let per_sec = NonZeroU32::new(server.rate_limit as u32).unwrap_or_else(|| NonZeroU32::new(1).unwrap());
-            let quota = Quota::per_second(per_sec);
 
-            let limiter = RateLimiter::direct(quota);
-
-            let server_state = ServerState {
-                limiter,
-                server_type: server.server_type,
-            };
-
-            limiters.insert(server.id, server_state);
-        }
-
-        // run the process in a loop each second...
-        let mut ticker = interval(Duration::from_secs(5));
+        let mut ticker = interval(Duration::from_secs(TICK_SECONDS));
         loop {
             ticker.tick().await;
 
-            let mails = self.fetch_queued_mails().await?;
+            match server_service.get_all_servers().await {
+                Ok(servers) => Self::sync_limiters(&mut limiters, servers),
+                Err(err) => {
+                    eprintln!("mail worker: could not refresh servers, reusing previous limiters: {err}");
+                }
+            }
+
+            let mails = match self.fetch_queued_mails().await {
+                Ok(mails) => mails,
+                Err(err) => {
+                    eprintln!("mail worker: could not fetch queued mails, retrying next tick: {err}");
+                    continue;
+                }
+            };
 
             if mails.is_empty() {
-                println!("No queued mails to process");
                 continue;
             }
+
             for mail in mails {
-                let sid = match mail.server_id {
-                    Some(id) => id,
-                    None => continue,
+                let Some(sid) = mail.server_id else {
+                    eprintln!("mail worker: mail {} has no server_id, skipping", mail.id);
+                    continue;
                 };
 
-                if let Some(server_state) = limiters.get(&sid) {
-                    println!(
-                        "[Server {:?}] waiting for token to send mail {} to {}",
-                        sid, mail.id, mail.email
-                    );
-                    let start = Instant::now();
-                    // try by adding the until_ready() to the limiter...
-                    server_state.limiter.until_ready().await;
-                    let waited = start.elapsed();
-                    println!("[Server {:?}] waited {:?} before sending mail {}", sid, waited, mail.id);
-                    let email = mail.email.clone();
+                let Some(campaign_id) = mail.campaign_id else {
+                    eprintln!("mail worker: mail {} has no campaign_id, skipping", mail.id);
+                    continue;
+                };
 
-                    // create n background task to send the email bound by server rate limit...
-                    tokio::spawn(send_single_email(
-                        server_state.server_type,
-                        mail.id.clone(),
-                        mail.campaign_id.unwrap(),
-                        sid,
-                        email,
-                        mail.mail_message.clone(),
-                        format!("Hello {}", mail.email),
-                    ));
+                let Some(server_state) = limiters.get(&sid) else {
+                    eprintln!("mail worker: no server {sid} for mail {}, skipping", mail.id);
+                    continue;
+                };
 
-                    // Update status on success
-                    self.repository.update_mail_status(mail.id, "submitted").await?;
+                server_state.limiter.until_ready().await;
+
+                // Claim the mail before dispatching so the next tick does not pick it up
+                // again and send a duplicate. send_single_email advances it to "sent", or
+                // records the failure.
+                if let Err(err) = self
+                    .repository
+                    .update_mail_status(mail.id.clone(), MAIL_STATUS_SUBMITTED)
+                    .await
+                {
+                    eprintln!("mail worker: could not claim mail {}, skipping: {err}", mail.id);
+                    continue;
                 }
+
+                let repository = Arc::clone(&self.repository);
+                let server_type = server_state.server_type;
+                let mail_id = mail.id.clone();
+                let email = mail.email.clone();
+                let message = mail.mail_message.clone();
+                let subject = format!("Hello {}", mail.email);
+
+                tokio::spawn(async move {
+                    let result =
+                        send_single_email(server_type, mail_id.clone(), campaign_id, sid, email, message, subject)
+                            .await;
+
+                    // A failure here used to be silently dropped, leaving the mail stuck at
+                    // "submitted" and indistinguishable from a success.
+                    if let Err(err) = result {
+                        eprintln!("mail worker: send failed for mail {mail_id}: {err}");
+                        let _ = repository
+                            .udpate_mail_last_try_error(mail_id.clone(), &err.to_string())
+                            .await;
+                        let _ = repository.update_mail_attempts(mail_id).await;
+                    }
+                });
             }
         }
     }
 
     /// A process to handle stale submitted mails...
-    /// This function will retry sending mails that are stuck in the submitted state...
+    /// Retries mails that were claimed but never reached a terminal state.
     async fn process_submitted_mails(&self, server_service: Arc<ServerService>) -> Result<(), AppError> {
-        let mut ticker = interval(Duration::from_secs(600)); // Retry every 10 minutes or longer...
+        let mut ticker = interval(Duration::from_secs(RETRY_TICK_SECONDS));
         loop {
             ticker.tick().await;
 
-            let mails = self.repository.get_stale_submitted_mails().await?;
-
-            if mails.is_empty() {
-                println!("No submitted mails to retry");
-                continue;
-            }
+            let mails = match self.repository.get_stale_submitted_mails().await {
+                Ok(mails) => mails,
+                Err(err) => {
+                    eprintln!("retry worker: could not fetch stale mails, retrying next tick: {err}");
+                    continue;
+                }
+            };
 
             for mail in mails {
-                if mail.attempts >= 3 {
-                    println!("Mail {} exceeded max retry attempts, marking as failed. No more retries will be done for this mail", mail.id);
-                    self.repository.update_mail_status(mail.id, "failed").await?;
+                if has_reached_send_attempt_limit(mail.attempts) {
+                    if let Err(err) = self
+                        .repository
+                        .update_mail_status(mail.id.clone(), MAIL_STATUS_FAILED)
+                        .await
+                    {
+                        eprintln!("retry worker: could not mark mail {} failed: {err}", mail.id);
+                    }
                     continue;
                 }
 
-                let sid = match mail.server_id {
-                    Some(id) => id,
-                    None => continue,
+                let Some(sid) = mail.server_id else {
+                    continue;
                 };
 
-                let server = server_service.get_server_by_id(&sid.to_string()).await?;
+                let server = match server_service.get_server_by_id(&sid.to_string()).await {
+                    Ok(server) => server,
+                    Err(err) => {
+                        eprintln!("retry worker: server {sid} unavailable for mail {}: {err}", mail.id);
+                        continue;
+                    }
+                };
 
-                println!("Retrying submitted mail {}", mail.id);
+                let Some(campaign_id) = mail.campaign_id else {
+                    continue;
+                };
 
-                // Retry send (optionally with exponential backoff)
+                // attempts is incremented on every retry, not only on success. The previous
+                // version incremented on success only, so a permanently failing mail never
+                // reached MAX_SEND_ATTEMPTS and retried forever.
+                if let Err(err) = self.repository.update_mail_attempts(mail.id.clone()).await {
+                    eprintln!("retry worker: could not record attempt for mail {}: {err}", mail.id);
+                    continue;
+                }
+
                 let result = send_single_email(
                     server.server_type,
                     mail.id.clone(),
-                    mail.campaign_id.unwrap(),
+                    campaign_id,
                     sid,
                     mail.email.clone(),
                     mail.mail_message.clone(),
@@ -269,17 +353,61 @@ impl MailServiceTrait for MailService {
                 )
                 .await;
 
-                if result.is_ok() {
-                    println!("Mail {} retried successfully", mail.id);
-                    self.repository.update_mail_attempts(mail.id).await?;
-                } else {
-                    println!("Mail {} retry failed", mail.id);
-                    self.repository
-                        .udpate_mail_last_try_error(mail.id, "Several retries to send mail failed")
-                        .await?;
+                if let Err(err) = result {
+                    eprintln!("retry worker: retry failed for mail {}: {err}", mail.id);
+                    let _ = self
+                        .repository
+                        .udpate_mail_last_try_error(mail.id.clone(), &err.to_string())
+                        .await;
+
+                    // The increment happened before this send. Finalize the row now when
+                    // this was its last allowed attempt rather than leaving it submitted
+                    // until another retry tick.
+                    if has_reached_send_attempt_limit(mail.attempts.saturating_add(1)) {
+                        if let Err(status_err) = self
+                            .repository
+                            .update_mail_status(mail.id.clone(), MAIL_STATUS_FAILED)
+                            .await
+                        {
+                            eprintln!("retry worker: could not mark mail {} failed: {status_err}", mail.id);
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+impl MailService {
+    /// Add limiters for servers we have not seen and drop limiters for servers that are
+    /// gone, without disturbing the token bucket of a server that is unchanged.
+    fn sync_limiters(limiters: &mut HashMap<Uuid, ServerState>, servers: Vec<crate::servers::servers_model::Server>) {
+        let mut seen = Vec::with_capacity(servers.len());
+
+        for server in servers {
+            seen.push(server.id);
+            let per_sec = sanitize_rate_limit(server.rate_limit);
+
+            match limiters.get_mut(&server.id) {
+                // Only rebuild when the configured rate actually changed, since rebuilding
+                // resets the bucket.
+                Some(existing) if existing.rate_limit == server.rate_limit => {
+                    existing.server_type = server.server_type;
+                }
+                _ => {
+                    limiters.insert(
+                        server.id,
+                        ServerState {
+                            limiter: RateLimiter::direct(Quota::per_second(per_sec)),
+                            server_type: server.server_type,
+                            rate_limit: server.rate_limit,
+                        },
+                    );
+                }
+            }
+        }
+
+        limiters.retain(|id, _| seen.contains(id));
     }
 }
 
@@ -292,7 +420,8 @@ pub async fn process_one_batch(
     update: impl Fn(String) + Send + Sync,                  // update the mail status...
 ) {
     for mail in fetch() {
-        if let Some(state) = servers.get(&mail.server_id.unwrap()) {
+        let Some(server_id) = mail.server_id else { continue };
+        if let Some(state) = servers.get(&server_id) {
             state.limiter.until_ready().await;
             send(&mail);
             update(mail.id.clone());

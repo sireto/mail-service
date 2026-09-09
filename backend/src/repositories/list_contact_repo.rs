@@ -6,7 +6,8 @@ use diesel::prelude::*;
 use uuid::Uuid;
 
 use async_trait::async_trait;
-use mockall::{automock, predicate::*};
+#[cfg(feature = "mocks")]
+use mockall::automock;
 
 pub async fn get_connection_pool() -> DbPooledConnection {
     GLOBAL_APP_STATE
@@ -15,7 +16,7 @@ pub async fn get_connection_pool() -> DbPooledConnection {
         .expect("Failed to get DB connection from pool")
 }
 
-#[automock]
+#[cfg_attr(feature = "mocks", automock)]
 #[async_trait]
 pub trait ListContactRepository {
     async fn add_contacts_to_list(

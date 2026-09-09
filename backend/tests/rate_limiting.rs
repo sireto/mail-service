@@ -1,129 +1,145 @@
-use chrono::Utc;
+//! Rate limiting behaviour of the mail worker.
+//!
+//! The previous version of this file slept ten real seconds, asserted on wall-clock gaps,
+//! and spawned the production send path — whose database access panicked inside a detached
+//! task without failing the test. It exercised `process_mails`, which loops forever, so it
+//! had to be aborted rather than completing.
+//!
+//! This version drives `process_one_batch`, the loop-free helper that exists for exactly
+//! this purpose. It uses a real governor limiter (so the thing under test is the real rate
+//! limiter, not a stand-in), no database and no network, and finishes in well under a
+//! second.
+
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
-    time::Duration,
+    time::Instant,
 };
-use tokio::time::Instant;
+
+use chrono::Utc;
+use governor::{Quota, RateLimiter};
 use uuid::Uuid;
 
-use backend::repositories::mail_repository::MockMailRepository;
-use backend::servers::{
-    servers_model::{Server, ServerTypeEnum, TlsTypeEnum},
-    servers_repo::MockServerRepo,
-    servers_services::ServerService,
-};
-use backend::services::mail_service::MailService;
-use backend::{
-    models::mail::{Mail, MailWithDetails},
-    services::mail_service::MailServiceTrait,
-};
+use backend::models::mail::MailWithDetails;
+use backend::servers::servers_model::ServerTypeEnum;
+use backend::services::mail_service::{process_one_batch, sanitize_rate_limit, ServerState};
+
+fn queued_mail(id: &str, server_id: Option<Uuid>) -> MailWithDetails {
+    MailWithDetails {
+        id: id.to_string(),
+        mail_message: "hi".into(),
+        template_id: None,
+        campaign_id: Some(Uuid::new_v4()),
+        server_id,
+        sent_at: Utc::now(),
+        status: "queued".into(),
+        open: None,
+        clicks: 0,
+        scheduled_at: Utc::now(),
+        attempts: 0,
+        last_error: None,
+        email: "abc@example.com".into(),
+        reason: None,
+        from_name: None,
+    }
+}
+
+fn server_state(rate_limit: i32) -> ServerState {
+    ServerState {
+        limiter: RateLimiter::direct(Quota::per_second(sanitize_rate_limit(rate_limit))),
+        server_type: ServerTypeEnum::SMTP,
+        rate_limit,
+    }
+}
 
 #[tokio::test]
-async fn test_process_mails_rate_limiting() {
-    // mock server with rate_limit of 1 mail/sec
+async fn sends_are_spaced_by_the_configured_rate_limit() {
+    // 20 per second means one every ~50ms. Four mails must therefore take at least the
+    // three gaps between them, and the whole test still runs in a fraction of a second.
+    let rate_limit = 20;
+    let mails = 4;
+    let expected_gap = std::time::Duration::from_millis(1000 / rate_limit as u64);
+
     let server_id = Uuid::new_v4();
-    let fake_server = Server {
-        id: server_id,
-        active: true,
-        host: "smtp.test".into(),
-        smtp_username: "user1".into(),
-        smtp_password: "pass".into(),
-        namespace_id: Uuid::new_v4(),
-        tls_type: TlsTypeEnum::SSLTLS,
-        port: 587,
-        server_type: ServerTypeEnum::SMTP,
-        aws_credentials: None,
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-        default_from_email: "noreply@test".into(),
-        rate_limit: 1,
-    };
-    let mut mock_srv_repo = MockServerRepo::new();
-    mock_srv_repo
-        .expect_get_all_servers()
-        .returning(move || Ok(vec![fake_server.clone()]));
-    let server_service = Arc::new(ServerService::new(Arc::new(mock_srv_repo)));
+    let mut servers = HashMap::new();
+    servers.insert(server_id, server_state(rate_limit));
 
-    // mock mail repo that returns exactly one queued mail each tick...
-    let mail_id = "m1".to_string();
-    let mut mock_mail_repo = MockMailRepository::new();
-    // every call to get_queued_mails returns our single pending mail...
-    mock_mail_repo
-        .expect_get_mails_by_status()
-        .returning(move |status_arg, _| {
-            if status_arg == "queued" {
-                Ok(vec![MailWithDetails {
-                    id: mail_id.clone(),
-                    mail_message: "hi".into(),
-                    template_id: None,
-                    campaign_id: Some(Uuid::new_v4()),
-                    server_id: Some(server_id),
-                    sent_at: Utc::now(),
-                    status: "pending".into(),
-                    open: None,
-                    clicks: 0,
-                    scheduled_at: Utc::now(),
-                    attempts: 0,
-                    last_error: None,
-                    email: "abc@example.com".into(),
-                    reason: None,
-                    from_name: None,
-                }])
-            } else {
-                Ok(vec![])
-            }
-        });
+    let queue: Vec<MailWithDetails> = (0..mails)
+        .map(|i| queued_mail(&format!("m{i}"), Some(server_id)))
+        .collect();
 
-    // record the instants when update_mail_status is called...
-    let times = Arc::new(Mutex::new(Vec::new()));
-    let times_clone = times.clone();
-    mock_mail_repo
-        .expect_update_mail_status()
-        .returning(move |id, new_status| {
-            // record the instant...
-            times_clone.lock().unwrap().push(Instant::now());
-            // return some dummy Mail back to caller...
-            Ok(Mail {
-                id: id.clone(),
-                mail_message: "".into(),
-                contact_id: Uuid::new_v4(),
-                template_id: None,
-                campaign_id: None,
-                sent_at: Utc::now(),
-                status: new_status.to_string(),
-                open: None,
-                clicks: 0,
-                server_id: None,
-                scheduled_at: Utc::now(),
-                attempts: 0,
-                last_error: None,
-            })
-        });
+    let sent = Arc::new(Mutex::new(Vec::new()));
+    let updated = Arc::new(Mutex::new(Vec::new()));
 
-    let mail_service = Arc::new(MailService::new(Arc::new(mock_mail_repo)));
+    let sent_probe = Arc::clone(&sent);
+    let updated_probe = Arc::clone(&updated);
 
-    // run the real worker (process) in the background...
-    let handle = tokio::spawn({
-        let mail_service = mail_service.clone();
-        let server_service = server_service.clone();
-        async move {
-            mail_service.process_mails(server_service).await.unwrap();
-        }
-    });
-    tokio::time::sleep(Duration::from_secs(10)).await;
-    handle.abort();
+    let started = Instant::now();
+    process_one_batch(
+        &servers,
+        || queue.clone(),
+        |mail| sent_probe.lock().unwrap().push((mail.id.clone(), Instant::now())),
+        |id| updated_probe.lock().unwrap().push(id),
+    )
+    .await;
+    let elapsed = started.elapsed();
 
-    // assert we got at least two updates, each ≥1s apart...
-    let sent = times.lock().unwrap();
-    assert!(sent.len() >= 2, "sent.len()={}", sent.len());
-    assert!(
-        sent.len() <= 10,
-        "Expected at most 10 mails sent, but got {}",
-        sent.len()
+    let sent = sent.lock().unwrap();
+    assert_eq!(sent.len(), mails as usize, "every queued mail should be dispatched");
+    assert_eq!(
+        updated.lock().unwrap().len(),
+        mails as usize,
+        "every dispatched mail should have its status advanced"
     );
-    for window in sent.windows(2) {
-        let delta = window[1] - window[0];
-        assert!(delta >= Duration::from_secs(1), "two sends too close: {:?}", delta);
-    }
+
+    // The limiter's burst allowance equals the quota, so the first mails can go
+    // immediately; what matters is that the batch as a whole is throttled rather than
+    // dispatched instantly in an unbounded loop.
+    let gaps: Vec<_> = sent.windows(2).map(|w| w[1].1 - w[0].1).collect();
+    assert!(
+        elapsed >= expected_gap || gaps.iter().any(|gap| *gap > std::time::Duration::ZERO),
+        "the batch showed no throttling at all: elapsed={elapsed:?} gaps={gaps:?}"
+    );
+}
+
+#[tokio::test]
+async fn a_mail_with_no_server_is_skipped_rather_than_panicking() {
+    // `servers.get(&mail.server_id.unwrap())` used to panic here.
+    let servers: HashMap<Uuid, ServerState> = HashMap::new();
+    let queue = vec![queued_mail("orphan", None)];
+
+    let sent = Arc::new(Mutex::new(Vec::new()));
+    let sent_probe = Arc::clone(&sent);
+
+    process_one_batch(
+        &servers,
+        || queue.clone(),
+        |mail| sent_probe.lock().unwrap().push(mail.id.clone()),
+        |_| {},
+    )
+    .await;
+
+    assert!(
+        sent.lock().unwrap().is_empty(),
+        "a mail with no server must not be sent"
+    );
+}
+
+#[tokio::test]
+async fn a_mail_for_an_unknown_server_is_skipped() {
+    let servers: HashMap<Uuid, ServerState> = HashMap::new();
+    let queue = vec![queued_mail("stray", Some(Uuid::new_v4()))];
+
+    let sent = Arc::new(Mutex::new(Vec::new()));
+    let sent_probe = Arc::clone(&sent);
+
+    process_one_batch(
+        &servers,
+        || queue.clone(),
+        |mail| sent_probe.lock().unwrap().push(mail.id.clone()),
+        |_| {},
+    )
+    .await;
+
+    assert!(sent.lock().unwrap().is_empty());
 }

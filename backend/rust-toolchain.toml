@@ -1,0 +1,8 @@
+# Pinned because Cargo.lock's aws-* crates set an MSRV of 1.94.1: on an older default
+# toolchain `cargo check` fails with an MSRV error that reads like a dependency problem.
+# DEVELOPER.md previously documented 1.83.0, which cannot build this lockfile at all.
+#
+# Keep in step with .github/workflows/backend-test.yaml and backend/Dockerfile.
+[toolchain]
+channel = "1.95.0"
+components = ["rustfmt", "clippy"]

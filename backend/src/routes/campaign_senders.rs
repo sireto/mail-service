@@ -1,16 +1,11 @@
-use std::sync::Arc;
-
 use axum::{
     routing::{delete, get, patch, post},
     Router,
 };
 
-use crate::{
-    handlers::campaign_sender::{
-        create_campaign_sender, delete_campaign_sender, get_campaign_sender_by_id, get_campaign_senders,
-        get_verified_identities, send_test_email, update_campaign_sender, validate_email_identity,
-    },
-    servers::{servers_repo, servers_services},
+use crate::handlers::campaign_sender::{
+    create_campaign_sender, delete_campaign_sender, get_campaign_sender_by_id, get_campaign_senders,
+    get_verified_identities, send_test_email, update_campaign_sender, validate_email_identity,
 };
 
 pub fn campaign_sender_routes() -> Router {

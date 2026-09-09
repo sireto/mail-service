@@ -23,6 +23,7 @@ import {
 } from "@/app/services/TemplateApi";
 import { useParams, useRouter } from "next/navigation";
 import { useGetCampaignByIdQuery } from "@/app/services/CampaignApi";
+import { NAMESPACE_ID } from "@/config/namespace";
 
 const Page = () => {
   const { id } = useParams<{ id: string }>();
@@ -56,7 +57,7 @@ const Page = () => {
     const updatedTemplate = {
       name: value.name.trim(),
       content_html: value.raw_mjml_content.trim(),
-      namespace_id: "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82",
+      namespace_id: NAMESPACE_ID,
       content_plaintext: "Hi, {{name}}",
       template_data: JSON.stringify({
         name: "John Doe",

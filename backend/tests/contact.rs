@@ -1,3 +1,4 @@
+use backend::models::pagination::PageQuery;
 use backend::{
     models::contact::{Contact, CreateContactRequest, UpdateContactRequest},
     repositories::contact::MockContactRepository,
@@ -5,13 +6,18 @@ use backend::{
 };
 use mockall::predicate::*;
 use std::sync::Arc;
-use uuid::Uuid;
+use uuid::{uuid, Uuid};
+
+/// Contacts are scoped to a namespace, so every fixture needs one. This is the namespace the
+/// initial migration seeds.
+const NAMESPACE: Uuid = uuid!("e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82");
 
 #[tokio::test]
 async fn test_create_contacts() {
     let mut mock_repo = MockContactRepository::new();
 
     let test_payload = CreateContactRequest {
+        namespace_id: NAMESPACE,
         first_name: "John".to_string(),
         last_name: "Doe".to_string(),
         email: "john@gmail.com".to_string(),
@@ -20,6 +26,7 @@ async fn test_create_contacts() {
 
     let expected_output = Contact {
         id: Uuid::new_v4(),
+        namespace_id: NAMESPACE,
         first_name: "John".to_string(),
         last_name: "Doe".to_string(),
         email: "john@gmail.com".to_string(),
@@ -50,6 +57,7 @@ async fn test_get_all_contacts() {
 
     let expected_output = vec![Contact {
         id: Uuid::new_v4(),
+        namespace_id: NAMESPACE,
         first_name: "John".to_string(),
         last_name: "Doe".to_string(),
         email: "john@gmail.com".to_string(),
@@ -60,16 +68,22 @@ async fn test_get_all_contacts() {
 
     mock_repo
         .expect_get_all_contacts()
-        .returning(move |_list_id, _search| Ok(expected_output.clone()));
+        .returning(move |_ns, _list_id, _search, _limit, _offset| Ok((expected_output.clone(), 1)));
 
     let contact_service = ContactService::new(Arc::new(mock_repo));
 
-    let result = contact_service.get_all_contacts(None, None).await;
+    let result = contact_service
+        .get_all_contacts(NAMESPACE, None, None, &PageQuery::default())
+        .await;
 
-    assert!(result.is_ok());
-    assert!(!result.as_ref().unwrap().is_empty());
-    assert_eq!(result.as_ref().unwrap().len(), 1);
-    assert_eq!(result.as_ref().unwrap()[0].email, "john@gmail.com");
+    let page = result.expect("listing succeeds");
+    assert_eq!(page.items.len(), 1);
+    assert_eq!(page.items[0].email, "john@gmail.com");
+    // The service must report the window it applied, not just the rows.
+    assert_eq!(page.total, 1);
+    assert_eq!(page.limit, 50);
+    assert_eq!(page.offset, 0);
+    assert!(!page.has_more);
 }
 
 #[tokio::test]
@@ -87,6 +101,7 @@ async fn test_update_contact() {
 
     let expected_output = Contact {
         id: test_id,
+        namespace_id: NAMESPACE,
         first_name: "Jank".to_string(),
         last_name: "Doe".to_string(),
         email: "hank@gmail.com".to_string(),
@@ -135,6 +150,7 @@ async fn test_delete_contact() {
 
     let expected_output = Contact {
         id: test_id,
+        namespace_id: NAMESPACE,
         first_name: "Jank".to_string(),
         last_name: "Doe".to_string(),
         email: "hank@gmail.com".to_string(),
@@ -165,6 +181,7 @@ async fn test_get_contact_by_id() {
 
     let expected_output = Contact {
         id: test_id,
+        namespace_id: NAMESPACE,
         first_name: "John".to_string(),
         last_name: "Doe".to_string(),
         email: "john@gmail.com".to_string(),

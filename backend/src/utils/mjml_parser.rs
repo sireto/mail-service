@@ -6,7 +6,7 @@ pub fn mjml_to_html(input: String) -> Result<String, Error> {
     let parsed_template_html =
         mrml::parse(&input).map_err(|e| anyhow::anyhow!(format!("Failed to parse MJML template: {e}")))?;
 
-    let opts = mrml::prelude::render::Options::default();
+    let opts = mrml::prelude::render::RenderOptions::default();
     let parsed_html = parsed_template_html
         .render(&opts)
         .map_err(|e| anyhow::anyhow!(format!("Failed to render MJML to HTML: {e}")))?;

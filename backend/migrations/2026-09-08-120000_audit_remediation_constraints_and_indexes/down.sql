@@ -1,0 +1,20 @@
+ALTER TABLE servers DROP CONSTRAINT IF EXISTS servers_rate_limit_range;
+ALTER TABLE mails DROP CONSTRAINT IF EXISTS mails_server_id_fkey;
+
+DROP INDEX IF EXISTS idx_contacts_email_lower;
+DROP INDEX IF EXISTS idx_campaign_senders_server_id;
+DROP INDEX IF EXISTS idx_campaigns_namespace_id;
+DROP INDEX IF EXISTS idx_templates_namespace_id;
+DROP INDEX IF EXISTS idx_lists_namespace_id;
+DROP INDEX IF EXISTS idx_servers_namespace_id;
+DROP INDEX IF EXISTS idx_campaign_lists_list_id;
+DROP INDEX IF EXISTS idx_list_contacts_contact_id;
+DROP INDEX IF EXISTS idx_bounce_logs_campaign_id;
+DROP INDEX IF EXISTS idx_bounce_logs_contact_id;
+DROP INDEX IF EXISTS idx_bounce_logs_mail_id;
+DROP INDEX IF EXISTS idx_mails_sent_at;
+DROP INDEX IF EXISTS idx_mails_server_id;
+DROP INDEX IF EXISTS idx_mails_campaign_id;
+DROP INDEX IF EXISTS idx_mails_contact_id;
+DROP INDEX IF EXISTS idx_mails_status_sent_at;
+DROP INDEX IF EXISTS idx_mails_status;

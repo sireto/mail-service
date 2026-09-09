@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 
 import DataTable from "@/components/DataTable";
 import columns from "./_columns";
@@ -13,7 +13,12 @@ import Link from "next/link";
 import AddButton from "@/components/common/AddButton";
 
 export default function CampaignPage() {
-  const { data: campaigns, error, isLoading } = useGetCampaignsQuery();
+  const [offset, setOffset] = useState(0);
+  const {
+    data: campaigns,
+    error,
+    isLoading,
+  } = useGetCampaignsQuery({ offset });
   const [deleteCampaign, { error: deletionError }] =
     useDeleteCampaignMutation();
   const [startCampaign, { error: startingError }] = useStartCampaignMutation();
@@ -66,7 +71,7 @@ export default function CampaignPage() {
       <div className="w-full flex justify-between items-center">
         <h1 className="text-xl font-bold">
           Campaigns
-          <span>({campaigns?.length})</span>
+          <span>({campaigns?.total ?? 0})</span>
         </h1>
         <Link href={"/dashboard/campaigns/new"}>
           <AddButton />
@@ -74,9 +79,15 @@ export default function CampaignPage() {
       </div>
       <div className="my-12">
         <DataTable
-          data={campaigns || []}
+          data={campaigns?.items ?? []}
           columns={columns(deleteCampaignHandler, startCampaignHandler)}
           fallback={"No campaigns found"}
+          isLoading={isLoading}
+          pagination={
+            campaigns
+              ? { page: campaigns, onOffsetChange: setOffset }
+              : undefined
+          }
         />
       </div>
     </div>

@@ -1,12 +1,24 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ServerSchema, type Server } from "@/lib/type";
+import { NAMESPACE_ID } from "@/config/namespace";
 import { useEffect } from "react";
 import {
   useCreateServerMutation,
   useUpdateServerMutation,
   useDeleteServerMutation,
 } from "@/app/services/ServerApi";
+
+/**
+ * The API masks secrets on read (a run of asterisks). Seeding a form field with that mask
+ * and submitting it wrote the mask back as the real credential, because PATCH replaces
+ * every column. Blank the field instead: the backend treats blank as "leave unchanged".
+ */
+const isMaskedSecret = (value?: string | null): boolean =>
+  !!value && value.trim().length > 0 && /^\*+$/.test(value.trim());
+
+const unmask = (value?: string | null): string =>
+  !value || isMaskedSecret(value) ? "" : value;
 
 export function useServerForm(server: Partial<Server>) {
   const [createServer] = useCreateServerMutation();
@@ -29,20 +41,20 @@ export function useServerForm(server: Partial<Server>) {
       id: server.id,
       active: server.active ?? true,
       host: server.host ?? (server.server_type === "AWS" ? "" : ""),
-      namespace_id: "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82",
+      namespace_id: NAMESPACE_ID,
       port: server.port ?? (server.server_type === "AWS" ? 1 : 25),
       smtp_username: server.smtp_username ?? "",
-      smtp_password: server.smtp_password ?? "",
+      smtp_password: unmask(server.smtp_password),
       tls_type: server.tls_type ?? "STARTTLS",
       server_type: server.server_type ?? "SMTP",
-      aws_credentials: server.aws_credentials ?? {
-        access_key_id: "",
-        secret_access_key: "",
-        region: "ap-southeast-1",
-        session_token: null,
+      aws_credentials: {
+        access_key_id: unmask(server.aws_credentials?.access_key_id),
+        secret_access_key: unmask(server.aws_credentials?.secret_access_key),
+        region: server.aws_credentials?.region || "ap-southeast-1",
+        session_token: unmask(server.aws_credentials?.session_token) || null,
       },
       default_from_email: server.default_from_email ?? "",
-      rate_limit: server.rate_limit ?? 30,
+      rate_limit: server.rate_limit ?? 60,
     },
     mode: "all",
     reValidateMode: "onChange",
@@ -75,21 +87,20 @@ export function useServerForm(server: Partial<Server>) {
         id: server.id,
         active: server.active ?? true,
         host: server.host ?? "",
-        namespace_id:
-          server.namespace_id ?? "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82",
+        namespace_id: server.namespace_id ?? NAMESPACE_ID,
         port: server.port ?? 25,
         smtp_username: server.smtp_username ?? "",
-        smtp_password: server.smtp_password ?? "",
+        smtp_password: unmask(server.smtp_password),
         tls_type: server.tls_type ?? "STARTTLS",
         server_type: server.server_type ?? "SMTP",
         aws_credentials: {
-          access_key_id: server.aws_credentials?.access_key_id || "",
-          secret_access_key: server.aws_credentials?.secret_access_key || "",
+          access_key_id: unmask(server.aws_credentials?.access_key_id),
+          secret_access_key: unmask(server.aws_credentials?.secret_access_key),
           region: server.aws_credentials?.region || "ap-southeast-1",
-          session_token: server.aws_credentials?.session_token || null,
+          session_token: unmask(server.aws_credentials?.session_token) || null,
         },
         default_from_email: server.default_from_email ?? "",
-        rate_limit: server.rate_limit ?? 30,
+        rate_limit: server.rate_limit ?? 60,
       });
     }
   }, [server, reset]);
@@ -100,36 +111,49 @@ export function useServerForm(server: Partial<Server>) {
       // Prepare data based on server type before submission
       let serverData: Server;
 
-      if (data.server_type === "AWS") {
+      const scrubbed: Server = {
+        ...data,
+        smtp_password: unmask(data.smtp_password),
+        aws_credentials: {
+          ...data.aws_credentials,
+          access_key_id: unmask(data.aws_credentials?.access_key_id),
+          secret_access_key: unmask(data.aws_credentials?.secret_access_key),
+          session_token: unmask(data.aws_credentials?.session_token) || null,
+        },
+      };
+
+      if (scrubbed.server_type === "AWS") {
         // If AWS, set default values for SMTP fields
         serverData = {
-          ...data,
+          ...scrubbed,
           host: "",
           port: 25,
           smtp_username: "",
           smtp_password: "",
           tls_type: "NONE",
-          namespace_id: "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82",
+          namespace_id: NAMESPACE_ID,
           aws_credentials: {
-            access_key_id: data.aws_credentials?.access_key_id || "",
-            secret_access_key: data.aws_credentials?.secret_access_key || "",
-            region: data.aws_credentials?.region || "ap-southeast-1",
-            session_token: data.aws_credentials?.session_token || null,
+            access_key_id: scrubbed.aws_credentials?.access_key_id || "",
+            secret_access_key: scrubbed.aws_credentials?.secret_access_key || "",
+            region: scrubbed.aws_credentials?.region || "ap-southeast-1",
+            session_token: scrubbed.aws_credentials?.session_token || null,
           },
-          default_from_email: server.default_from_email ?? "",
-          rate_limit: server.rate_limit ?? 30,
+          // These previously read from the stale `server` prop rather than the submitted
+          // form, so edits to either field were silently discarded.
+          default_from_email: scrubbed.default_from_email,
+          rate_limit: scrubbed.rate_limit,
         };
       } else {
         // If SMTP, set default values for AWS fields
         serverData = {
-          ...data,
+          ...scrubbed,
           aws_credentials: {
             access_key_id: "",
             secret_access_key: "",
             region: "",
             session_token: null,
           },
-          namespace_id: "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82",
+          namespace_id: NAMESPACE_ID,
         };
       }
 

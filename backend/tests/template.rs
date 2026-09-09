@@ -1,3 +1,4 @@
+use backend::models::pagination::PageQuery;
 use backend::{
     models::template::{CreateTemplateRequest, Template, UpdateTemplateRequest},
     repositories::template_repo::MockTemplateRepository,
@@ -72,20 +73,20 @@ async fn test_get_templates() {
 
     mock_repo
         .expect_get_all_templates()
-        .returning(move || Ok(expected_output.clone()));
+        .returning(move |_limit, _offset| Ok((expected_output.clone(), 1)));
 
     let template_service = TemplateService::new(Arc::new(mock_repo));
 
-    let result = template_service.get_all_templates().await;
+    let result = template_service.get_all_templates(&PageQuery::default()).await;
 
     assert!(result.is_ok());
 
     let result_output = result.as_ref().unwrap();
 
-    assert!(!result_output.is_empty());
-    assert!(result_output[0].name == "Test Template");
-    assert!(result_output[0].template_data == serde_json::json!("{\"user_name\": \"John Doe\"}"));
-    assert!(result_output[0].content_plaintext == Some("Test Content Plaintext".to_string()));
+    assert_eq!(result_output.total, 1);
+    assert!(result_output.items[0].name == "Test Template");
+    assert!(result_output.items[0].template_data == serde_json::json!("{\"user_name\": \"John Doe\"}"));
+    assert!(result_output.items[0].content_plaintext == Some("Test Content Plaintext".to_string()));
 }
 
 #[tokio::test]
@@ -142,6 +143,7 @@ async fn test_update_template() {
 
     let template_id = Uuid::new_v4();
 
+    let created_at = chrono::Utc::now();
     let updated_template = Template {
         id: template_id,
         namespace_id: Uuid::new_v4(),
@@ -149,8 +151,8 @@ async fn test_update_template() {
         template_data: update_payload.template_data.clone(),
         content_plaintext: Some(update_payload.content_plaintext.clone()),
         content_html: update_payload.content_html.clone(),
-        created_at: chrono::Utc::now(),
-        updated_at: chrono::Utc::now(),
+        created_at,
+        updated_at: created_at + chrono::Duration::milliseconds(1),
     };
 
     mock_repo

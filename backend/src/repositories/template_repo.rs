@@ -4,6 +4,7 @@ use crate::schema::templates::dsl::*;
 use crate::{app_state::DbPooledConnection, GLOBAL_APP_STATE};
 use async_trait::async_trait;
 use diesel::prelude::*;
+#[cfg(feature = "mocks")]
 use mockall::automock;
 use uuid::Uuid;
 
@@ -14,11 +15,12 @@ pub async fn get_connection_pool() -> DbPooledConnection {
         .expect("Failed to get DB connection from pool")
 }
 
-#[automock]
+#[cfg_attr(feature = "mocks", automock)]
 #[async_trait]
 pub trait TemplateRepository {
     async fn get_template_by_id(&self, template_id: Uuid) -> Result<Template, diesel::result::Error>;
-    async fn get_all_templates(&self) -> Result<Vec<Template>, diesel::result::Error>;
+    /// Returns one page of templates plus the total count.
+    async fn get_all_templates(&self, limit: i64, offset: i64) -> Result<(Vec<Template>, i64), diesel::result::Error>;
     async fn update_template(
         &self,
         template_id: Uuid,
@@ -39,8 +41,10 @@ impl TemplateRepository for TemplateRespositoryImpl {
         templates.filter(id.eq(template_id)).first(&mut conn) // Fetch the first matching result
     }
 
-    async fn get_all_templates(&self) -> Result<Vec<Template>, diesel::result::Error> {
+    async fn get_all_templates(&self, limit: i64, offset: i64) -> Result<(Vec<Template>, i64), diesel::result::Error> {
         let mut conn = get_connection_pool().await;
+
+        let total: i64 = templates.count().get_result(&mut conn)?;
 
         templates
             .select((
@@ -53,8 +57,12 @@ impl TemplateRepository for TemplateRespositoryImpl {
                 created_at,
                 updated_at,
             )) // Select columns explicitly
-            .order(updated_at.desc())
+            // `id` breaks ties so offset paging is stable across pages.
+            .order((updated_at.desc(), id.desc()))
+            .limit(limit)
+            .offset(offset)
             .load::<Template>(&mut conn)
+            .map(|items| (items, total))
     }
 
     async fn create_template(&self, payload: CreateTemplateRequest) -> Result<Template, diesel::result::Error> {

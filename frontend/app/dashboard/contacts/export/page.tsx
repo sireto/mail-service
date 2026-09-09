@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FileDown } from "lucide-react";
 import { MultiSelect } from "@/components/multi-select";
-import { useGetContactsQuery } from "@/app/services/ContactApi";
+import { useLazyGetContactsQuery } from "@/app/services/ContactApi";
+import { MAX_PAGE_SIZE } from "@/lib/type/pagination";
 import {
   useGetContactsFromListsQuery,
   useGetListsQuery,
@@ -16,9 +17,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Contact } from "@/lib/type/contact";
 import { List } from "@/lib/type";
+import { NAMESPACE_ID } from "@/config/namespace";
 
 // Hardcoded for now will be replaced later
-const NAMESPACE_ID = process.env.NEXT_PUBLIC_NAMESPACE_ID || "";
+
 
 export default function ExportPage() {
   const [includeAttributes, setIncludeAttributes] = useState(true);
@@ -27,10 +29,34 @@ export default function ExportPage() {
   const [isExporting, setIsExporting] = useState(false);
   const multiSelectRef = useRef(null);
 
-  const { data: contacts, isLoading: contactsLoading } = useGetContactsQuery(
-    {},
-  );
+  // Export needs every contact, and the list endpoint is paginated now, so it walks the
+  // pages on demand instead of holding the whole table in the page. Rendering an export
+  // form does not need the rows at all.
+  const [fetchContactsPage] = useLazyGetContactsQuery();
   const { toast } = useToast();
+
+  const fetchAllContacts = async (): Promise<Contact[]> => {
+    const all: Contact[] = [];
+    let offset = 0;
+
+    // Bounded by `total` rather than by trusting has_more alone, so a server that always
+    // reports more cannot spin this loop forever.
+    for (;;) {
+      const page = await fetchContactsPage({
+        limit: MAX_PAGE_SIZE,
+        offset,
+      }).unwrap();
+
+      all.push(...page.items);
+      offset += page.items.length;
+
+      if (!page.has_more || page.items.length === 0 || all.length >= page.total) {
+        break;
+      }
+    }
+
+    return all;
+  };
 
   const { data: listsData, isLoading: listsLoading } =
     useGetListsQuery(NAMESPACE_ID);
@@ -54,13 +80,12 @@ export default function ExportPage() {
   );
   console.log("Selected lists: ", selectedLists);
   console.log("contacts from Lists: ", contactsFromLists);
-  const filterContacts = (): Contact[] => {
-    if (!contacts) return [];
+  const resolveContactsToExport = async (): Promise<Contact[]> => {
     if (selectedLists.length > 0 && contactsFromLists) {
       return contactsFromLists;
     }
 
-    return contacts;
+    return fetchAllContacts();
   };
 
   const formatContactsAsCSV = (filteredContacts: Contact[]): string => {
@@ -106,18 +131,9 @@ export default function ExportPage() {
   };
 
   const handleExport = async () => {
-    if (contactsLoading) {
-      toast({
-        title: "Loading contacts",
-        description: "Please wait until contacts are loaded.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       setIsExporting(true);
-      const filteredContacts = filterContacts();
+      const filteredContacts = await resolveContactsToExport();
 
       if (filteredContacts.length === 0) {
         toast({
@@ -259,7 +275,7 @@ sarah@example.com${delimiter}Sarah${delimiter}Jones${delimiter}2023-06-16T14:22:
             className="w-full"
             size="lg"
             onClick={handleExport}
-            disabled={isExporting || contactsLoading}
+            disabled={isExporting}
           >
             <FileDown className="mr-2 h-5 w-5" />
             {isExporting ? "Exporting..." : "Export Contacts"}

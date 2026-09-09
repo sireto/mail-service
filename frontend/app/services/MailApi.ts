@@ -2,6 +2,11 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { z } from "zod";
 import { MailDTO } from "@/lib/type";
 import environments from "@/config/environments";
+import {
+  appendPageParams,
+  type Page,
+  type PageParams,
+} from "@/lib/type/pagination";
 import { contactApi } from "./ContactApi";
 
 type Mail = z.infer<typeof MailDTO>;
@@ -20,14 +25,14 @@ export const mailApi = createApi({
   endpoints: (builder) => ({
     // Query to fetch all lists...
     getMails: builder.query<
-      Mail[],
+      Page<Mail>,
       {
         campaign_ids?: string[];
         from?: string;
         to?: string;
-      }
+      } & PageParams
     >({
-      query: ({ campaign_ids, from, to }) => {
+      query: ({ campaign_ids, from, to, limit, offset }) => {
         const params = new URLSearchParams();
 
         if (campaign_ids) {
@@ -39,8 +44,7 @@ export const mailApi = createApi({
         if (to) {
           params.append("to", to);
         }
-
-        console.warn("THE latest query is ==> ", params.toString());
+        appendPageParams(params, { limit, offset });
 
         // Return the query URL with the query parameters
         return {
@@ -49,7 +53,7 @@ export const mailApi = createApi({
       },
       providesTags: (result) =>
         result
-          ? result.map((mail) => ({ type: "Mail", id: mail.id }))
+          ? result.items.map((mail) => ({ type: "Mail", id: mail.id }))
           : [{ type: "Mail" }],
     }),
     deleteMail: builder.mutation<MailDeleteResponse, string>({

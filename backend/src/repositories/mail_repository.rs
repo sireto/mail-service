@@ -4,15 +4,16 @@ use crate::schema::campaign_senders::dsl as campaign_senders_dsl;
 use crate::schema::campaigns::dsl as campaigns_dsl;
 use crate::schema::contacts::dsl as contacts_dsl;
 use crate::schema::mails::dsl::*;
-use crate::schema::servers::{dsl as servers_dsl, server_type};
-use crate::servers::servers_model::ServerTypeEnum;
+use crate::schema::servers::dsl as servers_dsl;
+use crate::services::mail_service::MAIL_STATUS_SUBMITTED;
 use crate::{app_state::DbPooledConnection, GLOBAL_APP_STATE};
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
-use diesel::dsl::sql;
+use diesel::dsl::{count, sql};
 use diesel::prelude::*;
 use diesel::sql_types::{Nullable, Text};
-use mockall::{automock, predicate::*};
+#[cfg(feature = "mocks")]
+use mockall::automock;
 use uuid::Uuid;
 
 pub async fn get_connection_pool() -> DbPooledConnection {
@@ -22,16 +23,20 @@ pub async fn get_connection_pool() -> DbPooledConnection {
         .expect("Failed to get DB connection from pool")
 }
 
-#[automock]
+#[cfg_attr(feature = "mocks", automock)]
 #[async_trait]
 pub trait MailRepository {
     async fn create_mail(&self, payload: NewMail) -> Result<Mail, diesel::result::Error>;
+    async fn get_mail_by_id(&self, mail_id: String) -> Result<Mail, diesel::result::Error>;
+    /// Returns one page of mails plus the total number matching the filters.
     async fn get_all_mails(
         &self,
-        campaign_ids: Option<Uuid>,
+        campaign_ids: Option<Vec<Uuid>>,
         from: Option<DateTime<Utc>>,
         to: Option<DateTime<Utc>>,
-    ) -> Result<Vec<MailWithDetails>, diesel::result::Error>;
+        limit: i64,
+        offset: i64,
+    ) -> Result<(Vec<MailWithDetails>, i64), diesel::result::Error>;
     async fn update_mail(&self, mail_id: String, payload: UpdateMailRequest) -> Result<Mail, diesel::result::Error>;
     async fn update_mail_status(&self, mail_id: String, new_status: &str) -> Result<Mail, diesel::result::Error>;
     async fn delete_mail(&self, mail_id: String) -> Result<Mail, diesel::result::Error>;
@@ -60,17 +65,41 @@ impl MailRepository for MailRepositoryImpl {
             .get_result::<Mail>(&mut conn)
     }
 
+    async fn get_mail_by_id(&self, mail_id: String) -> Result<Mail, diesel::result::Error> {
+        let mut conn = get_connection_pool().await;
+
+        mails.find(mail_id).first(&mut conn)
+    }
+
     async fn get_all_mails(
         &self,
-        campaign_ids: Option<Uuid>,
+        campaign_ids: Option<Vec<Uuid>>,
         from: Option<DateTime<Utc>>,
         to: Option<DateTime<Utc>>,
-    ) -> Result<Vec<MailWithDetails>, diesel::result::Error> {
+        limit: i64,
+        offset: i64,
+    ) -> Result<(Vec<MailWithDetails>, i64), diesel::result::Error> {
         let mut conn = get_connection_pool().await;
+
+        // The list query below returns exactly one row per mail, so the count must use the
+        // same unit. Diesel's boxed queries cannot be reused, so the filters are applied
+        // twice.
+        let mut count_query = mails.select(count(id)).into_boxed();
+
+        if let Some(ids) = campaign_ids.clone().filter(|ids| !ids.is_empty()) {
+            count_query = count_query.filter(campaign_id.eq_any(ids));
+        }
+        if let Some(from_date) = from {
+            count_query = count_query.filter(sent_at.ge(from_date));
+        }
+        if let Some(to_date) = to {
+            count_query = count_query.filter(sent_at.le(to_date));
+        }
+
+        let total: i64 = count_query.first(&mut conn)?;
 
         let mut query = mails
             .inner_join(contacts_dsl::contacts.on(contact_id.eq(contacts_dsl::id)))
-            .left_outer_join(bounce_logs_dsl::bounce_logs.on(id.eq(bounce_logs_dsl::mail_id)))
             .select((
                 id,
                 mail_message,
@@ -85,14 +114,21 @@ impl MailRepository for MailRepositoryImpl {
                 attempts,
                 last_error,
                 contacts_dsl::email,
-                bounce_logs_dsl::reason.nullable(),
+                // A mail can have more than one bounce log. Joining those rows before
+                // LIMIT/OFFSET duplicated the mail and could make a later mail unreachable.
+                // Select only the latest reason so pagination remains one row per mail.
+                sql::<Nullable<Text>>(
+                    "(SELECT bl.reason FROM bounce_logs bl \
+                     WHERE bl.mail_id = mails.id \
+                     ORDER BY bl.at DESC, bl.id DESC LIMIT 1)",
+                ),
                 sql::<Nullable<Text>>("NULL"),
             ))
             .into_boxed();
 
         // Add filter to the campaign_ids if present...
-        if !campaign_ids.is_none() {
-            query = query.filter(campaign_id.eq(campaign_ids.unwrap()));
+        if let Some(ids) = campaign_ids.filter(|ids| !ids.is_empty()) {
+            query = query.filter(campaign_id.eq_any(ids));
         }
 
         // Add filter to the from date if present...
@@ -105,12 +141,14 @@ impl MailRepository for MailRepositoryImpl {
         }
 
         // Order most recent first...
-        query = query.order(sent_at.desc());
+        // `id` breaks ties so paging is stable: with sent_at alone, two rows sharing a
+        // timestamp can swap between pages and a caller sees one twice and misses the other.
+        query = query.order((sent_at.desc(), id.desc())).limit(limit).offset(offset);
 
         // Execute the query and return
         let results = query.load::<MailWithDetails>(&mut conn)?;
 
-        Ok(results)
+        Ok((results, total))
     }
 
     async fn update_mail(&self, mail_id: String, payload: UpdateMailRequest) -> Result<Mail, diesel::result::Error> {
@@ -238,10 +276,12 @@ impl MailRepository for MailRepositoryImpl {
                 bounce_logs_dsl::reason.nullable(),
                 sql::<Nullable<Text>>("NULL"),
             ))
-            .filter(status.eq("submitted"))
-            .filter(server_type.eq(ServerTypeEnum::AWS))
-            .filter(sent_at.lt(Utc::now().naive_utc() - Duration::minutes(stale_duration_minutes)))
-            .filter(attempts.le(3))
+            .filter(status.eq(MAIL_STATUS_SUBMITTED))
+            // The AWS-only filter meant a stuck SMTP mail was never retried.
+            .filter(sent_at.lt(Utc::now() - Duration::minutes(stale_duration_minutes)))
+            // Include rows at or above the cap so the worker can finalize them as failed.
+            // This also recovers a process crash after the attempt increment but before the
+            // status update.
             .order(sent_at.asc())
             .load::<MailWithDetails>(&mut conn)
     }

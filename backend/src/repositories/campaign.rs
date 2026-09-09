@@ -3,7 +3,8 @@ use crate::schema::campaigns::dsl::*;
 use crate::{app_state::DbPooledConnection, GLOBAL_APP_STATE};
 use async_trait::async_trait;
 use diesel::prelude::*;
-use mockall::{automock, predicate::*};
+#[cfg(feature = "mocks")]
+use mockall::automock;
 use uuid::Uuid;
 
 pub async fn get_connection_pool() -> DbPooledConnection {
@@ -13,11 +14,12 @@ pub async fn get_connection_pool() -> DbPooledConnection {
         .expect("Failed to get DB connection from pool")
 }
 
-#[automock]
+#[cfg_attr(feature = "mocks", automock)]
 #[async_trait]
 pub trait CampaignRepository {
     async fn create_campaign(&self, payload: CreateCampaignRequest) -> Result<Campaign, diesel::result::Error>;
-    async fn get_all_campaigns(&self) -> Result<Vec<Campaign>, diesel::result::Error>;
+    /// Returns one page of campaigns plus the total count.
+    async fn get_all_campaigns(&self, limit: i64, offset: i64) -> Result<(Vec<Campaign>, i64), diesel::result::Error>;
     async fn update_campaign(
         &self,
         campaign_id: Uuid,
@@ -40,8 +42,10 @@ impl CampaignRepository for CampaginRepositoryImpl {
             .get_result::<Campaign>(&mut conn)
     }
 
-    async fn get_all_campaigns(&self) -> Result<Vec<Campaign>, diesel::result::Error> {
+    async fn get_all_campaigns(&self, limit: i64, offset: i64) -> Result<(Vec<Campaign>, i64), diesel::result::Error> {
         let mut conn = get_connection_pool().await;
+
+        let total: i64 = campaigns.count().get_result(&mut conn)?;
 
         campaigns
             .select((
@@ -55,8 +59,12 @@ impl CampaignRepository for CampaginRepositoryImpl {
                 created_at,
                 updated_at,
             ))
-            .order(updated_at.desc())
+            // `id` breaks ties so offset paging is stable across pages.
+            .order((updated_at.desc(), id.desc()))
+            .limit(limit)
+            .offset(offset)
             .load::<Campaign>(&mut conn)
+            .map(|items| (items, total))
     }
     async fn update_campaign(
         &self,

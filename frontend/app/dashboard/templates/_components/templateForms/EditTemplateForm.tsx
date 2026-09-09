@@ -8,14 +8,15 @@ import { DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { AddTemplateFormSchemaDTO } from "@/lib/type";
 import {
-  useGetTemplatesQuery,
+  useGetTemplateByIdQuery,
   useUpdateTemplateMutation,
 } from "@/app/services/TemplateApi";
 import { DialogClose } from "@radix-ui/react-dialog";
 import TemplateModalBody from "@/app/dashboard/templates/_components/TemplateModalBody";
+import { NAMESPACE_ID } from "@/config/namespace";
 
 const EditTemplateForm = ({ templateId }: { templateId: string }) => {
-  const { data } = useGetTemplatesQuery();
+  const { data: template } = useGetTemplateByIdQuery(templateId);
   const [updateTemplate, { isLoading: isUpdating, error: updateError }] =
     useUpdateTemplateMutation();
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -28,16 +29,15 @@ const EditTemplateForm = ({ templateId }: { templateId: string }) => {
     },
   });
 
+  // Previously this fetched the whole template list and searched it for one id. That was
+  // wasteful before pagination and wrong after it, because the template being edited need
+  // not be on the first page.
   useEffect(() => {
-    if (data) {
-      const template = data.find((template) => template.id === templateId);
-
-      if (template) {
-        form.setValue("name", template.name);
-        form.setValue("raw_mjml_content", template.content_html);
-      }
+    if (template) {
+      form.setValue("name", template.name);
+      form.setValue("raw_mjml_content", template.content_html);
     }
-  }, [data, form, templateId]);
+  }, [template, form]);
 
   if (updateError) {
     return <div>There was an error updating the template...</div>;
@@ -47,7 +47,7 @@ const EditTemplateForm = ({ templateId }: { templateId: string }) => {
     const updatedTemplate = {
       name: value.name.trim(),
       content_html: value.raw_mjml_content.trim(),
-      namespace_id: "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82",
+      namespace_id: NAMESPACE_ID,
       content_plaintext: "Hi, {{name}}",
       template_data: JSON.stringify({
         name: "John Doe",

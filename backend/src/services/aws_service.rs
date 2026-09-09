@@ -1,4 +1,4 @@
-use aws_config::{BehaviorVersion, Region};
+use aws_config::Region;
 use aws_sdk_sesv2::{
     error::SdkError,
     operation::send_email::SendEmailOutput,
@@ -6,17 +6,20 @@ use aws_sdk_sesv2::{
     Client,
 };
 
+use crate::error::AppError;
 use aws_sdk_sesv2::config::Credentials;
-use std::{env, error::Error, sync::Arc};
+use std::{env, sync::Arc};
 
 use crate::servers::{
     servers_repo,
     servers_services::{self, ServerServiceTrait},
 };
-pub async fn create_aws_client() -> Client {
+pub async fn create_aws_client() -> Result<Client, AppError> {
     // Fetch IAM credentials from environment variables or any other source
-    let access_key_id = env::var("AWS_ACCESS_KEY_ID").expect("AWS_ACCESS_KEY_ID not set");
-    let secret_access_key = env::var("AWS_SECRET_ACCESS_KEY").expect("AWS_SECRET_ACCESS_KEY not set");
+    let access_key_id = env::var("AWS_ACCESS_KEY_ID")
+        .map_err(|_| AppError::InternalServerError(Some("AWS_ACCESS_KEY_ID is not configured".to_string())))?;
+    let secret_access_key = env::var("AWS_SECRET_ACCESS_KEY")
+        .map_err(|_| AppError::InternalServerError(Some("AWS_SECRET_ACCESS_KEY is not configured".to_string())))?;
     let session_token = env::var("AWS_SESSION_TOKEN").ok(); // Optional for temporary credentials
 
     // Create the credentials object
@@ -28,8 +31,9 @@ pub async fn create_aws_client() -> Client {
         "custom_credentials",
     );
 
-    // Specify the region
-    let region = Region::new("ap-southeast-1");
+    // Region is configurable; the previous hardcoded ap-southeast-1 is kept as the default
+    // so existing deployments behave identically.
+    let region = Region::new(env::var("AWS_REGION").unwrap_or_else(|_| "ap-southeast-1".to_string()));
 
     // Create AWS configuration with the credentials and region
     let config = aws_config::from_env()
@@ -39,12 +43,15 @@ pub async fn create_aws_client() -> Client {
         .await;
 
     // Create and return the SES client
-    Client::new(&config)
+    Ok(Client::new(&config))
 }
 
 /**
  * a function to send mail using the AWS SES service...
  */
+// from/to/cc/bcc/subject/body is inherently a wide signature; grouping it into a
+// struct is a refactor for its own change, not this one.
+#[allow(clippy::too_many_arguments)]
 pub async fn send_mail(
     client: Client,
     from: &str,
@@ -58,37 +65,13 @@ pub async fn send_mail(
     let mut destination = Destination::builder().build();
     destination.to_addresses = Some(to.clone());
     // Conditionally set `cc_addresses` if `cc` is provided...
-    destination.cc_addresses = if let Some(cc_list) = cc {
-        if !cc_list.is_empty() {
-            Some(cc_list)
-        } else {
-            None
-        }
-    } else {
-        None
-    };
+    destination.cc_addresses = cc.filter(|cc_list| !cc_list.is_empty());
 
     // Conditionally set `bcc_addresses` if `bcc` is provided...
-    destination.bcc_addresses = if let Some(bcc_list) = bcc {
-        if !bcc_list.is_empty() {
-            Some(bcc_list)
-        } else {
-            None
-        }
-    } else {
-        None
-    };
+    destination.bcc_addresses = bcc.filter(|bcc_list| !bcc_list.is_empty());
 
-    let subject_content = Content::builder()
-        .data(subject)
-        .charset("UTF-8")
-        .build()
-        .expect("building Content");
-    let html_content = Content::builder()
-        .data(html_data)
-        .charset("UTF-8")
-        .build()
-        .expect("Error while building html Content");
+    let subject_content = Content::builder().data(subject).charset("UTF-8").build()?;
+    let html_content = Content::builder().data(html_data).charset("UTF-8").build()?;
     // let text_content = Content::builder()
     //     .data(payload.template_data)
     //     .charset("UTF-8")
@@ -97,30 +80,34 @@ pub async fn send_mail(
 
     let body = Body::builder().html(html_content).build();
 
+    // The `mailId` header is what the SNS webhook uses to correlate delivery events back
+    // to a mail row. It is optional: one-off template sends have no mail row to correlate
+    // to, and previously passing None here panicked and made that endpoint unusable.
+    let headers = mail_id
+        .map(|id| MessageHeader::builder().name("mailId").value(id).build())
+        .transpose()?
+        .map(|header| vec![header]);
+
     let msg = Message::builder()
         .subject(subject_content)
-        .set_headers(Some(vec![MessageHeader::builder()
-            .name("mailId")
-            .value(mail_id.unwrap())
-            .build()?]))
+        .set_headers(headers)
         .body(body)
         .build();
 
     let email_content = EmailContent::builder().simple(msg).build();
 
-    let configuration_set_name = env::var("AWS_SES_CONFIGURATION_SET_NAME")
-    .expect("You must have env of configuration set name for open and click rates tracking named: AWS_SES_CONFIGURATION_SET_NAME");
+    // Absent configuration set means no open/click tracking, which is a degraded feature
+    // rather than a reason to fail the send.
+    let configuration_set_name = env::var("AWS_SES_CONFIGURATION_SET_NAME").ok();
 
-    let result = client
+    client
         .send_email()
         .from_email_address(from)
         .destination(destination)
         .content(email_content)
-        .set_configuration_set_name(Some(configuration_set_name))
+        .set_configuration_set_name(configuration_set_name)
         .send()
-        .await;
-
-    result
+        .await
 }
 
 //Currnetly this is not being used
@@ -167,11 +154,11 @@ pub async fn get_recent_bounces(
     Ok(())
 }
 
-pub async fn create_aws_client_db(server_id: &str) -> Client {
+pub async fn create_aws_client_db(server_id: &str) -> Result<Client, AppError> {
     let server_repo = Arc::new(servers_repo::ServerRepoImpl);
     let server_service = servers_services::ServerService::new(server_repo);
 
-    let server = server_service.get_server_by_id(&server_id).await.unwrap();
+    let server = server_service.get_server_by_id(server_id).await?;
 
     let mut access_key_id = String::new();
     let mut secret_access_key = String::new();
@@ -212,5 +199,5 @@ pub async fn create_aws_client_db(server_id: &str) -> Client {
         .await;
 
     // Create and return the SES client
-    Client::new(&config)
+    Ok(Client::new(&config))
 }

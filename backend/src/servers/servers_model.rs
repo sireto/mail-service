@@ -1,4 +1,4 @@
-use crate::utils::server_utils::secure_server_response;
+use crate::utils::server_utils::{secure_server_response, MASKED_SECRET};
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_derive_enum;
@@ -120,14 +120,14 @@ pub struct ServerResponse {
 
 impl From<Server> for ServerResponse {
     fn from(server: Server) -> Self {
-        let safe_aws = server.aws_credentials.map(|creds| secure_server_response(creds));
+        let safe_aws = server.aws_credentials.map(secure_server_response);
 
         Self {
             id: server.id,
             active: server.active,
             host: server.host,
             smtp_username: server.smtp_username,
-            smtp_password: "***********".to_string(), // Masked password...
+            smtp_password: MASKED_SECRET.to_string(), // Masked password...
             namespace_id: server.namespace_id,
             tls_type: server.tls_type,
             port: server.port,

@@ -15,10 +15,9 @@ import { AddContact } from "./_components/ContactForms/AddContact";
 import { Contact } from "@/lib/type/contact";
 import { ColumnDef } from "@tanstack/react-table";
 import { useSearchParams } from "next/navigation";
+import { NAMESPACE_ID } from "@/config/namespace";
 
-const NAMESPACE_ID =
-  process.env.NEXT_PUBLIC_NAMESPACE_ID ??
-  "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
+
 
 interface List {
   id: string;
@@ -45,6 +44,7 @@ const ContactsPageContent = () => {
   const searchParams = useSearchParams();
   const listId = searchParams.get("list_id") ?? undefined;
 
+  const [offset, setOffset] = useState(0);
   const {
     data: contacts,
     isLoading,
@@ -52,6 +52,7 @@ const ContactsPageContent = () => {
   } = useGetContactsQuery({
     list_id: listId,
     search: searchTerm,
+    offset,
   });
 
   const selectedCount = Object.values(selectedContacts).filter(Boolean).length;
@@ -75,7 +76,9 @@ const ContactsPageContent = () => {
   };
 
   const handleExport = () => {
-    const selectedData = contacts?.filter(
+    // Only exports the selection visible on this page. Whole-table export lives on
+    // /dashboard/contacts/export, which walks every page.
+    const selectedData = contacts?.items.filter(
       (contact) => selectedContacts[contact.id],
     );
     if (!selectedData?.length) return;
@@ -113,7 +116,7 @@ const ContactsPageContent = () => {
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-semibold">
             Contacts{" "}
-            <span className="text-gray-500">({contacts?.length || 0})</span>
+            <span className="text-gray-500">({contacts?.total ?? 0})</span>
           </h1>
           <Button
             variant="default"
@@ -128,7 +131,12 @@ const ContactsPageContent = () => {
             type="text"
             placeholder="Search by name or email..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              // A new search starts at the first page; keeping the offset would show an
+              // empty page 3 of a smaller result set.
+              setOffset(0);
+            }}
             className="w-full max-w-md px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:blue-500"
           />
         </div>
@@ -164,8 +172,11 @@ const ContactsPageContent = () => {
 
       <div className="py-6 mb-6">
         <DataTable
-          data={contacts || []}
+          data={contacts?.items ?? []}
           columns={tableColumns}
+          pagination={
+            contacts ? { page: contacts, onOffsetChange: setOffset } : undefined
+          }
           fallback="No Contacts Found"
         />
       </div>

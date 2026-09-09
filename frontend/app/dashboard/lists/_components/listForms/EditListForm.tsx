@@ -12,11 +12,10 @@ import {
   useUpdateListMutation,
 } from "@/app/services/ListApi";
 import ListModalBody from "@/app/dashboard/lists/_components/ListModalBody";
-
-const namespaceId = "e3bda5cf-760e-43ea-8e9a-c2c3c5f95b82";
+import { NAMESPACE_ID } from "@/config/namespace";
 
 const EditListForm = ({ listId }: { listId: string }) => {
-  const { data } = useGetListsQuery(namespaceId);
+  const { data } = useGetListsQuery(NAMESPACE_ID);
   const [updateList, { isLoading: isUpdating, error: updateError }] =
     useUpdateListMutation();
 
@@ -52,7 +51,7 @@ const EditListForm = ({ listId }: { listId: string }) => {
 
     await updateList({
       listId,
-      namespaceId,
+      namespaceId: NAMESPACE_ID,
       updatedList,
     });
     form.reset();

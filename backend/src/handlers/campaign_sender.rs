@@ -1,5 +1,4 @@
 use crate::error::AppError;
-use crate::servers::servers_services::{ServerService, ServerServiceTrait};
 use crate::{
     models::campaign_sender::{
         CampaignSenderRequest, CreateCampaignSenderRequest, CreateCampaignSenderResponse, DeleteCampaignSenderResponse,
@@ -9,8 +8,6 @@ use crate::{
     services::campaign_sender_service,
 };
 use axum::{extract::Path, http::StatusCode, Json};
-use serde::Deserialize;
-use utoipa::ToSchema;
 use uuid::Uuid;
 
 #[utoipa::path(
